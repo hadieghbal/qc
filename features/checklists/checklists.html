@@ -1,0 +1,157 @@
+<div id="checklists-page">
+  <style>
+    /* استایل‌های اختصاصی این صفحه */
+    .checklist-category {
+      margin-bottom: 20px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      background-color: #fff;
+    }
+    .category-header {
+      background-color: var(--light-color);
+      padding: 15px 20px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      font-size: 16px;
+      user-select: none;
+    }
+    .category-header:hover {
+      background-color: #e2e6ea;
+    }
+    .category-header .header-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .category-header .header-title i {
+      font-size: 20px;
+    }
+    .category-header i.bi-chevron-down {
+      transition: transform 0.3s ease;
+      font-size: 20px;
+    }
+    .category-header.active i.bi-chevron-down {
+      transform: rotate(180deg);
+    }
+    .category-content {
+      display: none;
+      padding: 15px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    /* ===== تغییرات اصلی اینجاست ===== */
+    .category-content .checklist-link {
+      display: block;
+      padding: 10px 15px; /* کمی پدینگ کمتر */
+      text-decoration: none;
+      color: var(--dark-color);
+      border-radius: var(--border-radius);
+      transition: background-color 0.2s;
+      font-weight: 500;
+      font-size: 14px; /* << فونت کوچکتر */
+    }
+    /* اضافه کردن نقطه (bullet) قبل از هر آیتم */
+    .category-content .checklist-link::before {
+      content: "•"; /* این همان نقطه است */
+      margin-left: 8px; /* فاصله نقطه از متن */
+      color: var(--primary-color);
+      font-weight: bold;
+    }
+    /* ================================== */
+
+    .category-content .checklist-link:hover {
+      background-color: #eaf2ff;
+    }
+    .category-content .checklist-link.disabled {
+      color: var(--secondary-color);
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    .category-content .checklist-link.disabled:hover {
+      background-color: transparent;
+    }
+  </style>
+
+  <div class="welcome-message" style="text-align: center; margin-bottom: 30px">
+    <h2>چک‌لیست‌های کنترلی</h2>
+    <p>لطفاً دسته‌بندی مورد نظر را باز کرده و چک‌لیست را انتخاب کنید.</p>
+  </div>
+
+  <!-- دسته بندی: تزریق -->
+  <div class="checklist-category">
+    <div class="category-header">
+      <span class="header-title">
+        <i
+          class="bi bi-gear-wide-connected"
+          style="color: var(--info-color)"
+        ></i>
+        <span>واحد تزریق</span>
+      </span>
+      <i class="bi bi-chevron-down"></i>
+    </div>
+    <div class="category-content">
+      <a href="#/checklist-injection" class="checklist-link">
+        کنترل حین فرآیند تزریق
+      </a>
+    </div>
+  </div>
+
+  <!-- دسته بندی: مواد ورودی -->
+  <div class="checklist-category">
+    <div class="category-header">
+      <span class="header-title">
+        <i
+          class="bi bi-box-arrow-in-down"
+          style="color: var(--success-color)"
+        ></i>
+        <span>کنترل مواد ورودی</span>
+      </span>
+      <i class="bi bi-chevron-down"></i>
+    </div>
+    <div class="category-content">
+      <a href="#" class="checklist-link disabled">
+        کنترل کیفی مواد اولیه (به زودی)
+      </a>
+    </div>
+  </div>
+
+  <!-- دسته بندی: حین تولید -->
+  <div class="checklist-category">
+    <div class="category-header">
+      <span class="header-title">
+        <i class="bi bi-tools" style="color: var(--purple-color)"></i>
+        <span>کنترل حین تولید</span>
+      </span>
+      <i class="bi bi-chevron-down"></i>
+    </div>
+    <div class="category-content">
+      <a href="#" class="checklist-link disabled">
+        چک‌لیست مونتاژ اولیه (به زودی)
+      </a>
+      <a href="#" class="checklist-link disabled">
+        چک‌لیست تست الکتریکال (به زودی)
+      </a>
+      <a href="#" class="checklist-link disabled"> چک‌لیست تست آب (به زودی) </a>
+    </div>
+  </div>
+
+  <!-- دسته بندی: خروجی -->
+  <div class="checklist-category">
+    <div class="category-header">
+      <span class="header-title">
+        <i class="bi bi-box-seam" style="color: var(--danger-color)"></i>
+        <span>کنترل نهایی و خروجی</span>
+      </span>
+      <i class="bi bi-chevron-down"></i>
+    </div>
+    <div class="category-content">
+      <a href="#" class="checklist-link disabled">
+        کنترل نهایی محصول (به زودی)
+      </a>
+    </div>
+  </div>
+</div>
