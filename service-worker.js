@@ -1,5 +1,5 @@
 // نام و نسخه جدید کش
-const CACHE_NAME = "qc-app-cache-v3";
+const CACHE_NAME = "qc-app-cache-v4";
 
 // لیست تمام فایل‌های ضروری برنامه با آدرس‌های اصلاح شده
 const FILES_TO_CACHE = [
