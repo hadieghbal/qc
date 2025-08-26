@@ -1,4 +1,4 @@
-// مسیر: js/pages/scrapForm.js
+// مسیر: features/scrap-form/scrap-form.js
 import { scrapFormData } from "./scrap-form-data.js";
 
 export function init() {
@@ -151,22 +151,23 @@ export function init() {
       .map((g) => `<option value="${g}">${g}</option>`)
       .join("");
     return `
-   <td>${tableBody.rows.length + 1}</td>
-   <td><input type="text" name="product_model"></td>
-   <td><select name="group">${groupOptionsHTML}</select></td>
-   <td><input type="number" name="item"></td>
-   <td><select name="part_name"></select></td>
-   <td><input type="number" name="total_count" value="0"></td>
-   <td><input type="number" name="supplier_injection" value="0"></td>
-   <td><input type="number" name="supplier_press" value="0"></td>
-   <td><input type="number" name="supplier_internal" value="0"></td>
-   <td><input type="number" name="supplier_external" value="0"></td>
-   <td><input type="number" name="source_packaging" value="0"></td>
-   <td><input type="number" name="source_warehouse" value="0"></td>
-   <td><input type="number" name="source_production" value="0"></td>
-   <td><input type="text" name="defects_summary" readonly></td>
-   <td><input type="text" name="comments"></td>
-   <td></td>`;
+    <td>${tableBody.rows.length + 1}</td>
+    <td><input type="text" name="product_model"></td>
+    <td><select name="group">${groupOptionsHTML}</select></td>
+    <td><input type="number" name="item"></td>
+    <td><select name="part_name"></select></td>
+    <td><input type="number" name="total_count" value="0"></td>
+    <td><input type="number" name="supplier_injection" value="0"></td>
+    <td><input type="number" name="supplier_press" value="0"></td>
+    <td><input type="number" name="supplier_internal" value="0"></td>
+    <td><input type="number" name="supplier_external" value="0"></td>
+    <td><input type="number" name="source_packaging" value="0"></td>
+    <td><input type="number" name="source_warehouse" value="0"></td>
+    <td><input type="number" name="source_production" value="0"></td>
+    <td><input type="text" name="defects_summary" readonly></td>
+    <td><input type="text" name="comments"></td>
+    <td><input type="hidden" name="timestamp"></td>
+    <td></td>`;
   }
 
   function addRow(fromMobileData) {
@@ -241,7 +242,6 @@ export function init() {
       '<i class="bi bi-check-circle-fill"></i> به‌روزرسانی قطعه';
     mobileForm.addBtn.style.backgroundColor = "var(--primary-color)";
 
-    // فراخوانی تابع برای آپدیت ظاهر دکمه‌ها
     updateDefectLegendsSelection();
 
     const mobileFormContainer = document.querySelector(
@@ -427,6 +427,7 @@ export function init() {
     downloadFile(csvContent, `${fileName}.csv`, "text/csv;charset=utf-8;");
   }
 
+  // <<< تغيير ۱: تابع خروجی تصویر برای نمایش ساعت و تعداد اصلاح شد
   async function exportToImage() {
     if (Object.keys(finalizedFormData).length === 0) {
       showToast("لطفا ابتدا فرم را ثبت نهایی کنید.", "warning");
@@ -434,117 +435,178 @@ export function init() {
     }
     const exportButton = pageElement.querySelector(".export-img-btn");
     toggleButtonLoading(exportButton, true, "در حال آماده سازی...");
-    const {
-      globalDate,
-      globalLine,
-      globalProductType,
-      wasteType,
-      approverControl,
-      approverLine,
-      approverEng,
-      tableData,
-    } = finalizedFormData;
-    const baseFileName = `گزارش ضایعات ${globalDate.replace(
+
+    const { tableData, ...globalInfo } = finalizedFormData;
+    const printContainer = document.querySelector(".print-page-container");
+
+    const PAGE_MAX_HEIGHT = 1058;
+    const PAGE_WIDTH = 718;
+
+    const baseFileName = `گزارش ضایعات ${globalInfo.globalDate.replace(
       /\//g,
       "."
-    )} - ${globalLine.replace(/\s/g, "_")} - ${globalProductType} - ${
-      wasteType === "برقی" ? "برقی" : "غیربرقی"
-    }`;
-    const itemsPerPage = 10;
-    const totalPages = Math.ceil(tableData.length / itemsPerPage);
-    const dataChunks = [];
-    for (let i = 0; i < tableData.length; i += itemsPerPage) {
-      dataChunks.push(tableData.slice(i, i + itemsPerPage));
-    }
-    for (let i = 0; i < dataChunks.length; i++) {
-      const chunk = dataChunks[i];
-      const currentPage = i + 1;
-      const pageContainer = document.querySelector(".print-page-container");
-      pageContainer.style.display = "flex";
-      try {
-        const wasteTypeText = document
-          .querySelector(`input[name="waste_type"][value="${wasteType}"]`)
-          .parentElement.textContent.trim();
-        const originalHeaderClone = document
-          .getElementById("main-header")
-          .cloneNode(true);
-        originalHeaderClone.querySelector(".page-menu")?.remove();
-        originalHeaderClone.querySelector(".back-button")?.remove();
-        let itemsHTML = "";
-        chunk.forEach((data, index) => {
-          const itemIndexInTotal = i * itemsPerPage + index + 1;
-          let detailsFinalHTML = "";
-          if (data.product_model)
-            detailsFinalHTML += `<span><i class="bi bi-textarea-t icon-model"></i> مدل: ${data.product_model}</span>`;
-          if (data.group)
-            detailsFinalHTML += `<span><i class="bi bi-collection icon-group"></i> گروه: ${data.group}</span>`;
-          if (data.item)
-            detailsFinalHTML += `<span><i class="bi bi-tags icon-item"></i> آیتم: ${data.item}</span>`;
-          const supplierParts = [];
-          if (data.supplier_injection > 0)
-            supplierParts.push(`تزریق: ${data.supplier_injection}`);
-          if (data.supplier_press > 0)
-            supplierParts.push(`پرسکاری: ${data.supplier_press}`);
-          if (data.supplier_internal > 0)
-            supplierParts.push(`داخلی: ${data.supplier_internal}`);
-          if (data.supplier_external > 0)
-            supplierParts.push(`خارجی: ${data.supplier_external}`);
-          if (supplierParts.length > 0)
-            detailsFinalHTML += `<span><i class="bi bi-house-down icon-supplier"></i> ${supplierParts.join(
-              " | "
-            )}</span>`;
-          const sourceParts = [];
-          if (data.source_packaging > 0)
-            sourceParts.push(`بسته‌بندی: ${data.source_packaging}`);
-          if (data.source_warehouse > 0)
-            sourceParts.push(`انبار: ${data.source_warehouse}`);
-          if (data.source_production > 0)
-            sourceParts.push(`حین تولید: ${data.source_production}`);
-          if (sourceParts.length > 0)
-            detailsFinalHTML += `<span><i class="bi bi-graph-down-arrow icon-source"></i> ${sourceParts.join(
-              " | "
-            )}</span>`;
-          if (data.defects_summary)
-            detailsFinalHTML += `<span><i class="bi bi-card-text icon-defect"></i> ${data.defects_summary}</span>`;
-          if (data.comments)
-            detailsFinalHTML += `<span><i class="bi bi-chat-left-text"></i> ${data.comments}</span>`;
-          itemsHTML += `<div class="export-item-card"><div class="export-item-header"><h2 class="export-item-title">${itemIndexInTotal}. ${data.part_name}</h2><span class="export-item-count">تعداد: ${data.total_count}</span></div><div class="export-item-details">${detailsFinalHTML}</div></div>`;
-        });
-        let approvalHTML = "";
-        if (approverControl || approverLine || approverEng) {
-          approvalHTML = `<div class="approvers-container"><h4></h4><div class="approver-group"><label>1. نماینده کنترل:</label><span class="approver-group-name">${
-            approverControl || " "
-          }</span></div><div class="approver-group"><label>2. نماینده تولید:</label><span class="approver-group-name">${
-            approverLine || " "
-          }</span></div><div class="approver-group"><label>3. نماینده فنی و مهندسی:</label><span class="approver-group-name">${
-            approverEng || " "
-          }</span></div></div>`;
+    )} - ${globalInfo.globalLine}`;
+
+    const buildFullPageHTML = (itemsHTML, currentPage, totalPages) => {
+      const originalHeaderClone = document
+        .getElementById("main-header")
+        .cloneNode(true);
+      const approvalHTML = `<div class="approvers-container"><div class="approver-group"><label>1. نماینده کنترل:</label><span class="approver-group-name">${globalInfo.approverControl}</span></div><div class="approver-group"><label>2. نماینده تولید:</label><span class="approver-group-name">${globalInfo.approverLine}</span></div><div class="approver-group"><label>3. نماینده فنی و مهندسی:</label><span class="approver-group-name">${globalInfo.approverEng}</span></div></div>`;
+      const topInfoHTML = `<div class="export-top-info"><div><strong>تاریخ:</strong> ${globalInfo.globalDate}</div><div><strong>خط:</strong> ${globalInfo.globalLine}</div><div><strong>نوع محصول:</strong> ${globalInfo.globalProductType}</div><div><strong>نوع ضایعات:</strong> ${globalInfo.wasteType}</div></div>`;
+      const pageFooterHTML = `<footer>صفحه ${currentPage} از ${totalPages}</footer>`;
+      const footerGroupHTML = `<div class="print-footer-group">${approvalHTML}${pageFooterHTML}</div>`;
+
+      return `${originalHeaderClone.outerHTML}${topInfoHTML}<div class="export-items-list">${itemsHTML}</div>${footerGroupHTML}`;
+    };
+
+    const createItemCardHTML = (item, index) => {
+      const headerHTML = `
+      <div class="summary-card-header">
+        <h2 class="summary-card-title">${index + 1}. ${item.part_name}</h2>
+        <div class="summary-card-meta" style="display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--secondary-color);">
+            <span class="summary-timestamp" style="display: flex; align-items: center; gap: 4px;">
+                <i class="bi bi-clock"></i>
+                ${item.timestamp || ""}
+            </span>
+            <span class="summary-card-count count-highlight">تعداد: ${
+              item.total_count
+            }</span>
+        </div>
+      </div>`;
+
+      let detailsHTML = "";
+      if (item.product_model)
+        detailsHTML += `<span><i class="bi bi-textarea-t icon-model"></i> مدل: ${item.product_model}</span>`;
+      if (item.group)
+        detailsHTML += `<span><i class="bi bi-collection icon-group"></i> گروه: ${item.group}</span>`;
+      if (item.item)
+        detailsHTML += `<span><i class="bi bi-tags icon-item"></i> آیتم: ${item.item}</span>`;
+
+      const supplierParts = [];
+      if (item.supplier_injection > 0)
+        supplierParts.push(`تزریق: ${item.supplier_injection}`);
+      if (item.supplier_press > 0)
+        supplierParts.push(`پرسکاری: ${item.supplier_press}`);
+      if (item.supplier_internal > 0)
+        supplierParts.push(`داخلی: ${item.supplier_internal}`);
+      if (item.supplier_external > 0)
+        supplierParts.push(`خارجی: ${item.supplier_external}`);
+      if (supplierParts.length > 0)
+        detailsHTML += `<span><i class="bi bi-house-down icon-supplier"></i> تامین: ${supplierParts.join(
+          " | "
+        )}</span>`;
+
+      const sourceParts = [];
+      if (item.source_packaging > 0)
+        sourceParts.push(`بسته‌بندی: ${item.source_packaging}`);
+      if (item.source_warehouse > 0)
+        sourceParts.push(`انبار: ${item.source_warehouse}`);
+      if (item.source_production > 0)
+        sourceParts.push(`حین تولید: ${item.source_production}`);
+      if (sourceParts.length > 0)
+        detailsHTML += `<span><i class="bi bi-graph-down-arrow icon-source"></i> منشا: ${sourceParts.join(
+          " | "
+        )}</span>`;
+
+      const processInfoHTML = `<div class="card-details-row">${detailsHTML}</div>`;
+
+      const defectsAndNotesHTML =
+        item.defects_summary || item.comments
+          ? `
+      <div class="card-details-row notes-row">
+        ${
+          item.defects_summary
+            ? `<span><i class="bi bi-card-text icon-defect"></i> ${item.defects_summary}</span>`
+            : ""
         }
-        const pageFooterHTML = `<footer>صفحه ${currentPage} از ${totalPages}</footer>`;
-        const pageContentHTML = `${originalHeaderClone.outerHTML}<div class="export-top-info"><div><strong>تاریخ :</strong> ${globalDate}</div><div><strong>خط :</strong> ${globalLine}</div><div><strong>نوع محصول :</strong> ${globalProductType}</div><div><strong>نوع ضایعات :</strong> ${wasteTypeText}</div></div><div class="export-items-list">${itemsHTML}</div>${approvalHTML}${pageFooterHTML}`;
-        pageContainer.innerHTML = pageContentHTML;
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        const canvas = await html2canvas(pageContainer, {
+        ${
+          item.comments
+            ? `<span><i class="bi bi-chat-left-text"></i> ${item.comments}</span>`
+            : ""
+        }
+      </div>`
+          : "";
+
+      return `
+      <div class="summary-card-item">
+        ${headerHTML}
+        <div class="summary-card-details">
+          ${processInfoHTML}
+          ${defectsAndNotesHTML}
+        </div>
+      </div>`;
+    };
+
+    const pages = [];
+    let currentPageItemsHTML = "";
+    const allItemCardsHTML = tableData.map(createItemCardHTML);
+
+    printContainer.style.visibility = "hidden";
+    printContainer.style.display = "flex";
+    printContainer.style.height = "auto";
+
+    for (const itemHTML of allItemCardsHTML) {
+      const potentialHTML = currentPageItemsHTML + itemHTML;
+      printContainer.innerHTML = buildFullPageHTML(potentialHTML, 1, 1);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      if (
+        printContainer.scrollHeight > PAGE_MAX_HEIGHT &&
+        currentPageItemsHTML !== ""
+      ) {
+        pages.push(currentPageItemsHTML);
+        currentPageItemsHTML = itemHTML;
+      } else {
+        currentPageItemsHTML = potentialHTML;
+      }
+    }
+    if (currentPageItemsHTML !== "") {
+      pages.push(currentPageItemsHTML);
+    }
+
+    printContainer.style.height = "";
+
+    const totalPages = pages.length;
+    for (let i = 0; i < totalPages; i++) {
+      const pageItemsHTML = pages[i];
+      const currentPage = i + 1;
+      printContainer.innerHTML = buildFullPageHTML(
+        pageItemsHTML,
+        currentPage,
+        totalPages
+      );
+      printContainer.style.visibility = "visible";
+
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        const canvas = await html2canvas(printContainer, {
           useCORS: true,
           scale: 2,
-          backgroundColor: "#ffffff",
+          width: PAGE_WIDTH,
+          height: PAGE_MAX_HEIGHT,
+          windowWidth: printContainer.scrollWidth,
+          windowHeight: printContainer.scrollHeight,
         });
+
         const fileName =
           totalPages > 1
             ? `${baseFileName} (صفحه ${currentPage} از ${totalPages}).png`
             : `${baseFileName}.png`;
+
         downloadFile(canvas.toDataURL("image/png"), fileName);
+        if (totalPages > 1)
+          await new Promise((resolve) => setTimeout(resolve, 300));
       } catch (err) {
         console.error(`خطا در ایجاد تصویر صفحه ${currentPage}:`, err);
-        showToast(
-          `متاسفانه در ایجاد خروجی تصویر صفحه ${currentPage} خطایی رخ داد.`,
-          "error"
-        );
+        showToast(`خطا در ایجاد خروجی تصویر.`, "error");
       } finally {
-        pageContainer.style.display = "none";
-        pageContainer.innerHTML = "";
+        printContainer.style.visibility = "hidden";
       }
     }
+
+    printContainer.style.display = "none";
+    printContainer.innerHTML = "";
     toggleButtonLoading(
       exportButton,
       false,
@@ -552,6 +614,7 @@ export function init() {
     );
   }
 
+  // <<< تغيير ۲: تابع نمایش کارت‌های خلاصه برای نمایش ساعت و تعداد کنار دکمه‌ها اصلاح شد
   function updateMobileSummary() {
     mobileForm.summaryList.innerHTML = "";
     tableBody.querySelectorAll("tr").forEach((row, index) => {
@@ -599,13 +662,25 @@ export function init() {
         detailsHTML += `<span><i class="bi bi-card-text icon-defect"></i> ${data.defects_summary}</span>`;
       if (data.comments)
         detailsHTML += `<span><i class="bi bi-chat-left-text"></i> ${data.comments}</span>`;
-      const mainRowHTML = ` <div class="summary-main-row" style="grid-template-columns: 1fr auto auto;"> <span class="summary-text">${
-        index + 1
-      }. ${
-        data.part_name
-      }</span> <div class="summary-actions"> <button type="button" class="summary-edit-btn" title="ویرایش"><i class="bi bi-pencil-square"></i></button> <button type="button" class="summary-delete-btn" title="حذف"><i class="bi bi-trash3-fill"></i></button> </div> <span class="summary-count">تعداد: ${
-        data.total_count
-      }</span> </div>`;
+
+      const mainRowHTML = `
+      <div class="summary-main-row" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <span class="summary-text" style="font-weight: bold; flex-grow: 1;">${
+          index + 1
+        }. ${data.part_name}</span>
+        <div class="summary-controls" style="display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--secondary-color);">
+            <span class="summary-timestamp" style="display: flex; align-items: center; gap: 4px;">
+                <i class="bi bi-clock"></i>
+                ${data.timestamp || ""}
+            </span>
+            <span class="summary-count">تعداد: ${data.total_count}</span>
+            <div class="summary-actions" style="display: flex; gap: 0;">
+                <button type="button" class="summary-edit-btn" title="ویرایش"><i class="bi bi-pencil-square"></i></button>
+                <button type="button" class="summary-delete-btn" title="حذف"><i class="bi bi-trash3-fill"></i></button>
+            </div>
+        </div>
+      </div>`;
+
       li.innerHTML = `${mainRowHTML}<div class="summary-details">${detailsHTML}</div>`;
       mobileForm.summaryList.appendChild(li);
     });
@@ -653,10 +728,7 @@ export function init() {
     mobileForm.addBtn.innerHTML =
       '<i class="bi bi-check-circle-fill"></i> ثبت و افزودن به لیست';
     mobileForm.addBtn.style.backgroundColor = "var(--success-color)";
-
-    // فراخوانی تابع برای آپدیت ظاهر دکمه‌ها
     updateDefectLegendsSelection();
-
     if (focusOnPartName && window.innerWidth < 992) {
       mobilePartNameChoice.showDropdown();
     }
@@ -824,7 +896,6 @@ export function init() {
       if (container) container.classList.remove("required-field-error");
     }
 
-    // فراخوانی تابع برای آپدیت ظاهر دکمه‌ها
     updateDefectLegendsSelection();
   }
 
@@ -966,6 +1037,13 @@ export function init() {
         }
         return;
       }
+
+      const now = new Date();
+      const timeString = `${now.getHours().toString().padStart(2, "0")}:${now
+        .getMinutes()
+        .toString()
+        .padStart(2, "0")}`;
+
       const mobileData = {
         product_model: mobileForm.productModel.value,
         group: mobileForm.group.value,
@@ -981,6 +1059,7 @@ export function init() {
         source_production: mobileForm.sourceProduction.value,
         defects_summary: mobileForm.defectsSummary.value,
         comments: mobileForm.comments.value,
+        timestamp: timeString,
       };
       const status = getValidationStatus(mobileData);
       if (!status.isValid) {
