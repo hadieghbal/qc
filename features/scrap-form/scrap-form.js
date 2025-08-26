@@ -82,7 +82,7 @@ export function init() {
       text: message,
       duration: 4000,
       close: true,
-      gravity: "bottom",
+      gravity: "top",
       position: "center",
       stopOnFocus: true,
       style: { background: colors[type] || colors.info },
@@ -1169,3 +1169,4 @@ export function init() {
   });
   window.activeFormResetter = resetFormWithConfirmation;
 }
+
