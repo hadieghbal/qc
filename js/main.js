@@ -208,8 +208,7 @@ async function loadPage(path) {
     }
     loadPageCSS(route.css);
 
-    // این خط کد، منطق آکاردئون را برای صفحه جدید فعال می‌کند
-    setupAccordionHandlers();
+    // ... کد از اینجا حذف شد
 
     if (typeof route.init === "function") {
       setTimeout(() => {
@@ -241,4 +240,5 @@ window.addEventListener("hashchange", handleRouteChange);
 window.addEventListener("load", () => {
   handleRouteChange();
   setupGlobalMenuHandler();
+  setupAccordionHandlers(); // <<< این خط به اینجا منتقل شد
 });
