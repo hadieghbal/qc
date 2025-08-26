@@ -1,0 +1,223 @@
+/* ============================================= */
+/* ===== PAGE SPECIFIC: SCRAP FORM ============= */
+/* ============================================= */
+
+/* --- Radio button selector for waste type --- */
+.waste-type-selector {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+}
+.waste-type-selector label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+/* --- Table specific styles --- */
+table {
+  min-width: 1600px;
+}
+th[data-target-name] {
+  cursor: pointer;
+  background-color: #fffae6;
+}
+th[data-target-name]:hover {
+  background-color: #ffeeb3;
+}
+.form-locked th[data-target-name] {
+  cursor: not-allowed;
+}
+tbody tr.active-row {
+  background-color: #d1e7dd !important;
+}
+tbody tr.invalid-row {
+  background-color: #f8d7da !important;
+}
+
+/* --- Mobile form specific styles --- */
+.mobile-form-container {
+  box-shadow: var(--shadow);
+}
+.counter-input-group {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: stretch;
+  overflow: hidden;
+  background-color: #fff;
+}
+.counter-input-group input[type="number"] {
+  grid-column: 2;
+  border: none;
+  border-left: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  background-color: transparent;
+  text-align: center;
+  font-weight: 700;
+  font-size: 16px;
+  padding: 0 5px;
+  -moz-appearance: textfield;
+  min-width: 0;
+}
+.counter-input-group input::-webkit-outer-spin-button,
+.counter-input-group input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.counter-btn {
+  border: none;
+  background-color: transparent;
+  color: var(--primary-color);
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.counter-btn:hover:not(:disabled) {
+  background-color: #eaf2ff;
+}
+.counter-btn:active:not(:disabled) {
+  background-color: #d1e7dd;
+  color: var(--success-color);
+}
+.accordion-header {
+  background-color: var(--light-color);
+  border: 1px solid var(--border-color);
+  padding: 12px 15px;
+  cursor: pointer;
+  border-radius: var(--border-radius);
+  font-weight: 700;
+  margin-top: 10px;
+  position: relative;
+  transition: background-color 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.accordion-header:hover {
+  background-color: #e2e6ea;
+}
+.accordion-header i {
+  font-size: 16px;
+  transition: transform 0.3s ease;
+}
+.accordion-header.active i {
+  transform: rotate(180deg);
+}
+.accordion-content {
+  display: none;
+  padding: 15px;
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+  flex-direction: column;
+  gap: 15px;
+  background-color: #fff;
+}
+
+/* ============================================= */
+/* ===== بخش جدید: استایل‌های خروجی تصویر ===== */
+/* ============================================= */
+
+.print-page-container .summary-card-item {
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-right: 4px solid var(--primary-color);
+  border-radius: var(--border-radius);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background-color: #fff;
+}
+.print-page-container .summary-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+.print-page-container .summary-card-title {
+  font-size: 15px;
+  font-weight: bold;
+  color: var(--primary-color);
+  margin: 0;
+}
+.print-page-container .summary-card-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--secondary-color);
+  white-space: nowrap;
+}
+/* <<< تغيير ۱: استایل برای قرمز شدن تعداد در خروجی تصویر اضافه شد */
+.print-page-container .count-highlight {
+  color: var(--danger-color);
+  font-weight: bold;
+}
+.print-page-container .summary-card-details {
+  font-size: 11px;
+  color: var(--secondary-color);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 4px;
+  margin-top: 4px;
+  border-top: 1px solid #eee;
+}
+.print-page-container .card-details-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 1px 0;
+}
+.print-page-container .card-details-row span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.print-page-container .card-details-row i {
+  font-size: 12px;
+}
+.print-page-container .card-details-row.notes-row {
+  background-color: #f8f9fa;
+  padding: 4px 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+}
+
+/* ======================================================== */
+/* ===== بخش جدید: رنگی کردن آیکون‌ها (هم زنده و هم خروجی) ===== */
+/* ======================================================== */
+
+.summary-details .icon-model,
+.print-page-container .icon-model {
+  color: var(--icon-model-color);
+}
+.summary-details .icon-group,
+.print-page-container .icon-group {
+  color: var(--icon-group-color);
+}
+.summary-details .icon-item,
+.print-page-container .icon-item {
+  color: var(--icon-item-color);
+}
+.summary-details .icon-supplier,
+.print-page-container .icon-supplier {
+  color: var(--icon-supplier-color);
+}
+.summary-details .icon-source,
+.print-page-container .icon-source {
+  color: var(--icon-source-color);
+}
+.summary-details .icon-defect,
+.print-page-container .icon-defect {
+  color: var(--icon-defect-color);
+}
+.summary-details .bi-chat-left-text,
+.print-page-container .bi-chat-left-text {
+  color: var(--icon-comment-color);
+}
