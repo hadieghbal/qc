@@ -1,0 +1,123 @@
+<!-- 
+  این یک "قطعه" HTML است. نیازی به تگ‌های <html>، <head> یا <body> ندارد.
+  این محتوا مستقیماً توسط main.js در <main id="page-container"> تزریق می‌شود.
+-->
+<div id="home-page">
+  <style>
+    /* 
+         استایل‌های مختص همین صفحه را می‌توان مستقیم اینجا نوشت
+         تا مدیریت آن ساده‌تر باشد. این استایل‌ها فقط زمانی بارگذاری
+         می‌شوند که این صفحه نمایش داده شود.
+        */
+    #home-page {
+      text-align: center;
+    }
+
+    .welcome-message {
+      margin: 20px 0 40px;
+    }
+
+    .welcome-message h2 {
+      font-size: 28px;
+      color: var(--primary-color);
+      margin-bottom: 8px;
+    }
+
+    .welcome-message p {
+      font-size: 16px;
+      color: var(--secondary-color);
+    }
+
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .nav-card {
+      background-color: var(--form-bg-color);
+      padding: 25px;
+      border-radius: var(--border-radius);
+      border: 1px solid var(--border-color);
+      text-decoration: none;
+      color: var(--dark-color);
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .nav-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow);
+      border-color: var(--primary-color);
+    }
+
+    .nav-card i {
+      font-size: 48px;
+      color: var(--primary-color);
+    }
+
+    .nav-card h3 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .nav-card p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--secondary-color);
+    }
+
+    .nav-card.disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background-color: var(--light-color);
+    }
+
+    .nav-card.disabled:hover {
+      transform: none;
+      box-shadow: none;
+      border-color: var(--border-color);
+    }
+  </style>
+
+  <div class="welcome-message">
+    <p>لطفاً فرم مورد نظر خود را برای شروع انتخاب کنید.</p>
+  </div>
+
+  <div class="nav-grid">
+    <!-- کارت فرم ضایعات (موجود بود) -->
+    <a href="#/scrap-form" class="nav-card">
+      <i class="bi bi-clipboard2-x"></i>
+      <h3>فرم ضایعات</h3>
+      <p>ثبت گزارش روزانه ضایعات خطوط تولید</p>
+    </a>
+
+    <!-- کارت چک‌لیست‌ها (موجود بود) -->
+    <a href="#/checklists" class="nav-card">
+      <i class="bi bi-list-check"></i>
+      <h3>چک‌لیست‌ها</h3>
+      <p>مجموعه چک‌لیست‌های کنترلی</p>
+    </a>
+
+    <!-- کارت فرم عدم انطباق (موجود بود) -->
+    <a href="#" class="nav-card disabled">
+      <i class="bi bi-file-earmark-excel"></i>
+      <h3>فرم عدم انطباق</h3>
+      <p>ثبت موارد عدم انطباق کیفی (به زودی)</p>
+    </a>
+
+    <!-- ===== کارت جدید: اقدام اصلاحی ===== -->
+    <a href="#" class="nav-card disabled">
+      <i class="bi bi-check2-circle"></i>
+      <h3>اقدام اصلاحی</h3>
+      <p>ثبت و پیگیری اقدامات اصلاحی و پیشگیرانه (به زودی)</p>
+    </a>
+    <!-- ================================== -->
+  </div>
+</div>
+
+<!-- در انتهای فایل pages/home.html -->
+<footer class="designer-credit">Designed by HRE</footer>

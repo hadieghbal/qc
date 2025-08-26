@@ -1,0 +1,338 @@
+<div id="scrap-form-page">
+  <style>
+    /* این کد باعث می‌شه فرم اصلی همیشه نمایش داده بشه */
+    #mobile-form-wrapper {
+      display: block !important;
+    }
+    /* دکمه "افزودن ردیف" حذف شده، پس بقیه دکمه‌ها رو وسط‌چین می‌کنیم */
+    .actions-container {
+      justify-content: center;
+    }
+  </style>
+
+  <div class="top-controls">
+    <div class="form-meta">
+      <label for="jalali_date">تاریخ :</label>
+      <input type="text" id="jalali_date" name="date" autocomplete="off" />
+    </div>
+    <div class="form-meta">
+      <label for="line">خط :</label>
+      <select id="line" name="line"></select>
+    </div>
+    <div class="form-meta">
+      <label for="product_type">نوع محصول :</label>
+      <select id="product_type" name="product_type"></select>
+    </div>
+    <div class="form-meta waste-type-selector">
+      <label>
+        <input type="radio" name="waste_type" value="برقی" /> ضایعات برقی
+      </label>
+      <label>
+        <input type="radio" name="waste_type" value="غیربرقی" checked /> ضایعات
+        غیربرقی
+      </label>
+    </div>
+  </div>
+
+  <table style="display: none">
+    <tbody id="main-table-body"></tbody>
+  </table>
+
+  <div id="mobile-form-wrapper">
+    <div class="mobile-form-container">
+      <h3><i class="bi bi-plus-circle-dotted"></i> ثبت یا ویرایش قطعه</h3>
+      <div class="accordion-header active">
+        اطلاعات قطعه <i class="bi bi-chevron-down"></i>
+      </div>
+      <div class="accordion-content" style="display: flex">
+        <div class="mobile-form-group">
+          <label for="mobile-part-name">نام قطعه:</label>
+          <select id="mobile-part-name" data-required-name="نام قطعه"></select>
+        </div>
+        <div class="mobile-form-group">
+          <label for="mobile-total-count">تعداد کل:</label>
+          <div class="counter-input-group">
+            <button
+              type="button"
+              class="counter-btn plus-btn"
+              data-target="mobile-total-count"
+            >
+              +
+            </button>
+            <input
+              type="number"
+              id="mobile-total-count"
+              value="1"
+              min="1"
+              data-required-name="تعداد کل"
+            />
+            <button
+              type="button"
+              class="counter-btn minus-btn"
+              data-target="mobile-total-count"
+            >
+              −
+            </button>
+          </div>
+        </div>
+        <div class="mobile-form-group">
+          <label for="mobile-product-model">مدل محصول:</label>
+          <input
+            type="text"
+            id="mobile-product-model"
+            data-required-name="مدل محصول"
+          />
+        </div>
+        <div class="mobile-form-group">
+          <label for="mobile-group">گروه:</label>
+          <select id="mobile-group" data-required-name="گروه"></select>
+        </div>
+        <div class="mobile-form-group">
+          <label for="mobile-item">آیتم:</label>
+          <input type="number" id="mobile-item" data-required-name="آیتم" />
+        </div>
+      </div>
+      <div class="accordion-header">
+        جزئیات تامین کننده <i class="bi bi-chevron-down"></i>
+      </div>
+      <div class="accordion-content">
+        <div class="mobile-form-group">
+          <label for="mobile-supplier-injection">تزریق:</label>
+          <div class="counter-input-group">
+            <button
+              type="button"
+              class="counter-btn plus-btn"
+              data-target="mobile-supplier-injection"
+            >
+              +
+            </button>
+            <input
+              type="number"
+              id="mobile-supplier-injection"
+              value="0"
+              min="0"
+            />
+            <button
+              type="button"
+              class="counter-btn minus-btn"
+              data-target="mobile-supplier-injection"
+            >
+              −
+            </button>
+          </div>
+        </div>
+        <div class="mobile-form-group">
+          <label for="mobile-supplier-press">پرسکاری:</label>
+          <div class="counter-input-group">
+            <button
+              type="button"
+              class="counter-btn plus-btn"
+              data-target="mobile-supplier-press"
+            >
+              +
+            </button>
+            <input type="number" id="mobile-supplier-press" value="0" min="0" />
+            <button
+              type="button"
+              class="counter-btn minus-btn"
+              data-target="mobile-supplier-press"
+            >
+              −
+            </button>
+          </div>
+        </div>
+        <div class="mobile-form-group">
+          <label for="mobile-supplier-internal">داخلی:</label>
+          <div class="counter-input-group">
+            <button
+              type="button"
+              class="counter-btn plus-btn"
+              data-target="mobile-supplier-internal"
+            >
+              +
+            </button>
+            <input
+              type="number"
+              id="mobile-supplier-internal"
+              value="0"
+              min="0"
+            />
+            <button
+              type="button"
+              class="counter-btn minus-btn"
+              data-target="mobile-supplier-internal"
+            >
+              −
+            </button>
+          </div>
+        </div>
+        <div class="mobile-form-group">
+          <label for="mobile-supplier-external">خارجی:</label>
+          <div class="counter-input-group">
+            <button
+              type="button"
+              class="counter-btn plus-btn"
+              data-target="mobile-supplier-external"
+            >
+              +
+            </button>
+            <input
+              type="number"
+              id="mobile-supplier-external"
+              value="0"
+              min="0"
+            />
+            <button
+              type="button"
+              class="counter-btn minus-btn"
+              data-target="mobile-supplier-external"
+            >
+              −
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-header">
+        منشا ضایعات <i class="bi bi-chevron-down"></i>
+      </div>
+      <div class="accordion-content">
+        <div class="mobile-form-group">
+          <label for="mobile-source-packaging">بسته بندی:</label>
+          <div class="counter-input-group">
+            <button
+              type="button"
+              class="counter-btn plus-btn"
+              data-target="mobile-source-packaging"
+            >
+              +
+            </button>
+            <input
+              type="number"
+              id="mobile-source-packaging"
+              value="0"
+              min="0"
+            />
+            <button
+              type="button"
+              class="counter-btn minus-btn"
+              data-target="mobile-source-packaging"
+            >
+              −
+            </button>
+          </div>
+        </div>
+        <div class="mobile-form-group">
+          <label for="mobile-source-warehouse">انبار:</label>
+          <div class="counter-input-group">
+            <button
+              type="button"
+              class="counter-btn plus-btn"
+              data-target="mobile-source-warehouse"
+            >
+              +
+            </button>
+            <input
+              type="number"
+              id="mobile-source-warehouse"
+              value="0"
+              min="0"
+            />
+            <button
+              type="button"
+              class="counter-btn minus-btn"
+              data-target="mobile-source-warehouse"
+            >
+              −
+            </button>
+          </div>
+        </div>
+        <div class="mobile-form-group">
+          <label for="mobile-source-production">حین تولید:</label>
+          <div class="counter-input-group">
+            <button
+              type="button"
+              class="counter-btn plus-btn"
+              data-target="mobile-source-production"
+            >
+              +
+            </button>
+            <input
+              type="number"
+              id="mobile-source-production"
+              value="0"
+              min="0"
+            />
+            <button
+              type="button"
+              class="counter-btn minus-btn"
+              data-target="mobile-source-production"
+            >
+              −
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-header">
+        شرح نقص و توضیحات <i class="bi bi-chevron-down"></i>
+      </div>
+      <div class="accordion-content">
+        <div class="mobile-form-group">
+          <label for="mobile-defects-summary">شرح ضایعات:</label>
+          <input
+            type="text"
+            id="mobile-defects-summary"
+            readonly
+            placeholder="با کلیک روی موارد پایین اضافه کنید"
+            data-required-name="شرح ضایعات"
+          />
+        </div>
+        <div class="legends" id="legends-container">
+          <h4>برای ثبت نقص (کلیک راست یا لمس طولانی برای کاهش):</h4>
+          <ul class="compact-legend-list" id="legends-list"></ul>
+        </div>
+        <div class="mobile-form-group">
+          <label for="mobile-comments">توضیحات:</label>
+          <input type="text" id="mobile-comments" />
+        </div>
+      </div>
+      <button type="button" id="mobile-add-btn" class="action-btn">
+        <i class="bi bi-check-circle-fill"></i> ثبت و افزودن به لیست
+      </button>
+    </div>
+    <ul id="mobile-summary-list"></ul>
+  </div>
+
+  <div class="approvers-container">
+    <h4><i class="bi bi-patch-check-fill"></i> تایید کنندگان نهایی</h4>
+    <div class="approver-group">
+      <label for="approver-control">1. نماینده کنترل:</label>
+      <input type="text" id="approver-control" />
+    </div>
+    <div class="approver-group">
+      <label for="approver-line">2. نماینده تولید:</label>
+      <input type="text" id="approver-line" />
+    </div>
+    <div class="approver-group">
+      <label for="approver-eng">3. نماینده فنی و مهندسی:</label>
+      <input type="text" id="approver-eng" />
+    </div>
+  </div>
+
+  <div class="actions-container">
+    <button type="button" class="action-btn finalize-btn">
+      <i class="bi bi-check2-circle"></i> ثبت نهایی فرم
+    </button>
+    <button type="button" class="action-btn export-btn" style="display: none">
+      <i class="bi bi-file-earmark-spreadsheet-fill"></i> خروجی CSV
+    </button>
+    <button
+      type="button"
+      class="action-btn export-img-btn"
+      style="display: none"
+    >
+      <i class="bi bi-camera-fill"></i> خروجی تصویر فرم
+    </button>
+  </div>
+
+  <div class="print-page-container"></div>
+</div>
