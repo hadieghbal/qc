@@ -1073,15 +1073,7 @@ export function init() {
     });
   }
   productTypeSelect.addEventListener("change", updateAllPartNameDropdowns);
-  document.querySelectorAll(".accordion-header").forEach((header) => {
-    header.addEventListener("click", () => {
-      if (pageElement.classList.contains("form-locked")) return;
-      header.classList.toggle("active");
-      const content = header.nextElementSibling;
-      content.style.display =
-        content.style.display === "flex" ? "none" : "flex";
-    });
-  });
+
   [
     "jalali_date",
     "line",
