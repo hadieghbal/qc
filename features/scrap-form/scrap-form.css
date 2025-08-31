@@ -2,19 +2,7 @@
 /* ===== PAGE SPECIFIC: SCRAP FORM ============= */
 /* ============================================= */
 
-/* --- Radio button selector for waste type --- */
-.waste-type-selector {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
-  align-items: center;
-}
-.waste-type-selector label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  cursor: pointer;
-}
+/* - حذف شد: استایل برای دکمه‌های رادیویی دیگر نیاز نیست */
 
 /* --- Table specific styles --- */
 table {
@@ -120,6 +108,14 @@ tbody tr.invalid-row {
   background-color: #fff;
 }
 
+/* + اضافه شد: استایل برای نمایش نوع محصول در کارت خلاصه */
+.summary-text .summary-product-type {
+  font-weight: 500;
+  color: var(--secondary-color);
+  font-size: 0.9em;
+  margin-right: 5px;
+}
+
 /* ============================================= */
 /* ===== بخش جدید: استایل‌های خروجی تصویر ===== */
 /* ============================================= */
@@ -152,7 +148,6 @@ tbody tr.invalid-row {
   color: var(--secondary-color);
   white-space: nowrap;
 }
-/* <<< تغيير ۱: استایل برای قرمز شدن تعداد در خروجی تصویر اضافه شد */
 .print-page-container .count-highlight {
   color: var(--danger-color);
   font-weight: bold;
@@ -193,6 +188,10 @@ tbody tr.invalid-row {
 /* ===== بخش جدید: رنگی کردن آیکون‌ها (هم زنده و هم خروجی) ===== */
 /* ======================================================== */
 
+.summary-details .icon-product-type,
+.print-page-container .icon-product-type {
+  color: #20c997; /* رنگ سبزآبی */
+}
 .summary-details .icon-model,
 .print-page-container .icon-model {
   color: var(--icon-model-color);

@@ -2,25 +2,26 @@
 import { scrapFormData } from "./scrap-form-data.js";
 
 export function init() {
-  console.log("Scrap Form Initialized! (Mobile-Only)");
+  console.log(
+    "Scrap Form Initialized! (Mobile-Only with Per-Item Product Type v3)"
+  );
   // --- تعریف متغیرهای اصلی ---
   const Swal = window.Swal,
     Toastify = window.Toastify,
     Choices = window.Choices,
-    html2canvas = window.html2canvas,
-    jdp = window.jdp;
+    html2canvas = window.html2canvas;
 
   const pageElement = document.getElementById("scrap-form-page");
   const tableBody = document.getElementById("main-table-body");
-  const productTypeSelect = document.getElementById("product_type");
   const legendsContainer = document.getElementById("legends-container");
 
-  if (!pageElement || !tableBody || !productTypeSelect || !legendsContainer) {
+  if (!pageElement || !tableBody || !legendsContainer) {
     console.error("Core elements for Scrap Form not found.");
     return;
   }
   // --- المان‌های فرم موبایل ---
   const mobileForm = {
+    productType: document.getElementById("mobile-product-type"),
     partName: document.getElementById("mobile-part-name"),
     totalCount: document.getElementById("mobile-total-count"),
     productModel: document.getElementById("mobile-product-model"),
@@ -54,23 +55,7 @@ export function init() {
     shouldSort: false,
   };
 
-  // ===== تابع جدید برای آپدیت کردن ظاهر دکمه‌های نقص =====
-  function updateDefectLegendsSelection() {
-    const targetInput = mobileForm.defectsSummary;
-    if (!targetInput) return;
-    const activeDefects = new Set(
-      targetInput.value
-        .split(" | ")
-        .map((part) => part.split(":")[0].trim())
-        .filter((name) => name)
-    );
-    document.querySelectorAll("#legends-list li").forEach((li) => {
-      const defectName = li.dataset.defectName;
-      li.classList.toggle("selected", activeDefects.has(defectName));
-    });
-  }
-
-  // --- توابع کمکی ---
+  // ===== توابع کمکی =====
   function showToast(message, type = "info") {
     const colors = {
       info: "linear-gradient(to right, #00b09b, #96c93d)",
@@ -89,6 +74,36 @@ export function init() {
     }).showToast();
   }
 
+  function toggleButtonLoading(button, isLoading, text) {
+    if (button) {
+      button.disabled = isLoading;
+      button.innerHTML = text;
+    }
+  }
+
+  function downloadFile(content, fileName, contentType) {
+    if (window.AppInventor && window.AppInventor.setWebViewString) {
+      let base64data = "";
+      if (content.startsWith("data:")) base64data = content.split(",")[1];
+      else base64data = btoa(unescape(encodeURIComponent(content)));
+      const payload = JSON.stringify({ filename: fileName, data: base64data });
+      window.AppInventor.setWebViewString(payload);
+    } else {
+      const link = document.createElement("a");
+      const url =
+        contentType && !content.startsWith("data:")
+          ? URL.createObjectURL(new Blob([content], { type: contentType }))
+          : content;
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      if (contentType && !content.startsWith("data:")) URL.revokeObjectURL(url);
+    }
+  }
+
+  // ===== توابع مدیریت فرم =====
   function resetForm() {
     if (tableBody) tableBody.innerHTML = "";
     if (mobileForm.summaryList) mobileForm.summaryList.innerHTML = "";
@@ -104,11 +119,11 @@ export function init() {
     if (dateInput) dateInput.value = formatter.format(today);
     const lineSelect = document.getElementById("line");
     if (lineSelect) lineSelect.selectedIndex = 0;
-    if (productTypeSelect) productTypeSelect.selectedIndex = 0;
-    const nonElectricalRadio = document.querySelector(
-      'input[name="waste_type"][value="غیربرقی"]'
-    );
-    if (nonElectricalRadio) nonElectricalRadio.checked = true;
+
+    // + تغییر: ریست کردن فیلد کشویی جدید
+    const wasteTypeSelect = document.getElementById("waste_type_select");
+    if (wasteTypeSelect) wasteTypeSelect.value = "غیربرقی";
+
     document.getElementById("approver-control").value = "";
     document.getElementById("approver-line").value = "";
     document.getElementById("approver-eng").value = "";
@@ -121,10 +136,9 @@ export function init() {
     const finalizeBtn = pageElement.querySelector(".finalize-btn");
     if (finalizeBtn)
       finalizeBtn.innerHTML = `<i class="bi bi-check2-circle"></i> ثبت نهایی فرم`;
-    const exportBtn = pageElement.querySelector(".export-btn");
-    if (exportBtn) exportBtn.style.display = "none";
-    const exportImgBtn = pageElement.querySelector(".export-img-btn");
-    if (exportImgBtn) exportImgBtn.style.display = "none";
+    pageElement.querySelector(".export-btn").style.display = "none";
+    pageElement.querySelector(".export-img-btn").style.display = "none";
+    pageElement.querySelector(".export-pdf-btn").style.display = "none";
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -167,6 +181,7 @@ export function init() {
     <td><input type="text" name="defects_summary" readonly></td>
     <td><input type="text" name="comments"></td>
     <td><input type="hidden" name="timestamp"></td>
+    <td><input type="hidden" name="product_type"></td>
     <td></td>`;
   }
 
@@ -224,6 +239,11 @@ export function init() {
         el.value,
       ])
     );
+
+    mobileForm.productType.value =
+      data.product_type || scrapFormData.productTypes[0];
+    updatePartNameDropdownForMobile();
+
     mobilePartNameChoice.setChoiceByValue(data.part_name || "");
     mobileForm.totalCount.value = data.total_count;
     mobileForm.productModel.value = data.product_model;
@@ -241,9 +261,7 @@ export function init() {
     mobileForm.addBtn.innerHTML =
       '<i class="bi bi-check-circle-fill"></i> به‌روزرسانی قطعه';
     mobileForm.addBtn.style.backgroundColor = "var(--primary-color)";
-
     updateDefectLegendsSelection();
-
     const mobileFormContainer = document.querySelector(
       ".mobile-form-container"
     );
@@ -260,14 +278,12 @@ export function init() {
 
   function getGlobalData() {
     if (Object.keys(finalizedFormData).length > 0) return finalizedFormData;
-    const wasteTypeEl = document.querySelector(
-      'input[name="waste_type"]:checked'
-    );
+    // + تغییر: خواندن مقدار از فیلد کشویی جدید
+    const wasteTypeSelect = document.getElementById("waste_type_select");
     return {
       globalDate: document.getElementById("jalali_date").value.trim(),
       globalLine: document.getElementById("line").value,
-      globalProductType: productTypeSelect.value,
-      wasteType: wasteTypeEl ? wasteTypeEl.value : "",
+      wasteType: wasteTypeSelect ? wasteTypeSelect.value : "غیربرقی",
       approverControl: document.getElementById("approver-control").value.trim(),
       approverLine: document.getElementById("approver-line").value.trim(),
       approverEng: document.getElementById("approver-eng").value.trim(),
@@ -276,9 +292,9 @@ export function init() {
 
   function finalizeForm() {
     if (!validateAllForms()) return;
-    const controlApprover = document.getElementById("approver-control"),
-      lineApprover = document.getElementById("approver-line"),
-      engApprover = document.getElementById("approver-eng");
+    const controlApprover = document.getElementById("approver-control");
+    const lineApprover = document.getElementById("approver-line");
+    const engApprover = document.getElementById("approver-eng");
     let firstInvalidApprover = null;
     if (!controlApprover.value.trim()) firstInvalidApprover = controlApprover;
     else if (!lineApprover.value.trim()) firstInvalidApprover = lineApprover;
@@ -339,245 +355,265 @@ export function init() {
       .forEach((btn) => {
         if (
           !btn.classList.contains("export-btn") &&
-          !btn.classList.contains("export-img-btn")
-        )
+          !btn.classList.contains("export-img-btn") &&
+          !btn.classList.contains("export-pdf-btn")
+        ) {
           btn.disabled = true;
+        }
       });
     const finalizeBtn = pageElement.querySelector(".finalize-btn");
     finalizeBtn.innerHTML = `<i class="bi bi-lock-fill"></i> نهایی شده`;
     pageElement.querySelector(".export-btn").style.display = "inline-flex";
     pageElement.querySelector(".export-img-btn").style.display = "inline-flex";
+    pageElement.querySelector(".export-pdf-btn").style.display = "inline-flex";
   }
 
+  // ===== توابع مربوط به خروجی‌ها =====
   function exportToCSV() {
     if (Object.keys(finalizedFormData).length === 0) {
       showToast("لطفا ابتدا فرم را ثبت نهایی کنید.", "warning");
       return;
     }
-    const {
-      globalDate,
-      globalLine,
-      globalProductType,
-      wasteType,
-      approverControl,
-      approverLine,
-      approverEng,
-      tableData,
-    } = finalizedFormData;
-    const fileName = `گزارش ضایعات ${globalDate.replace(
-      /\//g,
-      "."
-    )} - ${globalLine.replace(/\s/g, "_")} - ${globalProductType} - ${
-      wasteType === "برقی" ? "برقی" : "غیربرقی"
-    }`;
-    const headers = [
-      "تاریخ",
-      "خط",
-      "نوع محصول",
-      "نوع ضایعات",
-      "ردیف",
-      "مدل محصول",
-      "گروه",
-      "آیتم",
-      "نام قطعه",
-      "تعداد کل",
-      "تامین کننده-تزریق",
-      "تامین کننده-پرسکاری",
-      "تامین کننده-داخلی",
-      "تامین کننده-خارجی",
-      "منشا-بسته بندی",
-      "منشا-انبار",
-      "منشا-حین تولید",
-      "شرح ضایعات",
-      "توضیحات",
-      "تایید کننده کنترل",
-      "تایید کننده خط",
-      "تایید کننده فنی",
-    ];
-    let csvContent = "\uFEFF" + headers.join(",") + "\r\n";
-    tableData.forEach((data, index) => {
-      const cleanCell = (cellData) =>
-        `"${(cellData || "").toString().replace(/"/g, '""')}"`;
-      const rowDataValues = [
+
+    try {
+      showToast("در حال آماده‌سازی خروجی CSV...", "info");
+
+      const {
         globalDate,
         globalLine,
-        globalProductType,
         wasteType,
-        index + 1,
-        data.product_model,
-        data.group,
-        data.item,
-        data.part_name,
-        data.total_count,
-        data.supplier_injection,
-        data.supplier_press,
-        data.supplier_internal,
-        data.supplier_external,
-        data.source_packaging,
-        data.source_warehouse,
-        data.source_production,
-        data.defects_summary,
-        data.comments,
         approverControl,
         approverLine,
         approverEng,
+        tableData,
+      } = finalizedFormData;
+      const fileName = `گزارش ضایعات ${globalDate.replace(
+        /\//g,
+        "."
+      )} - ${globalLine.replace(/\s/g, "_")} - ${
+        wasteType === "برقی" ? "برقی" : "غیربرقی"
+      }`;
+      const headers = [
+        "تاریخ",
+        "خط",
+        "نوع ضایعات",
+        "ردیف",
+        "نوع محصول",
+        "مدل محصول",
+        "گروه",
+        "آیتم",
+        "نام قطعه",
+        "تعداد کل",
+        "تامین کننده-تزریق",
+        "تامین کننده-پرسکاری",
+        "تامین کننده-داخلی",
+        "تامین کننده-خارجی",
+        "منشا-بسته بندی",
+        "منشا-انبار",
+        "منشا-حین تولید",
+        "شرح ضایعات",
+        "توضیحات",
+        "تایید کننده کنترل",
+        "تایید کننده خط",
+        "تایید کننده فنی",
       ];
-      csvContent += rowDataValues.map(cleanCell).join(",") + "\r\n";
-    });
-    downloadFile(csvContent, `${fileName}.csv`, "text/csv;charset=utf-8;");
+      let csvContent = "\uFEFF" + headers.join(",") + "\r\n";
+      tableData.forEach((data, index) => {
+        const cleanCell = (cellData) =>
+          `"${(cellData || "").toString().replace(/"/g, '""')}"`;
+        const rowDataValues = [
+          globalDate,
+          globalLine,
+          wasteType,
+          index + 1,
+          data.product_type,
+          data.product_model,
+          data.group,
+          data.item,
+          data.part_name,
+          data.total_count,
+          data.supplier_injection,
+          data.supplier_press,
+          data.supplier_internal,
+          data.supplier_external,
+          data.source_packaging,
+          data.source_warehouse,
+          data.source_production,
+          data.defects_summary,
+          data.comments,
+          approverControl,
+          approverLine,
+          approverEng,
+        ];
+        csvContent += rowDataValues.map(cleanCell).join(",") + "\r\n";
+      });
+      downloadFile(csvContent, `${fileName}.csv`, "text/csv;charset=utf-8;");
+
+      showToast("فایل CSV با موفقیت آماده شد.", "success");
+    } catch (error) {
+      console.error("خطا در ایجاد خروجی CSV:", error);
+      showToast("دانلود فایل CSV با مشکل مواجه شد.", "error");
+    }
   }
 
-  // <<< تغيير ۱: تابع خروجی تصویر برای نمایش ساعت و تعداد اصلاح شد
   async function exportToImage() {
     if (Object.keys(finalizedFormData).length === 0) {
       showToast("لطفا ابتدا فرم را ثبت نهایی کنید.", "warning");
       return;
     }
+
+    showToast("در حال آماده‌سازی خروجی تصویر...", "info");
     const exportButton = pageElement.querySelector(".export-img-btn");
     toggleButtonLoading(exportButton, true, "در حال آماده سازی...");
 
-    const { tableData, ...globalInfo } = finalizedFormData;
-    const printContainer = document.querySelector(".print-page-container");
+    try {
+      const { tableData, ...globalInfo } = finalizedFormData;
+      const printContainer = document.querySelector(".print-page-container");
 
-    const PAGE_MAX_HEIGHT = 1058;
-    const PAGE_WIDTH = 718;
+      const PAGE_MAX_HEIGHT = 1058;
+      const PAGE_WIDTH = 718;
 
-    const baseFileName = `گزارش ضایعات ${globalInfo.globalDate.replace(
-      /\//g,
-      "."
-    )} - ${globalInfo.globalLine}`;
+      const baseFileName = `گزارش ضایعات ${globalInfo.globalDate.replace(
+        /\//g,
+        "."
+      )} - ${globalInfo.globalLine}`;
 
-    const buildFullPageHTML = (itemsHTML, currentPage, totalPages) => {
-      const originalHeaderClone = document
-        .getElementById("main-header")
-        .cloneNode(true);
-      const approvalHTML = `<div class="approvers-container"><div class="approver-group"><label>1. نماینده کنترل:</label><span class="approver-group-name">${globalInfo.approverControl}</span></div><div class="approver-group"><label>2. نماینده تولید:</label><span class="approver-group-name">${globalInfo.approverLine}</span></div><div class="approver-group"><label>3. نماینده فنی و مهندسی:</label><span class="approver-group-name">${globalInfo.approverEng}</span></div></div>`;
-      const topInfoHTML = `<div class="export-top-info"><div><strong>تاریخ:</strong> ${globalInfo.globalDate}</div><div><strong>خط:</strong> ${globalInfo.globalLine}</div><div><strong>نوع محصول:</strong> ${globalInfo.globalProductType}</div><div><strong>نوع ضایعات:</strong> ${globalInfo.wasteType}</div></div>`;
-      const pageFooterHTML = `<footer>صفحه ${currentPage} از ${totalPages}</footer>`;
-      const footerGroupHTML = `<div class="print-footer-group">${approvalHTML}${pageFooterHTML}</div>`;
+      const buildFullPageHTML = (itemsHTML, currentPage, totalPages) => {
+        const originalHeaderClone = document
+          .getElementById("main-header")
+          .cloneNode(true);
+        const approvalHTML = `<div class="approvers-container"><div class="approver-group"><label>1. نماینده کنترل:</label><span class="approver-group-name">${globalInfo.approverControl}</span></div><div class="approver-group"><label>2. نماینده تولید:</label><span class="approver-group-name">${globalInfo.approverLine}</span></div><div class="approver-group"><label>3. نماینده فنی و مهندسی:</label><span class="approver-group-name">${globalInfo.approverEng}</span></div></div>`;
+        const topInfoHTML = `<div class="export-top-info"><div><strong>تاریخ:</strong> ${globalInfo.globalDate}</div><div><strong>خط:</strong> ${globalInfo.globalLine}</div><div><strong>نوع ضایعات:</strong> ${globalInfo.wasteType}</div></div>`;
+        const pageFooterHTML = `<footer>صفحه ${currentPage} از ${totalPages}</footer>`;
+        const footerGroupHTML = `<div class="print-footer-group">${approvalHTML}${pageFooterHTML}</div>`;
 
-      return `${originalHeaderClone.outerHTML}${topInfoHTML}<div class="export-items-list">${itemsHTML}</div>${footerGroupHTML}`;
-    };
+        return `${originalHeaderClone.outerHTML}${topInfoHTML}<div class="export-items-list">${itemsHTML}</div>${footerGroupHTML}`;
+      };
 
-    const createItemCardHTML = (item, index) => {
-      const headerHTML = `
-      <div class="summary-card-header">
-        <h2 class="summary-card-title">${index + 1}. ${item.part_name}</h2>
-        <div class="summary-card-meta" style="display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--secondary-color);">
-            <span class="summary-timestamp" style="display: flex; align-items: center; gap: 4px;">
-                <i class="bi bi-clock"></i>
-                ${item.timestamp || ""}
-            </span>
-            <span class="summary-card-count count-highlight">تعداد: ${
-              item.total_count
-            }</span>
-        </div>
-      </div>`;
+      const createItemCardHTML = (item, index) => {
+        const titleHTML = `${index + 1}. ${
+          item.part_name
+        } <span style="font-weight: 500; color: var(--secondary-color); font-size: 13px;">(${
+          item.product_type
+        })</span>`;
 
-      let detailsHTML = "";
-      if (item.product_model)
-        detailsHTML += `<span><i class="bi bi-textarea-t icon-model"></i> مدل: ${item.product_model}</span>`;
-      if (item.group)
-        detailsHTML += `<span><i class="bi bi-collection icon-group"></i> گروه: ${item.group}</span>`;
-      if (item.item)
-        detailsHTML += `<span><i class="bi bi-tags icon-item"></i> آیتم: ${item.item}</span>`;
+        const headerHTML = `
+        <div class="summary-card-header">
+          <h2 class="summary-card-title">${titleHTML}</h2>
+          <div class="summary-card-meta" style="display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--secondary-color);">
+              <span class="summary-timestamp" style="display: flex; align-items: center; gap: 4px;">
+                  <i class="bi bi-clock"></i>
+                  ${item.timestamp || ""}
+              </span>
+              <span class="summary-card-count count-highlight">تعداد: ${
+                item.total_count
+              }</span>
+          </div>
+        </div>`;
 
-      const supplierParts = [];
-      if (item.supplier_injection > 0)
-        supplierParts.push(`تزریق: ${item.supplier_injection}`);
-      if (item.supplier_press > 0)
-        supplierParts.push(`پرسکاری: ${item.supplier_press}`);
-      if (item.supplier_internal > 0)
-        supplierParts.push(`داخلی: ${item.supplier_internal}`);
-      if (item.supplier_external > 0)
-        supplierParts.push(`خارجی: ${item.supplier_external}`);
-      if (supplierParts.length > 0)
-        detailsHTML += `<span><i class="bi bi-house-down icon-supplier"></i> تامین: ${supplierParts.join(
-          " | "
-        )}</span>`;
+        let detailsHTML = "";
+        if (item.product_model)
+          detailsHTML += `<span><i class="bi bi-textarea-t icon-model"></i> مدل: ${item.product_model}</span>`;
+        if (item.group)
+          detailsHTML += `<span><i class="bi bi-collection icon-group"></i> گروه: ${item.group}</span>`;
+        if (item.item)
+          detailsHTML += `<span><i class="bi bi-tags icon-item"></i> آیتم: ${item.item}</span>`;
 
-      const sourceParts = [];
-      if (item.source_packaging > 0)
-        sourceParts.push(`بسته‌بندی: ${item.source_packaging}`);
-      if (item.source_warehouse > 0)
-        sourceParts.push(`انبار: ${item.source_warehouse}`);
-      if (item.source_production > 0)
-        sourceParts.push(`حین تولید: ${item.source_production}`);
-      if (sourceParts.length > 0)
-        detailsHTML += `<span><i class="bi bi-graph-down-arrow icon-source"></i> منشا: ${sourceParts.join(
-          " | "
-        )}</span>`;
+        const supplierParts = [];
+        if (item.supplier_injection > 0)
+          supplierParts.push(`تزریق: ${item.supplier_injection}`);
+        if (item.supplier_press > 0)
+          supplierParts.push(`پرسکاری: ${item.supplier_press}`);
+        if (item.supplier_internal > 0)
+          supplierParts.push(`داخلی: ${item.supplier_internal}`);
+        if (item.supplier_external > 0)
+          supplierParts.push(`خارجی: ${item.supplier_external}`);
+        if (supplierParts.length > 0)
+          detailsHTML += `<span><i class="bi bi-house-down icon-supplier"></i> تامین: ${supplierParts.join(
+            " | "
+          )}</span>`;
 
-      const processInfoHTML = `<div class="card-details-row">${detailsHTML}</div>`;
+        const sourceParts = [];
+        if (item.source_packaging > 0)
+          sourceParts.push(`بسته‌بندی: ${item.source_packaging}`);
+        if (item.source_warehouse > 0)
+          sourceParts.push(`انبار: ${item.source_warehouse}`);
+        if (item.source_production > 0)
+          sourceParts.push(`حین تولید: ${item.source_production}`);
+        if (sourceParts.length > 0)
+          detailsHTML += `<span><i class="bi bi-graph-down-arrow icon-source"></i> منشا: ${sourceParts.join(
+            " | "
+          )}</span>`;
 
-      const defectsAndNotesHTML =
-        item.defects_summary || item.comments
-          ? `
-      <div class="card-details-row notes-row">
-        ${
-          item.defects_summary
-            ? `<span><i class="bi bi-card-text icon-defect"></i> ${item.defects_summary}</span>`
-            : ""
+        const processInfoHTML = `<div class="card-details-row">${detailsHTML}</div>`;
+
+        const defectsAndNotesHTML =
+          item.defects_summary || item.comments
+            ? `
+        <div class="card-details-row notes-row">
+          ${
+            item.defects_summary
+              ? `<span><i class="bi bi-card-text icon-defect"></i> ${item.defects_summary}</span>`
+              : ""
+          }
+          ${
+            item.comments
+              ? `<span><i class="bi bi-chat-left-text"></i> ${item.comments}</span>`
+              : ""
+          }
+        </div>`
+            : "";
+
+        return `
+        <div class="summary-card-item">
+          ${headerHTML}
+          <div class="summary-card-details">
+            ${processInfoHTML}
+            ${defectsAndNotesHTML}
+          </div>
+        </div>`;
+      };
+
+      const pages = [];
+      let currentPageItemsHTML = "";
+      const allItemCardsHTML = tableData.map(createItemCardHTML);
+
+      printContainer.style.visibility = "hidden";
+      printContainer.style.display = "flex";
+      printContainer.style.height = "auto";
+
+      for (const itemHTML of allItemCardsHTML) {
+        const potentialHTML = currentPageItemsHTML + itemHTML;
+        printContainer.innerHTML = buildFullPageHTML(potentialHTML, 1, 1);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        if (
+          printContainer.scrollHeight > PAGE_MAX_HEIGHT &&
+          currentPageItemsHTML !== ""
+        ) {
+          pages.push(currentPageItemsHTML);
+          currentPageItemsHTML = itemHTML;
+        } else {
+          currentPageItemsHTML = potentialHTML;
         }
-        ${
-          item.comments
-            ? `<span><i class="bi bi-chat-left-text"></i> ${item.comments}</span>`
-            : ""
-        }
-      </div>`
-          : "";
-
-      return `
-      <div class="summary-card-item">
-        ${headerHTML}
-        <div class="summary-card-details">
-          ${processInfoHTML}
-          ${defectsAndNotesHTML}
-        </div>
-      </div>`;
-    };
-
-    const pages = [];
-    let currentPageItemsHTML = "";
-    const allItemCardsHTML = tableData.map(createItemCardHTML);
-
-    printContainer.style.visibility = "hidden";
-    printContainer.style.display = "flex";
-    printContainer.style.height = "auto";
-
-    for (const itemHTML of allItemCardsHTML) {
-      const potentialHTML = currentPageItemsHTML + itemHTML;
-      printContainer.innerHTML = buildFullPageHTML(potentialHTML, 1, 1);
-      await new Promise((resolve) => setTimeout(resolve, 0));
-
-      if (
-        printContainer.scrollHeight > PAGE_MAX_HEIGHT &&
-        currentPageItemsHTML !== ""
-      ) {
-        pages.push(currentPageItemsHTML);
-        currentPageItemsHTML = itemHTML;
-      } else {
-        currentPageItemsHTML = potentialHTML;
       }
-    }
-    if (currentPageItemsHTML !== "") {
-      pages.push(currentPageItemsHTML);
-    }
+      if (currentPageItemsHTML !== "") {
+        pages.push(currentPageItemsHTML);
+      }
 
-    printContainer.style.height = "";
+      printContainer.style.height = "";
 
-    const totalPages = pages.length;
-    for (let i = 0; i < totalPages; i++) {
-      const pageItemsHTML = pages[i];
-      const currentPage = i + 1;
-      printContainer.innerHTML = buildFullPageHTML(
-        pageItemsHTML,
-        currentPage,
-        totalPages
-      );
-      printContainer.style.visibility = "visible";
+      const totalPages = pages.length;
+      for (let i = 0; i < totalPages; i++) {
+        const pageItemsHTML = pages[i];
+        const currentPage = i + 1;
+        printContainer.innerHTML = buildFullPageHTML(
+          pageItemsHTML,
+          currentPage,
+          totalPages
+        );
+        printContainer.style.visibility = "visible";
 
-      try {
         await new Promise((resolve) => setTimeout(resolve, 200));
 
         const canvas = await html2canvas(printContainer, {
@@ -597,24 +633,371 @@ export function init() {
         downloadFile(canvas.toDataURL("image/png"), fileName);
         if (totalPages > 1)
           await new Promise((resolve) => setTimeout(resolve, 300));
-      } catch (err) {
-        console.error(`خطا در ایجاد تصویر صفحه ${currentPage}:`, err);
-        showToast(`خطا در ایجاد خروجی تصویر.`, "error");
-      } finally {
-        printContainer.style.visibility = "hidden";
       }
-    }
 
-    printContainer.style.display = "none";
-    printContainer.innerHTML = "";
-    toggleButtonLoading(
-      exportButton,
-      false,
-      `<i class="bi bi-camera-fill"></i> خروجی تصویر فرم`
-    );
+      showToast("خروجی تصویر با موفقیت ایجاد شد.", "success");
+    } catch (err) {
+      console.error(`خطا در ایجاد خروجی تصویر:`, err);
+      showToast(`دانلود فایل تصویر با مشکل مواجه شد.`, "error");
+    } finally {
+      const printContainer = document.querySelector(".print-page-container");
+      if (printContainer) {
+        printContainer.style.display = "none";
+        printContainer.innerHTML = "";
+      }
+      toggleButtonLoading(
+        exportButton,
+        false,
+        `<i class="bi bi-camera-fill"></i> خروجی تصویر فرم`
+      );
+    }
   }
 
-  // <<< تغيير ۲: تابع نمایش کارت‌های خلاصه برای نمایش ساعت و تعداد کنار دکمه‌ها اصلاح شد
+  // ... (تمام کدهای قبلی فایل تا قبل از تابع exportToPDF سر جای خودش باقی می‌مونه) ...
+  async function loadFontAsBase64(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch font from ${url}: ${response.statusText}`
+      );
+    }
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve(reader.result.split(",")[1]);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  const toPersianDigits = (text) => {
+    // این تابع فقط اعداد را به فارسی تبدیل می‌کند
+    if (text === null || text === undefined) return "";
+    const persianDigits = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+    return text.toString().replace(/[0-9]/g, (d) => persianDigits[d]);
+  };
+
+  const rtl = (text) => {
+    if (text === null || text === undefined) return "";
+    let str = text.toString();
+
+    str = str.replace(/\s*\((.*?)\)\s*/g, " - $1").trim();
+    str = str.replace(/\//g, "، ");
+
+    const rtlRegex = /[\u0600-\u06FF]/;
+    if (!rtlRegex.test(str)) {
+      return str;
+    }
+    const words = str.split(/\s+/).filter(Boolean);
+    const reversedWords = words.reverse();
+    return reversedWords.join(" ");
+  };
+
+  // ... داخل تابع exportToPDF ...
+
+  const fixBidi = (text) => {
+    if (typeof text !== "string" || !text) return text;
+
+    // 1. جایگزینی کاراکترهای نامناسب
+    let processedText = text.toString().replace(/\//g, "، ");
+
+    // 2. استفاده از کاراکتر کنترلی (LRM) برای حفظ اعداد انگلیسی
+    // این کاراکتر نامرئی به رندرکننده می‌گوید "بخش بعدی را از چپ به راست بخوان"
+    const LRM = "\u200E";
+    processedText = processedText.replace(/\d+/g, (match) => LRM + match + LRM);
+
+    // 3. معکوس کردن ترتیب کلمات برای نمایش صحیح راست-به-چپ
+    const reversedText = processedText
+      .split(/\s+/)
+      .filter(Boolean)
+      .reverse()
+      .join(" ");
+
+    const RLM_RTL = "\u200F"; // Right-to-Left Mark
+    return RLM_RTL + reversedText;
+  };
+
+  // ... بقیه کد ...
+
+  async function exportToPDF() {
+    if (Object.keys(finalizedFormData).length === 0) {
+      showToast("لطفا ابتدا فرم را ثبت نهایی کنید.", "warning");
+      return;
+    }
+
+    showToast("در حال آماده‌سازی خروجی PDF...", "info");
+    const exportButton = pageElement.querySelector(".export-pdf-btn");
+    toggleButtonLoading(exportButton, true, "در حال آماده‌سازی فونت...");
+
+    try {
+      const { tableData, ...globalInfo } = finalizedFormData;
+
+      const [regularFontBase64, boldFontBase64] = await Promise.all([
+        loadFontAsBase64("assets/fonts/Vazirmatn-Regular.ttf"),
+        loadFontAsBase64("assets/fonts/Vazirmatn-Bold.ttf"),
+      ]);
+      toggleButtonLoading(exportButton, true, "در حال ساخت PDF...");
+      pdfMake.vfs = {
+        "Vazirmatn-Regular.ttf": regularFontBase64,
+        "Vazirmatn-Bold.ttf": boldFontBase64,
+      };
+      pdfMake.fonts = {
+        Vazirmatn: {
+          normal: "Vazirmatn-Regular.ttf",
+          bold: "Vazirmatn-Bold.ttf",
+          italics: "Vazirmatn-Regular.ttf",
+          bolditalics: "Vazirmatn-Bold.ttf",
+        },
+      };
+
+      const tableBody = tableData.map((item, index) => {
+        const supplierParts = [];
+        if (item.supplier_injection > 0)
+          supplierParts.push(`تزریق: ${item.supplier_injection}`);
+        if (item.supplier_press > 0)
+          supplierParts.push(`پرسکاری: ${item.supplier_press}`);
+        if (item.supplier_internal > 0)
+          supplierParts.push(`داخلی: ${item.supplier_internal}`);
+        if (item.supplier_external > 0)
+          supplierParts.push(`خارجی: ${item.supplier_external}`);
+        const supplierCellData =
+          supplierParts.length > 0
+            ? supplierParts.map((p) => fixBidi(p)).join("\n")
+            : "-";
+
+        const sourceParts = [];
+        if (item.source_packaging > 0)
+          sourceParts.push(`بسته‌بندی: ${item.source_packaging}`);
+        if (item.source_warehouse > 0)
+          sourceParts.push(`انبار: ${item.source_warehouse}`);
+        if (item.source_production > 0)
+          sourceParts.push(`حین تولید: ${item.source_production}`);
+        const sourceCellData =
+          sourceParts.length > 0
+            ? sourceParts.map((p) => fixBidi(p)).join("\n")
+            : "-";
+
+        const defectParts = item.defects_summary
+          ? item.defects_summary.split("|").map((s) => s.trim())
+          : [];
+        const defectCellData =
+          defectParts.length > 0
+            ? defectParts.map((p) => fixBidi(p)).join("\n")
+            : "-";
+
+        const partNameCell = {
+          stack: [
+            { text: rtl(item.part_name), style: "tableCellRight", bold: true },
+            {
+              text: rtl(item.product_type),
+              style: "tableCellRightSmall",
+              color: "#555",
+            },
+          ],
+        };
+
+        return [
+          { text: rtl(item.comments || "-"), style: "tableCellRight" },
+          { text: defectCellData, style: "tableCellRight" },
+          { text: sourceCellData, style: "tableCellRight" },
+          { text: supplierCellData, style: "tableCellRight" },
+          { text: item.total_count, style: ["tableCell", "bold"] },
+          { text: item.item, style: "tableCell" },
+          { text: item.group, style: "tableCell" },
+          { text: item.product_model, style: "tableCell" },
+          partNameCell,
+          { text: index + 1, style: "tableCell" },
+        ];
+      });
+
+      const docDefinition = {
+        pageSize: "A4",
+        pageOrientation: "portrait",
+        pageMargins: [20, 25, 20, 50],
+        content: [
+          { text: rtl("فرم گزارش ضایعات روزانه"), style: "headerTitle" },
+          {
+            columns: [
+              { text: "P1-QC-F-001/001", style: "docCode" },
+              { text: "Pakshoma", style: "pakshomaLogo" },
+            ],
+          },
+          {
+            style: "infoBox",
+            table: {
+              widths: ["*", "auto", "*", "auto", "*", "auto"],
+              body: [
+                [
+                  { text: rtl(globalInfo.wasteType), style: "infoText" },
+                  { text: rtl("نوع ضایعات:"), style: "infoLabel" },
+                  { text: globalInfo.globalDate, style: "infoText" },
+                  { text: rtl("تاریخ:"), style: "infoLabel" },
+                  { text: rtl(globalInfo.globalLine), style: "infoText" },
+                  { text: rtl("خط:"), style: "infoLabel" },
+                ],
+              ],
+            },
+            layout: "noBorders",
+          },
+          {
+            table: {
+              headerRows: 1,
+              widths: [
+                80, // توضیحات
+                "*", // شرح ضایعات
+                "auto", // منشا
+                "auto", // تامین کننده
+                "auto", // تعداد
+                "auto", // آیتم
+                "auto", // گروه
+                "auto", // مدل
+                "*", // نام قطعه
+                "auto", // ردیف
+              ],
+              body: [
+                [
+                  { text: rtl("توضیحات"), style: "tableHeader" },
+                  { text: rtl("شرح ضایعات"), style: "tableHeader" },
+                  { text: rtl("منشا"), style: "tableHeader" },
+                  { text: rtl("تامین کننده"), style: "tableHeader" },
+                  { text: rtl("تعداد"), style: "tableHeader" },
+                  { text: rtl("آیتم"), style: "tableHeader" },
+                  { text: rtl("گروه"), style: "tableHeader" },
+                  { text: rtl("مدل"), style: "tableHeader" },
+                  { text: rtl("نام قطعه"), style: "tableHeader" },
+                  { text: rtl("ردیف"), style: "tableHeader" },
+                ],
+                ...tableBody,
+              ],
+            },
+            layout: {
+              hLineWidth: (i, node) =>
+                i === 0 || i === 1 || i === node.table.body.length ? 1 : 0.5,
+              vLineWidth: () => 0.5,
+              hLineColor: () => "#dddddd",
+              vLineColor: () => "#dddddd",
+              paddingTop: () => 2,
+              paddingBottom: () => 2,
+              fillColor: (rowIndex) =>
+                rowIndex > 0 && rowIndex % 2 === 0 ? "#f7f9fc" : null,
+            },
+          },
+          {
+            style: "infoBox",
+            margin: [0, 15, 0, 0],
+            table: {
+              widths: ["*", "*", "*"],
+              body: [
+                [
+                  {
+                    text: [
+                      rtl(globalInfo.approverEng || ""),
+                      { text: rtl("نماینده فنی و مهندسی: "), bold: true },
+                    ],
+                    style: "approverBlock",
+                  },
+                  {
+                    text: [
+                      rtl(globalInfo.approverLine || ""),
+                      { text: rtl("نماینده تولید: "), bold: true },
+                    ],
+                    style: "approverBlock",
+                  },
+                  {
+                    text: [
+                      rtl(globalInfo.approverControl || ""),
+                      { text: rtl("نماینده کنترل: "), bold: true },
+                    ],
+                    style: "approverBlock",
+                  },
+                ],
+              ],
+            },
+            layout: "noBorders",
+          },
+        ],
+        footer: (currentPage, pageCount) => ({
+          text: toPersianDigits(
+            `صفحه ${currentPage.toString()} از ${pageCount}`,
+            true
+          ),
+          alignment: "center",
+          fontSize: 9,
+          color: "#555555",
+          margin: [0, 20, 0, 0],
+        }),
+        styles: {
+          headerTitle: {
+            fontSize: 18,
+            bold: true,
+            alignment: "center",
+            color: "#0056b3",
+            margin: [0, 0, 0, 5],
+          },
+          pakshomaLogo: {
+            fontSize: 16,
+            bold: true,
+            alignment: "right",
+            color: "#333333",
+          },
+          docCode: { fontSize: 10, alignment: "left", color: "#777777" },
+          infoBox: { margin: [0, 15, 0, 10], fillColor: "#f7f9fc" },
+          infoLabel: {
+            alignment: "right",
+            bold: true,
+            fontSize: 10,
+            color: "#333",
+            margin: [0, 4, 0, 4],
+          },
+          infoText: {
+            alignment: "right",
+            fontSize: 10,
+            color: "#555",
+            margin: [0, 4, 10, 4],
+          },
+          tableHeader: {
+            bold: true,
+            fontSize: 8.5,
+            color: "#333333",
+            fillColor: "#eeeeee",
+            alignment: "center",
+          },
+          tableCell: { fontSize: 8, alignment: "center" },
+          tableCellRight: { fontSize: 8, alignment: "right" },
+          tableCellRightSmall: { fontSize: 7, alignment: "right" },
+          bold: { bold: true },
+          approverBlock: {
+            alignment: "right",
+            fontSize: 10,
+            color: "#333",
+            margin: [0, 4, 40, 4],
+          },
+        },
+        defaultStyle: { font: "Vazirmatn" },
+      };
+
+      const fileName = `فرم ضایعات - ${globalInfo.globalDate.replace(
+        /\//g,
+        "-"
+      )}.pdf`;
+      pdfMake.createPdf(docDefinition).download(fileName);
+
+      showToast("فایل PDF با موفقیت آماده شد.", "success");
+    } catch (err) {
+      console.error("خطای جدی در ساخت PDF:", err);
+      showToast("دانلود فایل PDF با مشکل مواجه شد.", "error");
+    } finally {
+      toggleButtonLoading(
+        exportButton,
+        false,
+        `<i class="bi bi-file-earmark-pdf-fill"></i> خروجی PDF`
+      );
+    }
+  }
+
+  // ===== توابع مدیریت لیست و فرم موبایل =====
   function updateMobileSummary() {
     mobileForm.summaryList.innerHTML = "";
     tableBody.querySelectorAll("tr").forEach((row, index) => {
@@ -663,11 +1046,13 @@ export function init() {
       if (data.comments)
         detailsHTML += `<span><i class="bi bi-chat-left-text"></i> ${data.comments}</span>`;
 
+      const titleHTML = `${index + 1}. ${
+        data.part_name
+      } <span class="summary-product-type">(${data.product_type})</span>`;
+
       const mainRowHTML = `
       <div class="summary-main-row" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
-        <span class="summary-text" style="font-weight: bold; flex-grow: 1;">${
-          index + 1
-        }. ${data.part_name}</span>
+        <span class="summary-text" style="font-weight: bold; flex-grow: 1;">${titleHTML}</span>
         <div class="summary-controls" style="display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--secondary-color);">
             <span class="summary-timestamp" style="display: flex; align-items: center; gap: 4px;">
                 <i class="bi bi-clock"></i>
@@ -693,27 +1078,47 @@ export function init() {
       .querySelectorAll("#mobile-form-wrapper [data-required-name]")
       .forEach((el) => {
         const container =
-          el.id === "mobile-part-name"
+          el.id === "mobile-part-name" || el.id === "mobile-product-type"
             ? el.closest(".mobile-form-group")
             : el.closest(".counter-input-group") || el;
         if (container) container.classList.remove("required-field-error");
       });
+
+    const fieldsToReset = [
+      "partName",
+      "totalCount",
+      "supplierInjection",
+      "supplierPress",
+      "supplierInternal",
+      "supplierExternal",
+      "sourcePackaging",
+      "sourceWarehouse",
+      "sourceProduction",
+      "defectsSummary",
+      "comments",
+    ];
     if (mobilePartNameChoice) mobilePartNameChoice.setChoiceByValue("");
-    Object.keys(mobileForm).forEach((key) => {
+
+    fieldsToReset.forEach((key) => {
       const el = mobileForm[key];
-      if (el && el.tagName && key !== "partName") {
+      if (el && el.tagName) {
         if (el.type === "number")
           el.value = key === "totalCount" ? 1 : el.min || 0;
         else if (el.tagName === "SELECT") el.selectedIndex = 0;
         else if (el.type === "text" || el.type === "textarea") el.value = "";
       }
     });
+
     const lastValidRow =
       tableBody &&
       [...tableBody.rows]
         .reverse()
         .find((row) => row.querySelector('[name="part_name"]').value);
+
     if (lastValidRow) {
+      mobileForm.productType.value = lastValidRow.querySelector(
+        '[name="product_type"]'
+      ).value;
       mobileForm.productModel.value = lastValidRow.querySelector(
         '[name="product_model"]'
       ).value;
@@ -721,21 +1126,37 @@ export function init() {
         lastValidRow.querySelector('[name="group"]').value;
       mobileForm.item.value = lastValidRow.querySelector('[name="item"]').value;
     } else {
+      mobileForm.productType.selectedIndex = 0;
       mobileForm.productModel.value = "";
       mobileForm.group.value = scrapFormData.groups[0] || "";
       mobileForm.item.value = "";
     }
+
+    updatePartNameDropdownForMobile();
+
     mobileForm.addBtn.innerHTML =
       '<i class="bi bi-check-circle-fill"></i> ثبت و افزودن به لیست';
     mobileForm.addBtn.style.backgroundColor = "var(--success-color)";
     updateDefectLegendsSelection();
+
     if (focusOnPartName && window.innerWidth < 992) {
-      mobilePartNameChoice.showDropdown();
+      // + تغییر: فوکوس خودکار روی فیلد جستجوی نام قطعه
+      setTimeout(() => {
+        mobilePartNameChoice.showDropdown();
+        const searchInput =
+          mobilePartNameChoice.containerOuter.element.querySelector(
+            "input.choices__input"
+          );
+        if (searchInput) {
+          searchInput.focus();
+        }
+      }, 50);
     }
   }
 
-  function updateAllPartNameDropdowns() {
-    const productType = productTypeSelect.value;
+  // ===== توابع اعتبارسنجی و محاسباتی =====
+  function updatePartNameDropdownForMobile() {
+    const productType = mobileForm.productType.value;
     const newParts = scrapFormData.parts[productType] || [];
     const choicesArray = [
       { value: "", label: "انتخاب قطعه...", placeholder: true, disabled: true },
@@ -743,8 +1164,9 @@ export function init() {
     if (mobilePartNameChoice) {
       const currentVal = mobilePartNameChoice.getValue(true);
       mobilePartNameChoice.setChoices(choicesArray, "value", "label", true);
-      if (newParts.includes(currentVal))
+      if (newParts.includes(currentVal)) {
         mobilePartNameChoice.setChoiceByValue(currentVal);
+      }
     }
   }
 
@@ -758,6 +1180,7 @@ export function init() {
 
   function getValidationStatus(data, rowIndex = "") {
     const requiredFields = {
+      product_type: "نوع محصول",
       part_name: "نام قطعه",
       total_count: "تعداد کل",
       product_model: "مدل محصول",
@@ -815,10 +1238,10 @@ export function init() {
   }
 
   function validateAllForms() {
-    const { globalDate, globalLine, globalProductType } = getGlobalData();
-    const dateInput = document.getElementById("jalali_date"),
-      lineSelect = document.getElementById("line");
-    [dateInput, lineSelect, productTypeSelect].forEach((el) =>
+    const { globalDate, globalLine } = getGlobalData();
+    const dateInput = document.getElementById("jalali_date");
+    const lineSelect = document.getElementById("line");
+    [dateInput, lineSelect].forEach((el) =>
       el.classList.remove("required-field-error")
     );
     let firstInvalidElement = null;
@@ -830,13 +1253,9 @@ export function init() {
       lineSelect.classList.add("required-field-error");
       firstInvalidElement = firstInvalidElement || lineSelect;
     }
-    if (!globalProductType) {
-      productTypeSelect.classList.add("required-field-error");
-      firstInvalidElement = firstInvalidElement || productTypeSelect;
-    }
     if (firstInvalidElement) {
       showToast(
-        "لطفا فیلدهای اصلی بالای فرم (تاریخ، خط، نوع محصول) را تکمیل کنید.",
+        "لطفا فیلدهای اصلی بالای فرم (تاریخ، خط) را تکمیل کنید.",
         "error"
       );
       firstInvalidElement.focus();
@@ -899,33 +1318,25 @@ export function init() {
     updateDefectLegendsSelection();
   }
 
-  function downloadFile(content, fileName, contentType) {
-    if (window.AppInventor && window.AppInventor.setWebViewString) {
-      let base64data = "";
-      if (content.startsWith("data:")) base64data = content.split(",")[1];
-      else base64data = btoa(unescape(encodeURIComponent(content)));
-      const payload = JSON.stringify({ filename: fileName, data: base64data });
-      window.AppInventor.setWebViewString(payload);
-    } else {
-      const link = document.createElement("a");
-      const url =
-        contentType && !content.startsWith("data:")
-          ? URL.createObjectURL(new Blob([content], { type: contentType }))
-          : content;
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      if (contentType && !content.startsWith("data:")) URL.revokeObjectURL(url);
-    }
+  function updateDefectLegendsSelection() {
+    const defectCounts = new Map(
+      (mobileForm.defectsSummary.value || "")
+        .split(" | ")
+        .map((s) => s.split(":"))
+        .filter((p) => p.length === 2)
+        .map(([name, count]) => [name.trim(), parseInt(count.trim(), 10)])
+    );
+    document.querySelectorAll("#legends-list li").forEach((li) => {
+      const defectName = li.dataset.defectName;
+      if (defectCounts.has(defectName) && defectCounts.get(defectName) > 0) {
+        li.classList.add("selected");
+      } else {
+        li.classList.remove("selected");
+      }
+    });
   }
 
-  function toggleButtonLoading(button, isLoading, text) {
-    button.disabled = isLoading;
-    button.innerHTML = text;
-  }
-
+  // ===== توابع عمومی و راه‌اندازی اولیه =====
   function populateSelect(selectElement, dataArray, selectFirst = false) {
     if (!selectElement) return;
     selectElement.innerHTML = "";
@@ -965,14 +1376,14 @@ export function init() {
 
   // --- راه‌اندازی اولیه صفحه ---
   populateSelect(document.getElementById("line"), scrapFormData.lines);
-  populateSelect(productTypeSelect, scrapFormData.productTypes, true);
+  populateSelect(mobileForm.productType, scrapFormData.productTypes, true);
   populateSelect(mobileForm.group, scrapFormData.groups);
   populateLegends(
     document.getElementById("legends-list"),
     scrapFormData.defects
   );
   mobilePartNameChoice = new Choices(mobileForm.partName, choicesConfig);
-  updateAllPartNameDropdowns();
+  updatePartNameDropdownForMobile();
   legendsContainer.style.display = "block";
   const dateInput = document.getElementById("jalali_date");
   if (dateInput) {
@@ -984,8 +1395,11 @@ export function init() {
       calendar: "persian",
     });
     dateInput.value = formatter.format(today);
-    if (jdp) {
-      jdp.render(dateInput, { usePersianDigits: true, format: "YYYY/MM/DD" });
+    if (window.jdp) {
+      window.jdp.render(dateInput, {
+        usePersianDigits: true,
+        format: "YYYY/MM/DD",
+      });
     }
   }
 
@@ -993,6 +1407,14 @@ export function init() {
   addSafeEventListener(".finalize-btn", "click", finalizeForm);
   addSafeEventListener(".export-btn", "click", exportToCSV);
   addSafeEventListener(".export-img-btn", "click", exportToImage);
+  addSafeEventListener(".export-pdf-btn", "click", exportToPDF);
+
+  if (mobileForm.productType) {
+    mobileForm.productType.addEventListener(
+      "change",
+      updatePartNameDropdownForMobile
+    );
+  }
 
   if (mobileForm.addBtn) {
     mobileForm.addBtn.addEventListener("click", () => {
@@ -1002,22 +1424,35 @@ export function init() {
       let firstInvalidElement = null;
       requiredElements.forEach((el) => {
         const container =
-          el.id === "mobile-part-name"
-            ? el.parentElement.querySelector(".choices")
+          el.id === "mobile-part-name" || el.id === "mobile-product-type"
+            ? el.parentElement
             : el.closest(".counter-input-group") ||
               el.closest(".mobile-form-group") ||
               el;
         if (container) container.classList.remove("required-field-error");
+
+        const choicesWrapper = container.querySelector(".choices");
+        if (choicesWrapper)
+          choicesWrapper.classList.remove("required-field-error");
       });
       for (const el of requiredElements) {
         if (!el.value || (el.id === "mobile-total-count" && el.value === "0")) {
           const container =
-            el.id === "mobile-part-name"
-              ? el.parentElement.querySelector(".choices")
+            el.id === "mobile-part-name" || el.id === "mobile-product-type"
+              ? el.parentElement
               : el.closest(".counter-input-group") ||
                 el.closest(".mobile-form-group") ||
                 el;
-          if (container) container.classList.add("required-field-error");
+
+          if (container) {
+            const choicesWrapper = container.querySelector(".choices");
+            if (choicesWrapper) {
+              choicesWrapper.classList.add("required-field-error");
+            } else {
+              container.classList.add("required-field-error");
+            }
+          }
+
           if (!firstInvalidElement) firstInvalidElement = el;
         }
       }
@@ -1031,7 +1466,7 @@ export function init() {
         else firstInvalidElement.focus();
         const accordionContent =
           firstInvalidElement.closest(".accordion-content");
-        if (accordionContent) {
+        if (accordionContent && accordionContent.style.display === "none") {
           accordionContent.style.display = "flex";
           accordionContent.previousElementSibling.classList.add("active");
         }
@@ -1045,6 +1480,7 @@ export function init() {
         .padStart(2, "0")}`;
 
       const mobileData = {
+        product_type: mobileForm.productType.value,
         product_model: mobileForm.productModel.value,
         group: mobileForm.group.value,
         item: mobileForm.item.value,
@@ -1095,8 +1531,8 @@ export function init() {
       if (!button) return;
       const li = button.closest("li[data-row-index]");
       if (!li) return;
-      const rowIndex = parseInt(li.dataset.rowIndex, 10),
-        rowElement = tableBody.rows[rowIndex];
+      const rowIndex = parseInt(li.dataset.rowIndex, 10);
+      const rowElement = tableBody.rows[rowIndex];
       if (!rowElement) return;
       if (button.classList.contains("summary-edit-btn"))
         startEditing(rowElement);
@@ -1151,12 +1587,10 @@ export function init() {
       }
     });
   }
-  productTypeSelect.addEventListener("change", updateAllPartNameDropdowns);
 
   [
     "jalali_date",
     "line",
-    "product_type",
     "approver-control",
     "approver-line",
     "approver-eng",

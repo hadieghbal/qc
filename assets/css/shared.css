@@ -425,6 +425,13 @@ header#main-header {
 .finalize-btn:hover:not(:disabled) {
   background-color: #5a379a;
 }
+/* استایل جدید برای دکمه خروجی PDF */
+.export-pdf-btn {
+  background-color: var(--danger-color); /* رنگ قرمز */
+}
+.export-pdf-btn:hover:not(:disabled) {
+  background-color: #b02a37; /* قرمز تیره‌تر برای هاور */
+}
 
 /* ============================================= */
 /* ===== بخش ۵: جداول و لیست‌های خلاصه =========== */

@@ -19,24 +19,21 @@
       <label for="line">خط :</label>
       <select id="line" name="line"></select>
     </div>
+    <!-- + اضافه شد: فیلد کشویی جدید برای نوع ضایعات -->
     <div class="form-meta">
-      <label for="product_type">نوع محصول :</label>
-      <select id="product_type" name="product_type"></select>
-    </div>
-    <div class="form-meta waste-type-selector">
-      <label>
-        <input type="radio" name="waste_type" value="برقی" /> ضایعات برقی
-      </label>
-      <label>
-        <input type="radio" name="waste_type" value="غیربرقی" checked /> ضایعات
-        غیربرقی
-      </label>
+      <label for="waste_type_select">نوع ضایعات :</label>
+      <select id="waste_type_select" name="waste_type">
+        <option value="غیربرقی" selected>غیربرقی</option>
+        <option value="برقی">برقی</option>
+      </select>
     </div>
   </div>
 
   <table style="display: none">
     <tbody id="main-table-body"></tbody>
   </table>
+
+  <!-- - حذف شد: آکاردئون نوع ضایعات که اشتباه بود -->
 
   <div id="mobile-form-wrapper">
     <div class="mobile-form-container">
@@ -45,6 +42,13 @@
         اطلاعات قطعه <i class="bi bi-chevron-down"></i>
       </div>
       <div class="accordion-content" style="display: flex">
+        <div class="mobile-form-group">
+          <label for="mobile-product-type">نوع محصول:</label>
+          <select
+            id="mobile-product-type"
+            data-required-name="نوع محصول"
+          ></select>
+        </div>
         <div class="mobile-form-group">
           <label for="mobile-part-name">نام قطعه:</label>
           <select id="mobile-part-name" data-required-name="نام قطعه"></select>
@@ -331,6 +335,13 @@
       style="display: none"
     >
       <i class="bi bi-camera-fill"></i> خروجی تصویر فرم
+    </button>
+    <button
+      type="button"
+      class="action-btn export-pdf-btn"
+      style="display: none"
+    >
+      <i class="bi bi-file-earmark-pdf-fill"></i> خروجی PDF
     </button>
   </div>
 
