@@ -723,21 +723,30 @@ tbody .is-open .choices__inner {
 /* ======================================================= */
 /* ===== بخش ۷: استایل‌های مخصوص خروجی تصویر (پرینت) ===== */
 /* ======================================================= */
+
+/* کد نهایی و صحیح برای حل مشکل فضای خالی و خروجی تصویر */
 .print-page-container {
-  display: none;
+  /* این ویژگی عنصر را کاملا از جریان صفحه خارج کرده و نسبت به پنجره مرورگر موقعیت‌دهی می‌کند */
+  position: fixed;
+
+  /* این ویژگی‌ها آن را نامرئی و خارج از دید قرار می‌دهند */
+  left: -9999px;
+  top: 0;
+  visibility: hidden;
+  z-index: -1;
+
+  /* بقیه ویژگی‌ها برای زمانی است که جاوااسکریپت آن را برای عکس‌برداری آماده می‌کند */
+  display: flex;
+  flex-direction: column;
   width: 718px;
-  height: 1058px;
   background-color: #ffffff;
   padding: 30px;
   font-family: "Vazirmatn", sans-serif;
   direction: rtl;
   color: var(--dark-color);
   box-sizing: border-box;
-  flex-direction: column;
-  position: absolute;
-  left: -9999px;
-  top: 0;
 }
+
 .print-page-container header#main-header {
   flex-shrink: 0;
   display: flex !important;

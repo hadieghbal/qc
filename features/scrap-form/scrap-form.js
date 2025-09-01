@@ -56,6 +56,13 @@ export function init() {
   };
 
   // ===== توابع کمکی =====
+function toEnglishDigits(str) {
+  if (!str) return '';
+  return str.toString()
+            .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+            .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+}
+
   function showToast(message, type = "info") {
     const colors = {
       info: "linear-gradient(to right, #00b09b, #96c93d)",
@@ -103,6 +110,14 @@ export function init() {
     }
   }
 
+  // تابع جدید برای ساخت نام یکسان برای همه فایل‌ها
+  function generateBaseFileName(globalInfo) {
+    const date = globalInfo.globalDate.replace(/\//g, ".");
+    const line = globalInfo.globalLine.replace(/\s/g, "_");
+    const type = globalInfo.wasteType === "برقی" ? "برقی" : "غیربرقی";
+    return `گزارش ضایعات ${date} - ${line} - ${type}`;
+  }
+
   // ===== توابع مدیریت فرم =====
   function resetForm() {
     if (tableBody) tableBody.innerHTML = "";
@@ -120,7 +135,6 @@ export function init() {
     const lineSelect = document.getElementById("line");
     if (lineSelect) lineSelect.selectedIndex = 0;
 
-    // + تغییر: ریست کردن فیلد کشویی جدید
     const wasteTypeSelect = document.getElementById("waste_type_select");
     if (wasteTypeSelect) wasteTypeSelect.value = "غیربرقی";
 
@@ -278,7 +292,6 @@ export function init() {
 
   function getGlobalData() {
     if (Object.keys(finalizedFormData).length > 0) return finalizedFormData;
-    // + تغییر: خواندن مقدار از فیلد کشویی جدید
     const wasteTypeSelect = document.getElementById("waste_type_select");
     return {
       globalDate: document.getElementById("jalali_date").value.trim(),
@@ -309,15 +322,15 @@ export function init() {
       return;
     }
     Swal.fire({
-      title: "ثبت نهایی فرم",
-      text: "آیا از ثبت نهایی فرم اطمینان دارید؟ پس از تایید، امکان ویرایش وجود نخواهد داشت.",
+      title: "ثبت نهایی و دریافت خروجی‌ها",
+      text: "آیا از ثبت نهایی فرم اطمینان دارید؟ پس از تایید، فرم قفل شده و تمام خروجی‌ها به صورت خودکار دانلود خواهند شد.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
-      confirmButtonText: "بله، ثبت نهایی کن!",
+      confirmButtonText: "بله، ثبت و دانلود کن!",
       cancelButtonText: "انصراف",
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
         const globalData = getGlobalData();
         const tableData = [];
@@ -334,10 +347,25 @@ export function init() {
         });
         finalizedFormData = { ...globalData, tableData };
         lockForm();
-        showToast(
-          "فرم با موفقیت ثبت و قفل شد. اکنون می‌توانید خروجی بگیرید.",
-          "success"
-        );
+
+        try {
+          showToast("فرم ثبت شد. در حال آماده‌سازی خروجی‌ها...", "info");
+
+          // +++ تغییر کلیدی: ترتیب دانلود عوض شد +++
+          // 1. اول تصویر که به رندر صحیح وابسته است
+          await exportToImage();
+
+          // 2. سپس PDF
+          await exportToPDF();
+
+          // 3. در آخر CSV که سبک‌ترین است
+          await exportToCSV();
+
+          showToast("تمام خروجی‌ها با موفقیت ایجاد شدند.", "success");
+        } catch (error) {
+          console.error("خطا در فرآیند دریافت خروجی‌ها:", error);
+          showToast("دریافت یکی از خروجی‌ها با خطا مواجه شد.", "error");
+        }
       }
     });
   }
@@ -363,128 +391,113 @@ export function init() {
       });
     const finalizeBtn = pageElement.querySelector(".finalize-btn");
     finalizeBtn.innerHTML = `<i class="bi bi-lock-fill"></i> نهایی شده`;
-    pageElement.querySelector(".export-btn").style.display = "inline-flex";
-    pageElement.querySelector(".export-img-btn").style.display = "inline-flex";
-    pageElement.querySelector(".export-pdf-btn").style.display = "inline-flex";
+    // دکمه‌های خروجی دیگر نمایش داده نمی‌شوند چون دانلود خودکار است
+    pageElement.querySelector(".export-btn").style.display = "none";
+    pageElement.querySelector(".export-img-btn").style.display = "none";
+    pageElement.querySelector(".export-pdf-btn").style.display = "none";
   }
 
   // ===== توابع مربوط به خروجی‌ها =====
   function exportToCSV() {
-    if (Object.keys(finalizedFormData).length === 0) {
-      showToast("لطفا ابتدا فرم را ثبت نهایی کنید.", "warning");
-      return;
-    }
+    // +++ تغییر: کل تابع داخل یک Promise قرار گرفت تا با async/await هماهنگ باشد +++
+    return new Promise((resolve, reject) => {
+      if (Object.keys(finalizedFormData).length === 0) {
+        const err = new Error("Form not finalized before exporting to CSV.");
+        showToast("لطفا ابتدا فرم را ثبت نهایی کنید.", "warning");
+        return reject(err);
+      }
 
-    try {
-      showToast("در حال آماده‌سازی خروجی CSV...", "info");
-
-      const {
-        globalDate,
-        globalLine,
-        wasteType,
-        approverControl,
-        approverLine,
-        approverEng,
-        tableData,
-      } = finalizedFormData;
-      const fileName = `گزارش ضایعات ${globalDate.replace(
-        /\//g,
-        "."
-      )} - ${globalLine.replace(/\s/g, "_")} - ${
-        wasteType === "برقی" ? "برقی" : "غیربرقی"
-      }`;
-      const headers = [
-        "تاریخ",
-        "خط",
-        "نوع ضایعات",
-        "ردیف",
-        "نوع محصول",
-        "مدل محصول",
-        "گروه",
-        "آیتم",
-        "نام قطعه",
-        "تعداد کل",
-        "تامین کننده-تزریق",
-        "تامین کننده-پرسکاری",
-        "تامین کننده-داخلی",
-        "تامین کننده-خارجی",
-        "منشا-بسته بندی",
-        "منشا-انبار",
-        "منشا-حین تولید",
-        "شرح ضایعات",
-        "توضیحات",
-        "تایید کننده کنترل",
-        "تایید کننده خط",
-        "تایید کننده فنی",
-      ];
-      let csvContent = "\uFEFF" + headers.join(",") + "\r\n";
-      tableData.forEach((data, index) => {
-        const cleanCell = (cellData) =>
-          `"${(cellData || "").toString().replace(/"/g, '""')}"`;
-        const rowDataValues = [
-          globalDate,
-          globalLine,
-          wasteType,
-          index + 1,
-          data.product_type,
-          data.product_model,
-          data.group,
-          data.item,
-          data.part_name,
-          data.total_count,
-          data.supplier_injection,
-          data.supplier_press,
-          data.supplier_internal,
-          data.supplier_external,
-          data.source_packaging,
-          data.source_warehouse,
-          data.source_production,
-          data.defects_summary,
-          data.comments,
-          approverControl,
-          approverLine,
-          approverEng,
+      try {
+        const { tableData, ...globalInfo } = finalizedFormData;
+        const fileName = generateBaseFileName(globalInfo);
+        const headers = [
+          "تاریخ",
+          "خط",
+          "نوع ضایعات",
+          "ردیف",
+          "نوع محصول",
+          "مدل محصول",
+          "گروه",
+          "آیتم",
+          "نام قطعه",
+          "تعداد کل",
+          "تامین کننده-تزریق",
+          "تامین کننده-پرسکاری",
+          "تامین کننده-داخلی",
+          "تامین کننده-خارجی",
+          "منشا-بسته بندی",
+          "منشا-انبار",
+          "منشا-حین تولید",
+          "شرح ضایعات",
+          "توضیحات",
+          "تایید کننده کنترل",
+          "تایید کننده خط",
+          "تایید کننده فنی",
         ];
-        csvContent += rowDataValues.map(cleanCell).join(",") + "\r\n";
-      });
-      downloadFile(csvContent, `${fileName}.csv`, "text/csv;charset=utf-8;");
-
-      showToast("فایل CSV با موفقیت آماده شد.", "success");
-    } catch (error) {
-      console.error("خطا در ایجاد خروجی CSV:", error);
-      showToast("دانلود فایل CSV با مشکل مواجه شد.", "error");
-    }
+        let csvContent = "\uFEFF" + headers.join(",") + "\r\n";
+        tableData.forEach((data, index) => {
+          const cleanCell = (cellData) =>
+            `"${(cellData || "").toString().replace(/"/g, '""')}"`;
+          const rowDataValues = [
+            globalInfo.globalDate,
+            globalInfo.globalLine,
+            globalInfo.wasteType,
+            index + 1,
+            data.product_type,
+            data.product_model,
+            data.group,
+            data.item,
+            data.part_name,
+            data.total_count,
+            data.supplier_injection,
+            data.supplier_press,
+            data.supplier_internal,
+            data.supplier_external,
+            data.source_packaging,
+            data.source_warehouse,
+            data.source_production,
+            data.defects_summary,
+            data.comments,
+            globalInfo.approverControl,
+            globalInfo.approverLine,
+            globalInfo.approverEng,
+          ];
+          csvContent += rowDataValues.map(cleanCell).join(",") + "\r\n";
+        });
+        downloadFile(csvContent, `${fileName}.csv`, "text/csv;charset=utf-8;");
+        resolve(); // در صورت موفقیت، Promise را resolve می‌کنیم
+      } catch (error) {
+        console.error("خطا در ایجاد خروجی CSV:", error);
+        showToast("دانلود فایل CSV با مشکل مواجه شد.", "error");
+        reject(error); // در صورت خطا، Promise را reject می‌کنیم
+      }
+    });
   }
 
   async function exportToImage() {
     if (Object.keys(finalizedFormData).length === 0) {
       showToast("لطفا ابتدا فرم را ثبت نهایی کنید.", "warning");
-      return;
+      throw new Error("Form not finalized before exporting to Image.");
     }
 
-    showToast("در حال آماده‌سازی خروجی تصویر...", "info");
     const exportButton = pageElement.querySelector(".export-img-btn");
-    toggleButtonLoading(exportButton, true, "در حال آماده سازی...");
+    toggleButtonLoading(exportButton, true, "در حال آماده سازی تصویر...");
+
+    const printContainer = document.querySelector(".print-page-container");
 
     try {
       const { tableData, ...globalInfo } = finalizedFormData;
-      const printContainer = document.querySelector(".print-page-container");
 
-      const PAGE_MAX_HEIGHT = 1058;
       const PAGE_WIDTH = 718;
+      const baseFileName = generateBaseFileName(globalInfo);
 
-      const baseFileName = `گزارش ضایعات ${globalInfo.globalDate.replace(
-        /\//g,
-        "."
-      )} - ${globalInfo.globalLine}`;
-
-      const buildFullPageHTML = (itemsHTML, currentPage, totalPages) => {
+      const buildFullPageHTML = (itemsHTML) => {
         const originalHeaderClone = document
           .getElementById("main-header")
           .cloneNode(true);
         const approvalHTML = `<div class="approvers-container"><div class="approver-group"><label>1. نماینده کنترل:</label><span class="approver-group-name">${globalInfo.approverControl}</span></div><div class="approver-group"><label>2. نماینده تولید:</label><span class="approver-group-name">${globalInfo.approverLine}</span></div><div class="approver-group"><label>3. نماینده فنی و مهندسی:</label><span class="approver-group-name">${globalInfo.approverEng}</span></div></div>`;
         const topInfoHTML = `<div class="export-top-info"><div><strong>تاریخ:</strong> ${globalInfo.globalDate}</div><div><strong>خط:</strong> ${globalInfo.globalLine}</div><div><strong>نوع ضایعات:</strong> ${globalInfo.wasteType}</div></div>`;
-        const pageFooterHTML = `<footer>صفحه ${currentPage} از ${totalPages}</footer>`;
+        const pageFooterHTML = `<footer>صفحه ۱ از ۱</footer>`;
         const footerGroupHTML = `<div class="print-footer-group">${approvalHTML}${pageFooterHTML}</div>`;
 
         return `${originalHeaderClone.outerHTML}${topInfoHTML}<div class="export-items-list">${itemsHTML}</div>${footerGroupHTML}`;
@@ -497,19 +510,11 @@ export function init() {
           item.product_type
         })</span>`;
 
-        const headerHTML = `
-        <div class="summary-card-header">
-          <h2 class="summary-card-title">${titleHTML}</h2>
-          <div class="summary-card-meta" style="display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--secondary-color);">
-              <span class="summary-timestamp" style="display: flex; align-items: center; gap: 4px;">
-                  <i class="bi bi-clock"></i>
-                  ${item.timestamp || ""}
-              </span>
-              <span class="summary-card-count count-highlight">تعداد: ${
-                item.total_count
-              }</span>
-          </div>
-        </div>`;
+        const headerHTML = `<div class="summary-card-header"><h2 class="summary-card-title">${titleHTML}</h2><div class="summary-card-meta" style="display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--secondary-color);"><span class="summary-timestamp" style="display: flex; align-items: center; gap: 4px;"><i class="bi bi-clock"></i> ${
+          item.timestamp || ""
+        }</span><span class="summary-card-count count-highlight">تعداد: ${
+          item.total_count
+        }</span></div></div>`;
 
         let detailsHTML = "";
         if (item.product_model)
@@ -549,100 +554,52 @@ export function init() {
 
         const defectsAndNotesHTML =
           item.defects_summary || item.comments
-            ? `
-        <div class="card-details-row notes-row">
-          ${
-            item.defects_summary
-              ? `<span><i class="bi bi-card-text icon-defect"></i> ${item.defects_summary}</span>`
-              : ""
-          }
-          ${
-            item.comments
-              ? `<span><i class="bi bi-chat-left-text"></i> ${item.comments}</span>`
-              : ""
-          }
-        </div>`
+            ? `<div class="card-details-row notes-row">${
+                item.defects_summary
+                  ? `<span><i class="bi bi-card-text icon-defect"></i> ${item.defects_summary}</span>`
+                  : ""
+              } ${
+                item.comments
+                  ? `<span><i class="bi bi-chat-left-text"></i> ${item.comments}</span>`
+                  : ""
+              }</div>`
             : "";
 
-        return `
-        <div class="summary-card-item">
-          ${headerHTML}
-          <div class="summary-card-details">
-            ${processInfoHTML}
-            ${defectsAndNotesHTML}
-          </div>
-        </div>`;
+        return `<div class="summary-card-item">${headerHTML}<div class="summary-card-details">${processInfoHTML}${defectsAndNotesHTML}</div></div>`;
       };
 
-      const pages = [];
-      let currentPageItemsHTML = "";
-      const allItemCardsHTML = tableData.map(createItemCardHTML);
+      const allItemsHTML = tableData.map(createItemCardHTML).join("");
 
-      printContainer.style.visibility = "hidden";
-      printContainer.style.display = "flex";
+      // +++ تغییر کلیدی: آماده‌سازی کانتینر برای رندر صحیح +++
+      printContainer.innerHTML = buildFullPageHTML(allItemsHTML);
       printContainer.style.height = "auto";
+      printContainer.style.visibility = "visible";
+      printContainer.style.opacity = "1";
 
-      for (const itemHTML of allItemCardsHTML) {
-        const potentialHTML = currentPageItemsHTML + itemHTML;
-        printContainer.innerHTML = buildFullPageHTML(potentialHTML, 1, 1);
-        await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => setTimeout(resolve, 100))
+      );
 
-        if (
-          printContainer.scrollHeight > PAGE_MAX_HEIGHT &&
-          currentPageItemsHTML !== ""
-        ) {
-          pages.push(currentPageItemsHTML);
-          currentPageItemsHTML = itemHTML;
-        } else {
-          currentPageItemsHTML = potentialHTML;
-        }
-      }
-      if (currentPageItemsHTML !== "") {
-        pages.push(currentPageItemsHTML);
-      }
+      const canvas = await html2canvas(printContainer, {
+        useCORS: true,
+        scale: 2,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: printContainer.scrollWidth,
+        windowHeight: printContainer.scrollHeight,
+      });
 
-      printContainer.style.height = "";
-
-      const totalPages = pages.length;
-      for (let i = 0; i < totalPages; i++) {
-        const pageItemsHTML = pages[i];
-        const currentPage = i + 1;
-        printContainer.innerHTML = buildFullPageHTML(
-          pageItemsHTML,
-          currentPage,
-          totalPages
-        );
-        printContainer.style.visibility = "visible";
-
-        await new Promise((resolve) => setTimeout(resolve, 200));
-
-        const canvas = await html2canvas(printContainer, {
-          useCORS: true,
-          scale: 2,
-          width: PAGE_WIDTH,
-          height: PAGE_MAX_HEIGHT,
-          windowWidth: printContainer.scrollWidth,
-          windowHeight: printContainer.scrollHeight,
-        });
-
-        const fileName =
-          totalPages > 1
-            ? `${baseFileName} (صفحه ${currentPage} از ${totalPages}).png`
-            : `${baseFileName}.png`;
-
-        downloadFile(canvas.toDataURL("image/png"), fileName);
-        if (totalPages > 1)
-          await new Promise((resolve) => setTimeout(resolve, 300));
-      }
-
-      showToast("خروجی تصویر با موفقیت ایجاد شد.", "success");
+      downloadFile(canvas.toDataURL("image/png"), `${baseFileName}.png`);
     } catch (err) {
       console.error(`خطا در ایجاد خروجی تصویر:`, err);
       showToast(`دانلود فایل تصویر با مشکل مواجه شد.`, "error");
+      throw err;
     } finally {
-      const printContainer = document.querySelector(".print-page-container");
+      // +++ تغییر کلیدی: بازگرداندن کانتینر به حالت اولیه +++
       if (printContainer) {
-        printContainer.style.display = "none";
+        printContainer.style.height = "";
+        printContainer.style.visibility = "hidden";
+        printContainer.style.opacity = "0";
         printContainer.innerHTML = "";
       }
       toggleButtonLoading(
@@ -653,7 +610,6 @@ export function init() {
     }
   }
 
-  // ... (تمام کدهای قبلی فایل تا قبل از تابع exportToPDF سر جای خودش باقی می‌مونه) ...
   async function loadFontAsBase64(url) {
     const response = await fetch(url);
     if (!response.ok) {
@@ -673,7 +629,6 @@ export function init() {
   }
 
   const toPersianDigits = (text) => {
-    // این تابع فقط اعداد را به فارسی تبدیل می‌کند
     if (text === null || text === undefined) return "";
     const persianDigits = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
     return text.toString().replace(/[0-9]/g, (d) => persianDigits[d]);
@@ -682,10 +637,8 @@ export function init() {
   const rtl = (text) => {
     if (text === null || text === undefined) return "";
     let str = text.toString();
-
     str = str.replace(/\s*\((.*?)\)\s*/g, " - $1").trim();
     str = str.replace(/\//g, "، ");
-
     const rtlRegex = /[\u0600-\u06FF]/;
     if (!rtlRegex.test(str)) {
       return str;
@@ -695,39 +648,29 @@ export function init() {
     return reversedWords.join(" ");
   };
 
-  // ... داخل تابع exportToPDF ...
-
   const fixBidi = (text) => {
     if (typeof text !== "string" || !text) return text;
-
-    // 1. جایگزینی کاراکترهای نامناسب
     let processedText = text.toString().replace(/\//g, "، ");
-
-    // 2. استفاده از کاراکتر کنترلی (LRM) برای حفظ اعداد انگلیسی
-    // این کاراکتر نامرئی به رندرکننده می‌گوید "بخش بعدی را از چپ به راست بخوان"
     const LRM = "\u200E";
     processedText = processedText.replace(/\d+/g, (match) => LRM + match + LRM);
-
-    // 3. معکوس کردن ترتیب کلمات برای نمایش صحیح راست-به-چپ
     const reversedText = processedText
       .split(/\s+/)
       .filter(Boolean)
       .reverse()
       .join(" ");
-
-    const RLM_RTL = "\u200F"; // Right-to-Left Mark
+    const RLM_RTL = "\u200F";
     return RLM_RTL + reversedText;
   };
 
-  // ... بقیه کد ...
+  // مسیر: QC 33/features/scrap-form/scrap-form.js
+  // ... (کدهای دیگر فایل را دست نخورده باقی بگذارید) ...
 
   async function exportToPDF() {
     if (Object.keys(finalizedFormData).length === 0) {
       showToast("لطفا ابتدا فرم را ثبت نهایی کنید.", "warning");
-      return;
+      throw new Error("Form not finalized before exporting to PDF.");
     }
 
-    showToast("در حال آماده‌سازی خروجی PDF...", "info");
     const exportButton = pageElement.querySelector(".export-pdf-btn");
     toggleButtonLoading(exportButton, true, "در حال آماده‌سازی فونت...");
 
@@ -752,7 +695,7 @@ export function init() {
         },
       };
 
-      const tableBody = tableData.map((item, index) => {
+      const tableBodyContent = tableData.map((item, index) => {
         const supplierParts = [];
         if (item.supplier_injection > 0)
           supplierParts.push(`تزریق: ${item.supplier_injection}`);
@@ -815,46 +758,54 @@ export function init() {
       const docDefinition = {
         pageSize: "A4",
         pageOrientation: "portrait",
-        pageMargins: [20, 25, 20, 50],
-        content: [
-          { text: rtl("فرم گزارش ضایعات روزانه"), style: "headerTitle" },
-          {
-            columns: [
-              { text: "P1-QC-F-001/001", style: "docCode" },
-              { text: "Pakshoma", style: "pakshomaLogo" },
-            ],
-          },
-          {
-            style: "infoBox",
-            table: {
-              widths: ["*", "auto", "*", "auto", "*", "auto"],
-              body: [
-                [
-                  { text: rtl(globalInfo.wasteType), style: "infoText" },
-                  { text: rtl("نوع ضایعات:"), style: "infoLabel" },
-                  { text: globalInfo.globalDate, style: "infoText" },
-                  { text: rtl("تاریخ:"), style: "infoLabel" },
-                  { text: rtl(globalInfo.globalLine), style: "infoText" },
-                  { text: rtl("خط:"), style: "infoLabel" },
-                ],
+        // +++ تغییر کلیدی: حاشیه بالا برای جلوگیری از تداخل هدر و جدول افزایش یافت
+        pageMargins: [20, 120, 20, 75],
+
+        header: {
+          margin: [20, 25, 20, 0],
+          stack: [
+            { text: rtl("فرم گزارش ضایعات روزانه"), style: "headerTitle" },
+            {
+              columns: [
+                { text: "P1-QC-F-001/001", style: "docCode" },
+                { text: "Pakshoma", style: "pakshomaLogo" },
               ],
             },
-            layout: "noBorders",
-          },
+            {
+              style: "infoBox",
+              table: {
+                widths: ["*", "auto", "*", "auto", "*", "auto"],
+                body: [
+                  [
+                    { text: rtl(globalInfo.wasteType), style: "infoText" },
+                    { text: rtl("نوع ضایعات:"), style: "infoLabel" },
+                    { text: globalInfo.globalDate, style: "infoText" },
+                    { text: rtl("تاریخ:"), style: "infoLabel" },
+                    { text: rtl(globalInfo.globalLine), style: "infoText" },
+                    { text: rtl("خط:"), style: "infoLabel" },
+                  ],
+                ],
+              },
+              layout: "noBorders",
+            },
+          ],
+        },
+
+        content: [
           {
             table: {
               headerRows: 1,
               widths: [
-                80, // توضیحات
-                "*", // شرح ضایعات
-                "auto", // منشا
-                "auto", // تامین کننده
-                "auto", // تعداد
-                "auto", // آیتم
-                "auto", // گروه
-                "auto", // مدل
-                "*", // نام قطعه
-                "auto", // ردیف
+                80,
+                "*",
+                "auto",
+                "auto",
+                "auto",
+                "auto",
+                "auto",
+                "auto",
+                "*",
+                "auto",
               ],
               body: [
                 [
@@ -869,7 +820,7 @@ export function init() {
                   { text: rtl("نام قطعه"), style: "tableHeader" },
                   { text: rtl("ردیف"), style: "tableHeader" },
                 ],
-                ...tableBody,
+                ...tableBodyContent,
               ],
             },
             layout: {
@@ -884,49 +835,53 @@ export function init() {
                 rowIndex > 0 && rowIndex % 2 === 0 ? "#f7f9fc" : null,
             },
           },
-          {
-            style: "infoBox",
-            margin: [0, 15, 0, 0],
-            table: {
-              widths: ["*", "*", "*"],
-              body: [
-                [
-                  {
-                    text: [
-                      rtl(globalInfo.approverEng || ""),
-                      { text: rtl("نماینده فنی و مهندسی: "), bold: true },
-                    ],
-                    style: "approverBlock",
-                  },
-                  {
-                    text: [
-                      rtl(globalInfo.approverLine || ""),
-                      { text: rtl("نماینده تولید: "), bold: true },
-                    ],
-                    style: "approverBlock",
-                  },
-                  {
-                    text: [
-                      rtl(globalInfo.approverControl || ""),
-                      { text: rtl("نماینده کنترل: "), bold: true },
-                    ],
-                    style: "approverBlock",
-                  },
-                ],
-              ],
-            },
-            layout: "noBorders",
-          },
         ],
         footer: (currentPage, pageCount) => ({
-          text: toPersianDigits(
-            `صفحه ${currentPage.toString()} از ${pageCount}`,
-            true
-          ),
-          alignment: "center",
-          fontSize: 9,
-          color: "#555555",
-          margin: [0, 20, 0, 0],
+          stack: [
+            {
+              style: "infoBox",
+              margin: [0, 10, 0, 0],
+              table: {
+                widths: ["*", "*", "*"],
+                body: [
+                  [
+                    {
+                      text: [
+                        rtl(globalInfo.approverEng || ""),
+                        { text: rtl("نماینده فنی و مهندسی: "), bold: true },
+                      ],
+                      style: "approverBlock",
+                    },
+                    {
+                      text: [
+                        rtl(globalInfo.approverLine || ""),
+                        { text: rtl("نماینده تولید: "), bold: true },
+                      ],
+                      style: "approverBlock",
+                    },
+                    {
+                      text: [
+                        rtl(globalInfo.approverControl || ""),
+                        { text: rtl("نماینده کنترل: "), bold: true },
+                      ],
+                      style: "approverBlock",
+                    },
+                  ],
+                ],
+              },
+              layout: "noBorders",
+            },
+            {
+              text: toPersianDigits(
+                `${pageCount}  از  ${currentPage.toString()}  صفحه  `
+              ),
+              alignment: "center",
+              fontSize: 9,
+              color: "#555555",
+              margin: [0, 10, 0, 0],
+            },
+          ],
+          margin: [20, 0, 20, 0],
         }),
         styles: {
           headerTitle: {
@@ -943,7 +898,7 @@ export function init() {
             color: "#333333",
           },
           docCode: { fontSize: 10, alignment: "left", color: "#777777" },
-          infoBox: { margin: [0, 15, 0, 10], fillColor: "#f7f9fc" },
+          infoBox: { margin: [0, 5, 0, 5], fillColor: "#f7f9fc" },
           infoLabel: {
             alignment: "right",
             bold: true,
@@ -978,16 +933,12 @@ export function init() {
         defaultStyle: { font: "Vazirmatn" },
       };
 
-      const fileName = `فرم ضایعات - ${globalInfo.globalDate.replace(
-        /\//g,
-        "-"
-      )}.pdf`;
+      const fileName = `${generateBaseFileName(globalInfo)}.pdf`;
       pdfMake.createPdf(docDefinition).download(fileName);
-
-      showToast("فایل PDF با موفقیت آماده شد.", "success");
     } catch (err) {
       console.error("خطای جدی در ساخت PDF:", err);
       showToast("دانلود فایل PDF با مشکل مواجه شد.", "error");
+      throw err;
     } finally {
       toggleButtonLoading(
         exportButton,
@@ -996,7 +947,9 @@ export function init() {
       );
     }
   }
+  // ... (بقیه کدهای فایل را دست نخورده باقی بگذارید) ...
 
+  // ... (بقیه کدهای فایل را دست نخورده باقی بگذارید) ...
   // ===== توابع مدیریت لیست و فرم موبایل =====
   function updateMobileSummary() {
     mobileForm.summaryList.innerHTML = "";
@@ -1140,7 +1093,6 @@ export function init() {
     updateDefectLegendsSelection();
 
     if (focusOnPartName && window.innerWidth < 992) {
-      // + تغییر: فوکوس خودکار روی فیلد جستجوی نام قطعه
       setTimeout(() => {
         mobilePartNameChoice.showDropdown();
         const searchInput =
@@ -1405,9 +1357,10 @@ export function init() {
 
   // --- ثبت Event Listener ها ---
   addSafeEventListener(".finalize-btn", "click", finalizeForm);
-  addSafeEventListener(".export-btn", "click", exportToCSV);
-  addSafeEventListener(".export-img-btn", "click", exportToImage);
-  addSafeEventListener(".export-pdf-btn", "click", exportToPDF);
+  // این سه خط حذف یا کامنت می‌شوند چون دیگر به صورت تکی استفاده نمی‌شوند
+  // addSafeEventListener(".export-btn", "click", exportToCSV);
+  // addSafeEventListener(".export-img-btn", "click", exportToImage);
+  // addSafeEventListener(".export-pdf-btn", "click", exportToPDF);
 
   if (mobileForm.productType) {
     mobileForm.productType.addEventListener(
