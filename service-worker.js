@@ -1,7 +1,7 @@
 // service-worker.js
 
 // مرحله ۱: نسخه کش را افزایش دهید تا سرویس‌ورکر جدید نصب شود
-const CACHE_NAME = "qc-app-cache-v3"; // مثلا v2 را به v3 تغییر دهید
+const CACHE_NAME = "qc-app-cache-v4"; // مثلا v2 را به v3 تغییر دهید
 
 // مرحله ۲: لیست فایل‌ها را کامل کنید
 const FILES_TO_CACHE = [
