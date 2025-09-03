@@ -1,9 +1,7 @@
-// service-worker.js
+// service-worker.js (نسخه نهایی و صحیح)
 
-// مرحله ۱: نسخه کش را افزایش دهید تا سرویس‌ورکر جدید نصب شود
-const CACHE_NAME = "qc-app-cache-v4"; // مثلا v2 را به v3 تغییر دهید
+const CACHE_NAME = "qc-app-cache-v5"; // نسخه کش صحیح است
 
-// مرحله ۲: لیست فایل‌ها را کامل کنید
 const FILES_TO_CACHE = [
   "./",
   "index.html",
@@ -13,16 +11,13 @@ const FILES_TO_CACHE = [
   "js/main.js",
   "js/data.js",
   "js/utils/store.js",
-  // فایل‌های کتابخانه‌ای که فراموش شده بودند
   "assets/libs/pdfmake.min.js",
   "assets/libs/vfs_fonts.js",
-  // سایر کتابخانه‌ها
   "assets/libs/choices.min.js",
   "assets/libs/html2canvas.min.js",
   "assets/libs/jdp.min.js",
   "assets/libs/sweetalert2.all.min.js",
   "assets/libs/toastify.js",
-  // فایل‌های JS مربوط به هر بخش (feature) - بسیار مهم!
   "features/checklist-injection/checklist-injection-data.js",
   "features/checklist-injection/checklist-injection.js",
   "features/org-chart/org-chart-data.js",
@@ -38,7 +33,6 @@ const FILES_TO_CACHE = [
   "assets/libs/choices.min.css",
   "assets/libs/jdp.min.css",
   "assets/libs/toastify.min.css",
-  // استایل‌های مربوط به هر بخش
   "features/checklist-injection/checklist-injection.css",
   "features/org-chart/org-chart.css",
   "features/scrap-form/scrap-form.css",
@@ -62,7 +56,6 @@ const FILES_TO_CACHE = [
   "assets/fonts/Vazirmatn-RD-Bold.woff2",
   "assets/fonts/Vazirmatn-RD-Medium.woff2",
   "assets/fonts/Vazirmatn-RD-Regular.woff2",
-  // فونت‌های ttf را هم اضافه کنید اگر در CSS استفاده شده‌اند
   "assets/fonts/Vazirmatn-Bold.ttf",
   "assets/fonts/Vazirmatn-Regular.ttf",
 
@@ -71,24 +64,19 @@ const FILES_TO_CACHE = [
   "assets/images/logo-512.png",
 ];
 
-// رویداد 'install': وقتی سرویس‌ورکر برای اولین بار نصب می‌شود
 self.addEventListener("install", (event) => {
   console.log("[ServiceWorker] Install");
-  // منتظر بمان تا تمام فایل‌ها در کش ذخیره شوند
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log("[ServiceWorker] Pre-caching offline page");
       return cache.addAll(FILES_TO_CACHE);
     })
   );
-  // سرویس‌ورکر جدید را فوراً فعال کن
   self.skipWaiting();
 });
 
-// رویداد 'activate': وقتی سرویس‌ورکر فعال می‌شود و کنترل صفحه را به دست می‌گیرد
 self.addEventListener("activate", (event) => {
   console.log("[ServiceWorker] Activate");
-  // کش‌های قدیمی را پاک کن
   event.waitUntil(
     caches.keys().then((keyList) => {
       return Promise.all(
@@ -101,15 +89,16 @@ self.addEventListener("activate", (event) => {
       );
     })
   );
-  // کنترل کامل صفحات را به دست بگیر
   self.clients.claim();
 });
 
-// رویداد 'fetch': هر بار که برنامه درخواستی برای یک فایل ارسال می‌کند
+// ==========================================================
+// ✨✨✨ این بخش اصلاح شده است ✨✨✨
+// ==========================================================
 self.addEventListener("fetch", (event) => {
-  // ما از استراتژی "اول کش، بعد اینترنت" استفاده می‌کنیم
   event.respondWith(
-    caches.match(event.request).then((response) => {
+    // به match میگوییم که query string ها را نادیده بگیرد
+    caches.match(event.request, { ignoreSearch: true }).then((response) => {
       // اگر فایل در کش بود، آن را برگردان. در غیر این صورت، از اینترنت بگیر.
       return response || fetch(event.request);
     })
