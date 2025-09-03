@@ -56,12 +56,13 @@ export function init() {
   };
 
   // ===== توابع کمکی =====
-function toEnglishDigits(str) {
-  if (!str) return '';
-  return str.toString()
-            .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
-            .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-}
+  function toEnglishDigits(str) {
+    if (!str) return "";
+    return str
+      .toString()
+      .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+      .replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+  }
 
   function showToast(message, type = "info") {
     const colors = {
@@ -579,6 +580,8 @@ function toEnglishDigits(str) {
       await new Promise((resolve) =>
         requestAnimationFrame(() => setTimeout(resolve, 100))
       );
+
+      await document.fonts.ready;
 
       const canvas = await html2canvas(printContainer, {
         useCORS: true,

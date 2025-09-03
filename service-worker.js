@@ -1,6 +1,6 @@
 // service-worker.js (نسخه نهایی و صحیح)
 
-const CACHE_NAME = "qc-app-cache-v5"; // نسخه کش صحیح است
+const CACHE_NAME = "qc-app-cache-v6"; //
 
 const FILES_TO_CACHE = [
   "./",
