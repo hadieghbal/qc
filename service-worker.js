@@ -1,9 +1,7 @@
 // service-worker.js (نسخه نهایی و کاملاً صحیح)
 
-// ✨ 1. نسخه کش برای آپدیت اجباری، افزایش یافت
-const CACHE_NAME = "qc-app-cache-v8";
+const CACHE_NAME = "qc-app-cache-v6"; //
 
-// ✨ 2. تمام مسیرها با /qc/ شروع می‌شوند تا آدرس‌دهی برای گیت‌هاب پیجز دقیق باشد
 const FILES_TO_CACHE = [
   "/qc/",
   "/qc/index.html",
