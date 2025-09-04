@@ -1,6 +1,6 @@
 // service-worker.js (نسخه نهایی و کاملاً صحیح)
 
-const CACHE_NAME = "qc-app v4"; // نسخه برای فعال‌سازی به‌روزرسانی افزایش یافت
+const CACHE_NAME = "qc-app v6"; // نسخه را برای فعال‌سازی به‌روزرسانی افزایش دهید
 
 const FILES_TO_CACHE = [
   "/qc/",
@@ -92,16 +92,24 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// =====> کل این تابع با نسخه نهایی و صحیح جایگزین شده است <=====
 self.addEventListener("fetch", (event) => {
+  // استراتژی "Cache first, falling back to network"
   event.respondWith(
     caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
+      // اگر پاسخ در کش وجود داشت، همان را برگردان
       if (cachedResponse) {
         return cachedResponse;
       }
+
+      // اگر در کش نبود، تلاش کن از شبکه دریافت کنی
       return fetch(event.request).catch(() => {
+        // اگر درخواست شبکه هم شکست خورد (آفلاین بودیم)،
+        // یک پاسخ خطای استاندارد برمی‌گردانیم تا از کرش کردن برنامه جلوگیری شود.
+        // این کار خطای "Failed to convert value to 'Response'" و "Failed to fetch" را حل می‌کند.
         return new Response(null, {
           status: 404,
-          statusText: "Not Found In Cache",
+          statusText: "Not Found",
         });
       });
     })

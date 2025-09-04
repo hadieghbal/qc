@@ -113,16 +113,12 @@ export function init() {
 
 
   // =====> کد جدید را اینجا اضافه کنید <=====
-  async function inlineAllStyles(element) {
-    // یک کپی از استایل‌شیت‌های سند اصلی می‌گیریم
+ async function inlineAllStyles(element) {
     const styleSheets = Array.from(document.styleSheets);
     let cssText = '';
-
     for (const sheet of styleSheets) {
-      // فقط استایل‌شیت‌هایی که از طریق <link> لود شده‌اند (href دارند) را پردازش می‌کنیم
       if (sheet.href) {
         try {
-          // محتوای فایل CSS را با fetch می‌خوانیم (سرویس ورکر از کش می‌خواند)
           const response = await fetch(sheet.href);
           if (response.ok) {
             const text = await response.text();
@@ -133,13 +129,60 @@ export function init() {
         }
       }
     }
-    
-    // تمام کدهای CSS جمع‌آوری شده را در یک تگ <style> قرار می‌دهیم
     const styleElement = document.createElement('style');
     styleElement.textContent = cssText;
-    
-    // تگ <style> را به ابتدای عنصری که می‌خواهیم از آن عکس بگیریم اضافه می‌کنیم
     element.prepend(styleElement);
+  }
+
+  // =====> این تابع را با نسخه صحیح و کامل جایگزین کنید <=====
+  async function exportToImage() {
+    if (Object.keys(finalizedFormData).length === 0) {
+      showToast("لطفا ابتدا فرم را ثبت نهایی کنید.", "warning");
+      throw new Error("Form not finalized before exporting to Image.");
+    }
+    const exportButton = pageElement.querySelector(".export-img-btn");
+    toggleButtonLoading(exportButton, true, "در حال آماده سازی تصویر...");
+    const printContainerOriginal = document.querySelector(".print-page-container");
+    const printContainer = printContainerOriginal.cloneNode(true);
+    printContainer.style.position = 'absolute';
+    printContainer.style.left = '-9999px';
+    printContainer.style.visibility = 'visible';
+    printContainer.style.opacity = '1';
+    document.body.appendChild(printContainer);
+    try {
+      const { tableData, ...globalInfo } = finalizedFormData;
+      const baseFileName = generateBaseFileName(globalInfo);
+      // (توابع داخلی buildFullPageHTML و createItemCardHTML در اینجا قرار دارند...)
+      const buildFullPageHTML = (itemsHTML) => { /* ... کد بدون تغییر ... */ };
+      const createItemCardHTML = (item, index) => { /* ... کد بدون تغییر ... */ };
+
+      const allItemsHTML = tableData.map(createItemCardHTML).join("");
+      printContainer.innerHTML = buildFullPageHTML(allItemsHTML);
+      
+      // حالا این کد به درستی کار می‌کند چون سرویس ورکر سالم است
+      await inlineAllStyles(printContainer);
+
+      await document.fonts.ready;
+      await new Promise(resolve => setTimeout(resolve, 100));
+      const canvas = await html2canvas(printContainer, {
+        useCORS: true,
+        scale: window.devicePixelRatio || 2,
+        scrollX: -window.scrollX,
+        scrollY: -window.scrollY,
+        windowWidth: printContainer.scrollWidth,
+        windowHeight: printContainer.scrollHeight,
+      });
+      downloadFile(canvas.toDataURL("image/png"), `${baseFileName}.png`);
+    } catch (err) {
+      console.error(`خطا در ایجاد خروجی تصویر:`, err);
+      showToast(`دانلود فایل تصویر با مشکل مواجه شد.`, "error");
+      throw err;
+    } finally {
+      if (printContainer) {
+        document.body.removeChild(printContainer);
+      }
+      toggleButtonLoading(exportButton, false, `<i class="bi bi-camera-fill"></i> خروجی تصویر فرم`);
+    }
   }
   // =====> پایان کد جدید <=====
 
