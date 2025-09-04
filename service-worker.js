@@ -1,6 +1,6 @@
 // service-worker.js (نسخه نهایی و کاملاً صحیح)
 
-const CACHE_NAME = "qc-app v3"; //
+const CACHE_NAME = "qc-app v4"; // نسخه برای فعال‌سازی به‌روزرسانی افزایش یافت
 
 const FILES_TO_CACHE = [
   "/qc/",
@@ -92,15 +92,28 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// =====> کل این تابع جایگزین شده است <=====
 self.addEventListener("fetch", (event) => {
+  // این استراتژی "Cache first, falling back to network" است
+  // این استراتژی برای اپلیکیشن‌های آفلاین-اول بسیار سریع و کارآمد است.
   event.respondWith(
     caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
-
+      // اگر پاسخ در کش وجود داشت، همان را برگردان
       if (cachedResponse) {
         return cachedResponse;
       }
-      return fetch(event.request).catch(error => {
-        console.warn('Fetch failed; returning offline page instead.', error);
+
+      // اگر در کش نبود، تلاش کن از شبکه دریافت کنی
+      return fetch(event.request).catch(() => {
+        // *** تغییر کلیدی اینجاست ***
+        // اگر درخواست شبکه هم شکست خورد (چون آفلاین هستیم)،
+        // یک پاسخ خطای استاندارد برمی‌گردانیم.
+        // این کار جلوی خطای "Failed to convert value to 'Response'" را می‌گیرد
+        // و کنسول را تمیز نگه می‌دارد.
+        return new Response(null, {
+          status: 404,
+          statusText: "Not Found In Cache",
+        });
       });
     })
   );
