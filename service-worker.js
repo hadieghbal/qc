@@ -1,6 +1,6 @@
 // service-worker.js (نسخه نهایی و کاملاً صحیح)
 
-const CACHE_NAME = "qc-app v4"; // نسخه برای فعال‌سازی به‌روزرسانی افزایش یافت
+const CACHE_NAME = "qc-app v5"; // نسخه برای فعال‌سازی به‌روزرسانی افزایش یافت
 
 const FILES_TO_CACHE = [
   "/qc/",
@@ -62,6 +62,12 @@ const FILES_TO_CACHE = [
   // --- Images ---
   "/qc/assets/images/logo-192.png",
   "/qc/assets/images/logo-512.png",
+
+  "/fonts/bootstrap-icons.woff",
+  "/fonts/bootstrap-icons.woff2",
+  "/fonts/Vazirmatn-RD-Bold.woff2",
+  "/fonts/Vazirmatn-RD-Medium.woff2",
+  "/fonts/Vazirmatn-RD-Regular.woff2",
 ];
 
 self.addEventListener("install", (event) => {
@@ -97,24 +103,26 @@ self.addEventListener("fetch", (event) => {
   // این استراتژی "Cache first, falling back to network" است
   // این استراتژی برای اپلیکیشن‌های آفلاین-اول بسیار سریع و کارآمد است.
   event.respondWith(
-    caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
-      // اگر پاسخ در کش وجود داشت، همان را برگردان
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+    caches
+      .match(event.request, { ignoreSearch: true })
+      .then((cachedResponse) => {
+        // اگر پاسخ در کش وجود داشت، همان را برگردان
+        if (cachedResponse) {
+          return cachedResponse;
+        }
 
-      // اگر در کش نبود، تلاش کن از شبکه دریافت کنی
-      return fetch(event.request).catch(() => {
-        // *** تغییر کلیدی اینجاست ***
-        // اگر درخواست شبکه هم شکست خورد (چون آفلاین هستیم)،
-        // یک پاسخ خطای استاندارد برمی‌گردانیم.
-        // این کار جلوی خطای "Failed to convert value to 'Response'" را می‌گیرد
-        // و کنسول را تمیز نگه می‌دارد.
-        return new Response(null, {
-          status: 404,
-          statusText: "Not Found In Cache",
+        // اگر در کش نبود، تلاش کن از شبکه دریافت کنی
+        return fetch(event.request).catch(() => {
+          // *** تغییر کلیدی اینجاست ***
+          // اگر درخواست شبکه هم شکست خورد (چون آفلاین هستیم)،
+          // یک پاسخ خطای استاندارد برمی‌گردانیم.
+          // این کار جلوی خطای "Failed to convert value to 'Response'" را می‌گیرد
+          // و کنسول را تمیز نگه می‌دارد.
+          return new Response(null, {
+            status: 404,
+            statusText: "Not Found In Cache",
+          });
         });
-      });
-    })
+      })
   );
 });

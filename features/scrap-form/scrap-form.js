@@ -111,38 +111,40 @@ export function init() {
     }
   }
 
-
   // =====> کد جدید را اینجا اضافه کنید <=====
   async function inlineAllStyles(element) {
-    // یک کپی از استایل‌شیت‌های سند اصلی می‌گیریم
     const styleSheets = Array.from(document.styleSheets);
-    let cssText = '';
+    let cssText = "";
 
     for (const sheet of styleSheets) {
-      // فقط استایل‌شیت‌هایی که از طریق <link> لود شده‌اند (href دارند) را پردازش می‌کنیم
       if (sheet.href) {
         try {
-          // محتوای فایل CSS را با fetch می‌خوانیم (سرویس ورکر از کش می‌خواند)
           const response = await fetch(sheet.href);
           if (response.ok) {
             const text = await response.text();
-            cssText += text + '\n';
+            cssText += text + "\n";
           }
         } catch (e) {
-          console.warn('Could not fetch stylesheet for inlining:', sheet.href, e);
+          console.warn(
+            "Could not fetch stylesheet for inlining:",
+            sheet.href,
+            e
+          );
         }
       }
     }
-    
-    // تمام کدهای CSS جمع‌آوری شده را در یک تگ <style> قرار می‌دهیم
-    const styleElement = document.createElement('style');
+
+    // *** تغییر کلیدی اینجاست ***
+    // تمام تگ‌های <link> استایل‌شیت را از عنصر کلون شده حذف می‌کنیم
+    const linkElements = element.querySelectorAll('link[rel="stylesheet"]');
+    linkElements.forEach((link) => link.remove());
+
+    // سپس تگ <style> جدید با تمام محتوای CSS را اضافه می‌کنیم
+    const styleElement = document.createElement("style");
     styleElement.textContent = cssText;
-    
-    // تگ <style> را به ابتدای عنصری که می‌خواهیم از آن عکس بگیریم اضافه می‌کنیم
     element.prepend(styleElement);
   }
   // =====> پایان کد جدید <=====
-
 
   // تابع جدید برای ساخت نام یکسان برای همه فایل‌ها
   function generateBaseFileName(globalInfo) {
@@ -517,16 +519,18 @@ export function init() {
 
     const exportButton = pageElement.querySelector(".export-img-btn");
     toggleButtonLoading(exportButton, true, "در حال آماده سازی تصویر...");
-    
+
     // یک کپی از کانتینر اصلی می‌سازیم تا روی صفحه اصلی تغییری ایجاد نشود
-    const printContainerOriginal = document.querySelector(".print-page-container");
+    const printContainerOriginal = document.querySelector(
+      ".print-page-container"
+    );
     const printContainer = printContainerOriginal.cloneNode(true);
 
     // کپی را به صورت مخفی به صفحه اضافه می‌کنیم تا قابل رندر باشد
-    printContainer.style.position = 'absolute';
-    printContainer.style.left = '-9999px';
-    printContainer.style.visibility = 'visible'; // باید visible باشد تا html2canvas آن را ببیند
-    printContainer.style.opacity = '1';
+    printContainer.style.position = "absolute";
+    printContainer.style.left = "-9999px";
+    printContainer.style.visibility = "visible"; // باید visible باشد تا html2canvas آن را ببیند
+    printContainer.style.opacity = "1";
     document.body.appendChild(printContainer);
 
     try {
@@ -546,25 +550,60 @@ export function init() {
       };
 
       const createItemCardHTML = (item, index) => {
-        const titleHTML = `${index + 1}. ${item.part_name} <span style="font-weight: 500; color: var(--secondary-color); font-size: 13px;">(${item.product_type})</span>`;
-        const headerHTML = `<div class="summary-card-header"><h2 class="summary-card-title">${titleHTML}</h2><div class="summary-card-meta" style="display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--secondary-color);"><span class="summary-timestamp" style="display: flex; align-items: center; gap: 4px;"><i class="bi bi-clock"></i> ${item.timestamp || ""}</span><span class="summary-card-count count-highlight">تعداد: ${item.total_count}</span></div></div>`;
+        const titleHTML = `${index + 1}. ${
+          item.part_name
+        } <span style="font-weight: 500; color: var(--secondary-color); font-size: 13px;">(${
+          item.product_type
+        })</span>`;
+        const headerHTML = `<div class="summary-card-header"><h2 class="summary-card-title">${titleHTML}</h2><div class="summary-card-meta" style="display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--secondary-color);"><span class="summary-timestamp" style="display: flex; align-items: center; gap: 4px;"><i class="bi bi-clock"></i> ${
+          item.timestamp || ""
+        }</span><span class="summary-card-count count-highlight">تعداد: ${
+          item.total_count
+        }</span></div></div>`;
         let detailsHTML = "";
-        if (item.product_model) detailsHTML += `<span><i class="bi bi-textarea-t icon-model"></i> مدل: ${item.product_model}</span>`;
-        if (item.group) detailsHTML += `<span><i class="bi bi-collection icon-group"></i> گروه: ${item.group}</span>`;
-        if (item.item) detailsHTML += `<span><i class="bi bi-tags icon-item"></i> آیتم: ${item.item}</span>`;
+        if (item.product_model)
+          detailsHTML += `<span><i class="bi bi-textarea-t icon-model"></i> مدل: ${item.product_model}</span>`;
+        if (item.group)
+          detailsHTML += `<span><i class="bi bi-collection icon-group"></i> گروه: ${item.group}</span>`;
+        if (item.item)
+          detailsHTML += `<span><i class="bi bi-tags icon-item"></i> آیتم: ${item.item}</span>`;
         const supplierParts = [];
-        if (item.supplier_injection > 0) supplierParts.push(`تزریق: ${item.supplier_injection}`);
-        if (item.supplier_press > 0) supplierParts.push(`پرسکاری: ${item.supplier_press}`);
-        if (item.supplier_internal > 0) supplierParts.push(`داخلی: ${item.supplier_internal}`);
-        if (item.supplier_external > 0) supplierParts.push(`خارجی: ${item.supplier_external}`);
-        if (supplierParts.length > 0) detailsHTML += `<span><i class="bi bi-house-down icon-supplier"></i> تامین: ${supplierParts.join(" | ")}</span>`;
+        if (item.supplier_injection > 0)
+          supplierParts.push(`تزریق: ${item.supplier_injection}`);
+        if (item.supplier_press > 0)
+          supplierParts.push(`پرسکاری: ${item.supplier_press}`);
+        if (item.supplier_internal > 0)
+          supplierParts.push(`داخلی: ${item.supplier_internal}`);
+        if (item.supplier_external > 0)
+          supplierParts.push(`خارجی: ${item.supplier_external}`);
+        if (supplierParts.length > 0)
+          detailsHTML += `<span><i class="bi bi-house-down icon-supplier"></i> تامین: ${supplierParts.join(
+            " | "
+          )}</span>`;
         const sourceParts = [];
-        if (item.source_packaging > 0) sourceParts.push(`بسته‌بندی: ${item.source_packaging}`);
-        if (item.source_warehouse > 0) sourceParts.push(`انبار: ${item.source_warehouse}`);
-        if (item.source_production > 0) sourceParts.push(`حین تولید: ${item.source_production}`);
-        if (sourceParts.length > 0) detailsHTML += `<span><i class="bi bi-graph-down-arrow icon-source"></i> منشا: ${sourceParts.join(" | ")}</span>`;
+        if (item.source_packaging > 0)
+          sourceParts.push(`بسته‌بندی: ${item.source_packaging}`);
+        if (item.source_warehouse > 0)
+          sourceParts.push(`انبار: ${item.source_warehouse}`);
+        if (item.source_production > 0)
+          sourceParts.push(`حین تولید: ${item.source_production}`);
+        if (sourceParts.length > 0)
+          detailsHTML += `<span><i class="bi bi-graph-down-arrow icon-source"></i> منشا: ${sourceParts.join(
+            " | "
+          )}</span>`;
         const processInfoHTML = `<div class="card-details-row">${detailsHTML}</div>`;
-        const defectsAndNotesHTML = item.defects_summary || item.comments ? `<div class="card-details-row notes-row">${item.defects_summary ? `<span><i class="bi bi-card-text icon-defect"></i> ${item.defects_summary}</span>` : ""} ${item.comments ? `<span><i class="bi bi-chat-left-text"></i> ${item.comments}</span>` : ""}</div>` : "";
+        const defectsAndNotesHTML =
+          item.defects_summary || item.comments
+            ? `<div class="card-details-row notes-row">${
+                item.defects_summary
+                  ? `<span><i class="bi bi-card-text icon-defect"></i> ${item.defects_summary}</span>`
+                  : ""
+              } ${
+                item.comments
+                  ? `<span><i class="bi bi-chat-left-text"></i> ${item.comments}</span>`
+                  : ""
+              }</div>`
+            : "";
         return `<div class="summary-card-item">${headerHTML}<div class="summary-card-details">${processInfoHTML}${defectsAndNotesHTML}</div></div>`;
       };
       // --- پایان توابع داخلی ---
@@ -579,7 +618,7 @@ export function init() {
 
       // منتظر می‌مانیم تا فونت‌ها و استایل‌ها کاملا اعمال شوند
       await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 100)); // یک تاخیر کوچک برای اطمینان
+      await new Promise((resolve) => setTimeout(resolve, 100)); // یک تاخیر کوچک برای اطمینان
 
       const canvas = await html2canvas(printContainer, {
         useCORS: true,
@@ -591,7 +630,6 @@ export function init() {
       });
 
       downloadFile(canvas.toDataURL("image/png"), `${baseFileName}.png`);
-
     } catch (err) {
       console.error(`خطا در ایجاد خروجی تصویر:`, err);
       showToast(`دانلود فایل تصویر با مشکل مواجه شد.`, "error");
@@ -601,7 +639,11 @@ export function init() {
       if (printContainer) {
         document.body.removeChild(printContainer);
       }
-      toggleButtonLoading(exportButton, false, `<i class="bi bi-camera-fill"></i> خروجی تصویر فرم`);
+      toggleButtonLoading(
+        exportButton,
+        false,
+        `<i class="bi bi-camera-fill"></i> خروجی تصویر فرم`
+      );
     }
   }
   // =====> پایان تابع جایگزین شده <=====
