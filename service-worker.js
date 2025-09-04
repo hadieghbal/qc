@@ -1,67 +1,69 @@
-// service-worker.js (نسخه نهایی و صحیح)
+// service-worker.js (نسخه نهایی و کاملاً صحیح)
 
-const CACHE_NAME = "qc-app-cache-v6"; //
+// ✨ 1. نسخه کش برای آپدیت اجباری، افزایش یافت
+const CACHE_NAME = "qc-app-cache-v8";
 
+// ✨ 2. تمام مسیرها با /qc/ شروع می‌شوند تا آدرس‌دهی برای گیت‌هاب پیجز دقیق باشد
 const FILES_TO_CACHE = [
-  "./",
-  "index.html",
-  "manifest.json",
+  "/qc/",
+  "/qc/index.html",
+  "/qc/manifest.json",
 
   // --- Scripts ---
-  "js/main.js",
-  "js/data.js",
-  "js/utils/store.js",
-  "assets/libs/pdfmake.min.js",
-  "assets/libs/vfs_fonts.js",
-  "assets/libs/choices.min.js",
-  "assets/libs/html2canvas.min.js",
-  "assets/libs/jdp.min.js",
-  "assets/libs/sweetalert2.all.min.js",
-  "assets/libs/toastify.js",
-  "features/checklist-injection/checklist-injection-data.js",
-  "features/checklist-injection/checklist-injection.js",
-  "features/org-chart/org-chart-data.js",
-  "features/org-chart/org-chart.js",
-  "features/personnel-form/personnel-form.js",
-  "features/scrap-form/scrap-form-data.js",
-  "features/scrap-form/scrap-form.js",
-  "features/kham/kham.js",
+  "/qc/js/main.js",
+  "/qc/js/data.js",
+  "/qc/js/utils/store.js",
+  "/qc/assets/libs/pdfmake.min.js",
+  "/qc/assets/libs/vfs_fonts.js",
+  "/qc/assets/libs/choices.min.js",
+  "/qc/assets/libs/html2canvas.min.js",
+  "/qc/assets/libs/jdp.min.js",
+  "/qc/assets/libs/sweetalert2.all.min.js",
+  "/qc/assets/libs/toastify.js",
+  "/qc/features/checklist-injection/checklist-injection-data.js",
+  "/qc/features/checklist-injection/checklist-injection.js",
+  "/qc/features/org-chart/org-chart-data.js",
+  "/qc/features/org-chart/org-chart.js",
+  "/qc/features/personnel-form/personnel-form.js",
+  "/qc/features/scrap-form/scrap-form-data.js",
+  "/qc/features/scrap-form/scrap-form.js",
+  "/qc/features/kham/kham.js",
 
   // --- Stylesheets ---
-  "assets/css/shared.css",
-  "assets/css/bootstrap-icons.min.css",
-  "assets/libs/choices.min.css",
-  "assets/libs/jdp.min.css",
-  "assets/libs/toastify.min.css",
-  "features/checklist-injection/checklist-injection.css",
-  "features/org-chart/org-chart.css",
-  "features/scrap-form/scrap-form.css",
+  "/qc/assets/css/shared.css",
+  "/qc/assets/css/bootstrap-icons.min.css",
+  "/qc/assets/libs/choices.min.css",
+  "/qc/assets/libs/jdp.min.css",
+  "/qc/assets/libs/toastify.min.css",
+  "/qc/features/checklist-injection/checklist-injection.css",
+  "/qc/features/org-chart/org-chart.css",
+  "/qc/features/scrap-form/scrap-form.css",
 
   // --- Pages (HTML Fragments) ---
-  "features/home/home.html",
-  "features/forms/forms.html",
-  "features/checklists/checklists.html",
-  "features/scrap-form/scrap-form.html",
-  "features/checklist-injection/checklist-injection.html",
-  "features/iso-docs/iso-docs.html",
-  "features/instruction/instruction.html",
-  "features/org-chart/org-chart.html",
-  "features/non-conformity-form/non-conformity-form.html",
-  "features/personnel-form/personnel-form.html",
-  "features/charts/charts.html",
+  "/qc/features/home/home.html",
+  "/qc/features/forms/forms.html",
+  "/qc/features/checklists/checklists.html",
+  "/qc/features/scrap-form/scrap-form.html",
+  "/qc/features/checklist-injection/checklist-injection.html",
+  "/qc/features/iso-docs/iso-docs.html",
+  "/qc/features/instruction/instruction.html",
+  "/qc/features/org-chart/org-chart.html",
+  "/qc/features/non-conformity-form/non-conformity-form.html",
+  "/qc/features/personnel-form/personnel-form.html",
+  "/qc/features/charts/charts.html",
 
   // --- Fonts ---
-  "assets/fonts/bootstrap-icons.woff",
-  "assets/fonts/bootstrap-icons.woff2",
-  "assets/fonts/Vazirmatn-RD-Bold.woff2",
-  "assets/fonts/Vazirmatn-RD-Medium.woff2",
-  "assets/fonts/Vazirmatn-RD-Regular.woff2",
-  "assets/fonts/Vazirmatn-Bold.ttf",
-  "assets/fonts/Vazirmatn-Regular.ttf",
+  "/qc/assets/fonts/bootstrap-icons.woff",
+  "/qc/assets/fonts/bootstrap-icons.woff2",
+  "/qc/assets/fonts/Vazirmatn-RD-Bold.woff2",
+  "/qc/assets/fonts/Vazirmatn-RD-Medium.woff2",
+  "/qc/assets/fonts/Vazirmatn-RD-Regular.woff2",
+  "/qc/assets/fonts/Vazirmatn-Bold.ttf",
+  "/qc/assets/fonts/Vazirmatn-Regular.ttf",
 
   // --- Images ---
-  "assets/images/logo-192.png",
-  "assets/images/logo-512.png",
+  "/qc/assets/images/logo-192.png",
+  "/qc/assets/images/logo-512.png",
 ];
 
 self.addEventListener("install", (event) => {
@@ -92,14 +94,9 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// ==========================================================
-// ✨✨✨ این بخش اصلاح شده است ✨✨✨
-// ==========================================================
 self.addEventListener("fetch", (event) => {
   event.respondWith(
-    // به match میگوییم که query string ها را نادیده بگیرد
     caches.match(event.request, { ignoreSearch: true }).then((response) => {
-      // اگر فایل در کش بود، آن را برگردان. در غیر این صورت، از اینترنت بگیر.
       return response || fetch(event.request);
     })
   );

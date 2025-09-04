@@ -1,4 +1,4 @@
-// مسیر: js/main.js
+// مسیر: js/main.js (نسخه کامل و اصلاح شده)
 
 // وارد کردن منطق هر صفحه با نام مستعار برای خوانایی بیشتر
 import { init as initScrapForm } from "../features/scrap-form/scrap-form.js";
@@ -207,9 +207,6 @@ async function loadPage(path) {
       pageMenuContainer.innerHTML = backButtonHTML + getUniversalMenuHTML();
     }
     loadPageCSS(route.css);
-
-    // ... کد از اینجا حذف شد
-
     if (typeof route.init === "function") {
       setTimeout(() => {
         try {
@@ -236,9 +233,26 @@ function handleRouteChange() {
   loadPage(path);
 }
 
+// =========================================================================
+// ===== بخش ۳: ثبت Service Worker و راه‌اندازی رویدادهای اصلی برنامه =====
+// =========================================================================
+
 window.addEventListener("hashchange", handleRouteChange);
+
 window.addEventListener("load", () => {
   handleRouteChange();
   setupGlobalMenuHandler();
-  setupAccordionHandlers(); // <<< این خط به اینجا منتقل شد
+  setupAccordionHandlers();
+
+  // ثبت Service Worker
+  if ('serviceWorker' in navigator) {
+      // ✨✨✨ این بخش اصلاح شد: آدرس 'service-worker.js' به صورت نسبی نوشته شد ✨✨✨
+      navigator.serviceWorker.register('service-worker.js')
+          .then(registration => {
+              console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          })
+          .catch(error => {
+              console.log('ServiceWorker registration failed: ', error);
+          });
+  }
 });
