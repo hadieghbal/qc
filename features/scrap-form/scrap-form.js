@@ -605,7 +605,6 @@ export function init() {
     }
   }
   // =====> پایان تابع جایگزین شده <=====
-
   async function loadFontAsBase64(url) {
     const response = await fetch(url);
     if (!response.ok) {

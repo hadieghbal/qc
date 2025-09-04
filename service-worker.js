@@ -94,8 +94,14 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   event.respondWith(
-    caches.match(event.request, { ignoreSearch: true }).then((response) => {
-      return response || fetch(event.request);
+    caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
+
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      return fetch(event.request).catch(error => {
+        console.warn('Fetch failed; returning offline page instead.', error);
+      });
     })
   );
 });
