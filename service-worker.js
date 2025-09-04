@@ -1,6 +1,6 @@
 // service-worker.js (نسخه نهایی و کاملاً صحیح)
 
-const CACHE_NAME = "qc-app-cache-v7"; //
+const CACHE_NAME = "qc-app-cache-v8"; //
 
 const FILES_TO_CACHE = [
   "/qc/",
