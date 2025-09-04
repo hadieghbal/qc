@@ -578,7 +578,7 @@ export function init() {
       printContainer.style.opacity = "1";
 
       await new Promise((resolve) =>
-        requestAnimationFrame(() => setTimeout(resolve, 100))
+        requestAnimationFrame(() => setTimeout(resolve, 500))
       );
 
       await document.fonts.ready;
