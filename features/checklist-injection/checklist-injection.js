@@ -36,6 +36,7 @@ export function init() {
     finalizedData = {};
 
   let mobileDeviceChoice;
+  let partChoices = new Map(); // <-- جدید: برای نگهداری دراپ‌داون‌های قطعات
 
   const choicesConfig = {
     searchPlaceholderValue: "جستجو...",
@@ -186,10 +187,11 @@ export function init() {
     dateInput.value = formatter.format(today);
   }
 
+  //  <-- ویرایش شده: به جای input از select استفاده می‌کند
   function createPartRowHTML(part = { name: "", weight: "" }) {
     return `
    <div class="part-row">
-    <input type="text" class="name-input" value="${part.name}" placeholder="نام قطعه">
+    <select class="name-input"></select>
     <input type="number" class="numeric-input" value="${part.weight}" placeholder="وزن (g)">
     <div class="material-buttons">
      <button type="button" class="material-action-btn remove-material-btn">−</button>
@@ -343,12 +345,43 @@ export function init() {
     updateDefectLegendsSelection();
   }
 
+  // <-- جدید: تابع برای ساختن دراپ‌داون‌های قطعات
+  function initializeAllPartChoices(partsData = []) {
+    // پاک کردن نمونه‌های قبلی برای جلوگیری از نشت حافظه
+    partChoices.forEach((choice) => choice.destroy());
+    partChoices.clear();
+
+    const partRows = document.querySelectorAll(
+      "#mobile-parts-container .part-row"
+    );
+    partRows.forEach((row, index) => {
+      const selectElement = row.querySelector("select.name-input");
+      if (selectElement) {
+        const choice = new Choices(selectElement, choicesConfig);
+        choice.setChoices(
+          getChoicesArray(injectionChecklistData.parts),
+          "value",
+          "label",
+          true
+        );
+
+        // اگر در حالت ویرایش هستیم، مقدار را تنظیم کن
+        if (partsData[index] && partsData[index].name) {
+          choice.setChoiceByValue(partsData[index].name);
+        }
+        partChoices.set(selectElement, choice); // ذخیره نمونه برای استفاده‌های بعدی
+      }
+    });
+  }
+
   function resetMobileForm() {
     editingIndex = null;
     if (mobileDeviceChoice) mobileDeviceChoice.setChoiceByValue("");
 
     document.getElementById("mobile-parts-container").innerHTML =
       createPartRowHTML();
+    initializeAllPartChoices(); // <-- جدید: ساخت دراپ‌داون برای ردیف اولیه
+
     document.getElementById("mobile-materials-container").innerHTML =
       createMaterialRowHTML();
     document.getElementById("mobile-masterbatches-container").innerHTML =
@@ -471,6 +504,9 @@ export function init() {
         .map((part) => createPartRowHTML(part))
         .join("") || createPartRowHTML();
 
+    // <-- جدید: ساخت دراپ‌داون‌ها و مقداردهی آن‌ها
+    initializeAllPartChoices(item.parts);
+
     const materialsContainer = document.getElementById(
       "mobile-materials-container"
     );
@@ -570,11 +606,16 @@ export function init() {
       "#mobile-parts-container .part-row"
     );
     for (const row of partRows) {
-      const nameInput = row.querySelector(".name-input");
+      // <-- ویرایش شده: خواندن مقدار از دراپ‌داون
+      const selectElement = row.querySelector("select.name-input");
+      const choiceInstance = partChoices.get(selectElement);
+      const partName = choiceInstance.getValue(true);
       const weightInput = row.querySelector(".numeric-input");
-      if (!nameInput.value.trim()) {
-        nameInput.classList.add("required-field-error");
-        focusOnInvalidElement(nameInput, "نام قطعه اجباری است.");
+
+      if (!partName) {
+        const el = selectElement.closest(".choices");
+        el.classList.add("required-field-error");
+        focusOnInvalidElement(el, "نام قطعه اجباری است.");
         return;
       }
       if (!weightInput.value.trim()) {
@@ -605,10 +646,6 @@ export function init() {
     const masterbatchRows = document.querySelectorAll(
       "#mobile-masterbatches-container .masterbatch-row"
     );
-
-    // --- تغییر اصلی اینجاست ---
-    // این بلاک کد که مستربچ را اجباری می‌کرد، به طور کامل حذف شد.
-
     for (const row of masterbatchRows) {
       const nameInput = row.querySelector(".name-input");
       const percentInput = row.querySelector(".numeric-input");
@@ -631,7 +668,6 @@ export function init() {
       totalPercentage += percent;
     });
     masterbatchRows.forEach((row) => {
-      // فقط در صورتی درصد مستربچ را حساب کن که نام آن هم وارد شده باشد
       if (row.querySelector(".name-input").value.trim()) {
         const percent =
           parseFloat(row.querySelector(".numeric-input").value) || 0;
@@ -693,10 +729,15 @@ export function init() {
       return;
     }
 
-    const parts = Array.from(partRows).map((row) => ({
-      name: row.querySelector(".name-input").value.trim(),
-      weight: parseFloat(row.querySelector(".numeric-input").value),
-    }));
+    // <-- ویرایش شده: خواندن مقادیر از دراپ‌داون‌ها
+    const parts = Array.from(partRows).map((row) => {
+      const selectElement = row.querySelector("select.name-input");
+      const choiceInstance = partChoices.get(selectElement);
+      return {
+        name: choiceInstance.getValue(true),
+        weight: parseFloat(row.querySelector(".numeric-input").value),
+      };
+    });
 
     const materials = Array.from(materialRows).map((row) => ({
       name: row.querySelector(".name-input").value.trim(),
@@ -838,6 +879,7 @@ export function init() {
         });
 
         if (mobileDeviceChoice) mobileDeviceChoice.disable();
+        partChoices.forEach((choice) => choice.disable()); // <-- جدید: غیرفعال کردن دراپ‌داون‌های قطعه
 
         const finalizeBtn = pageElement.querySelector("#finalize-btn");
         if (finalizeBtn) {
@@ -939,11 +981,8 @@ export function init() {
     const { globalInfo, tableData } = finalizedData;
     const printContainer = document.querySelector(".print-page-container");
 
-    // --- شروع تغییرات ---
-    // مقادیر ثابت رو اینجا تعریف می‌کنیم که خواناتر باشه
     const PAGE_MAX_HEIGHT = 1058;
     const PAGE_WIDTH = 718;
-    // --- پایان تغییرات ---
 
     const baseFileName = `چک‌لیست_تزریق_${globalInfo.date.replace(
       /\//g,
@@ -1055,11 +1094,8 @@ export function init() {
     let currentPageItemsHTML = "";
     const allItemCardsHTML = tableData.map(createItemCardHTML);
 
-    // --- شروع تغییرات ---
     printContainer.style.visibility = "hidden";
     printContainer.style.display = "flex";
-
-    // ۱. ارتفاع را موقتاً auto می‌کنیم تا بتوانیم ارتفاع واقعی محتوا را اندازه بگیریم
     printContainer.style.height = "auto";
 
     for (const itemHTML of allItemCardsHTML) {
@@ -1067,7 +1103,6 @@ export function init() {
       printContainer.innerHTML = buildFullPageHTML(potentialHTML, 1, 1);
       await new Promise((resolve) => setTimeout(resolve, 0));
 
-      // حالا scrollHeight به درستی کار می‌کند
       if (
         printContainer.scrollHeight > PAGE_MAX_HEIGHT &&
         currentPageItemsHTML !== ""
@@ -1082,7 +1117,6 @@ export function init() {
       pages.push(currentPageItemsHTML);
     }
 
-    // ۲. ارتفاع را به حالت اولیه (مقدار تعریف شده در CSS) برمی‌گردانیم
     printContainer.style.height = "";
 
     const totalPages = pages.length;
@@ -1098,7 +1132,6 @@ export function init() {
       try {
         await new Promise((resolve) => setTimeout(resolve, 200));
 
-        // ۳. (بهبود): ابعاد را به صورت صریح به html2canvas می‌دهیم تا مطمئن‌تر عمل کند
         const canvas = await html2canvas(printContainer, {
           useCORS: true,
           scale: 2,
@@ -1107,7 +1140,6 @@ export function init() {
           windowWidth: printContainer.scrollWidth,
           windowHeight: printContainer.scrollHeight,
         });
-        // --- پایان تغییرات ---
 
         const fileName =
           totalPages > 1
@@ -1129,7 +1161,7 @@ export function init() {
       }
     }
     printContainer.style.display = "none";
-    printContainer.style.height = ""; // اطمینان از ریست شدن استایل در انتها
+    printContainer.style.height = "";
     printContainer.innerHTML = "";
     toggleButtonLoading(
       exportButton,
@@ -1233,7 +1265,22 @@ export function init() {
           newRowHTML = createMasterbatchRowHTML();
           break;
       }
-      if (newRowHTML) container.insertAdjacentHTML("beforeend", newRowHTML);
+      if (newRowHTML) {
+        container.insertAdjacentHTML("beforeend", newRowHTML);
+        // <-- جدید: ساخت دراپ‌داون برای ردیف جدید قطعه
+        if (container.id === "mobile-parts-container") {
+          const newRow = container.lastElementChild;
+          const selectElement = newRow.querySelector("select.name-input");
+          const choice = new Choices(selectElement, choicesConfig);
+          choice.setChoices(
+            getChoicesArray(injectionChecklistData.parts),
+            "value",
+            "label",
+            true
+          );
+          partChoices.set(selectElement, choice);
+        }
+      }
     }
 
     if (removeBtn) {
@@ -1241,6 +1288,14 @@ export function init() {
         ".part-row, .material-row, .masterbatch-row"
       );
       if (row && row.parentElement.children.length > 1) {
+        // <-- جدید: پاک کردن نمونه Choices.js قبل از حذف ردیف قطعه
+        if (row.classList.contains("part-row")) {
+          const selectElement = row.querySelector("select.name-input");
+          if (partChoices.has(selectElement)) {
+            partChoices.get(selectElement).destroy();
+            partChoices.delete(selectElement);
+          }
+        }
         row.remove();
       }
     }
