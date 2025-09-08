@@ -225,6 +225,29 @@
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+/* === استایل جدید برای دراپ‌داون قطعه === */
+.part-row .choices {
+  flex-grow: 1;
+  min-width: 0;
+}
+.part-row .choices__inner {
+  padding: 5px 12px;
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: "Vazirmatn", sans-serif;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  min-height: 48px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background-color: #fff;
+}
+.choices.is-focused .choices__inner {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.15);
+}
+/* === پایان استایل جدید === */
+
+
 .part-row input:focus,
 .material-row input:focus,
 .masterbatch-row input:focus {
