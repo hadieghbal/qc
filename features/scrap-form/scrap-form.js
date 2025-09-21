@@ -2,9 +2,7 @@
 import { scrapFormData } from "./scrap-form-data.js";
 
 export function init() {
-  console.log(
-    "Scrap Form Initialized! (Mobile-Only with Per-Item Product Type v3)"
-  );
+  console.log("Scrap Form Initialized! (BOM System v1.1 - Sticky Model)");
   // --- تعریف متغیرهای اصلی ---
   const Swal = window.Swal,
     Toastify = window.Toastify,
@@ -19,12 +17,13 @@ export function init() {
     console.error("Core elements for Scrap Form not found.");
     return;
   }
-  // --- المان‌های فرم موبایل ---
+
   const mobileForm = {
-    productType: document.getElementById("mobile-product-type"),
-    partName: document.getElementById("mobile-part-name"),
+    bomProductType: document.getElementById("bom-product-type"),
+    bomModel: document.getElementById("bom-model"),
+    bomPartName: document.getElementById("bom-part-name"),
+    bomPartCode: document.getElementById("bom-part-code"),
     totalCount: document.getElementById("mobile-total-count"),
-    productModel: document.getElementById("mobile-product-model"),
     group: document.getElementById("mobile-group"),
     item: document.getElementById("mobile-item"),
     supplierInjection: document.getElementById("mobile-supplier-injection"),
@@ -41,9 +40,10 @@ export function init() {
   };
 
   // --- متغیرهای وضعیت ---
-  let mobilePartNameChoice;
+  let bomProductTypeChoice, bomModelChoice, bomPartNameChoice;
   let editingRowIndex = null;
   let finalizedFormData = {};
+  let bomData = null;
 
   // --- تنظیمات کتابخانه Choices.js ---
   const choicesConfig = {
@@ -54,6 +54,111 @@ export function init() {
     noChoicesText: "گزینه‌ای برای انتخاب وجود ندارد",
     shouldSort: false,
   };
+
+  // ===================================================================
+  // BOM (Bill of Materials) Logic
+  // ===================================================================
+  async function fetchBomData() {
+    try {
+      const response = await fetch("bom/bom-data.json");
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      bomData = await response.json();
+      console.log("BOM data loaded successfully.");
+      return bomData;
+    } catch (error) {
+      console.error("Failed to load BOM data:", error);
+      Swal.fire({
+        icon: "error",
+        title: "خطا در بارگذاری اطلاعات قطعات",
+        text: "فایل اطلاعات پایه قطعات (bom-data.json) یافت نشد. لطفاً از ساخت صحیح آن اطمینان حاصل کنید.",
+      });
+      return null;
+    }
+  }
+
+  function initializeBomSelectors() {
+    fetchBomData().then((data) => {
+      if (!data || Object.keys(data).length === 0) {
+        bomProductTypeChoice.disable();
+        bomProductTypeChoice.setChoices([
+          { value: "", label: "اطلاعات BOM یافت نشد", disabled: true },
+        ]);
+        return;
+      }
+      populateProductTypes(Object.keys(data));
+    });
+  }
+
+  function populateProductTypes(types) {
+    const choices = types.map((type) => ({ value: type, label: type }));
+    bomProductTypeChoice.setChoices(
+      [{ value: "", label: "انتخاب کنید...", placeholder: true }, ...choices],
+      "value",
+      "label",
+      true
+    );
+  }
+
+  function handleProductTypeChange(event) {
+    const selectedType = event.detail.value;
+    bomModelChoice.clearStore();
+    bomModelChoice.disable();
+    bomPartNameChoice.clearStore();
+    bomPartNameChoice.disable();
+    mobileForm.bomPartCode.value = "";
+    if (selectedType && bomData[selectedType]) {
+      const models = Object.keys(bomData[selectedType]);
+      const choices = models.map((model) => ({ value: model, label: model }));
+      bomModelChoice.setChoices(
+        [{ value: "", label: "انتخاب کنید...", placeholder: true }, ...choices],
+        "value",
+        "label",
+        false
+      );
+      bomModelChoice.enable();
+    }
+  }
+
+  function handleModelChange(event) {
+    const selectedType = bomProductTypeChoice.getValue(true);
+    const selectedModel = event.detail.value;
+    bomPartNameChoice.clearStore();
+    bomPartNameChoice.disable();
+    mobileForm.bomPartCode.value = "";
+    if (selectedType && selectedModel && bomData[selectedType][selectedModel]) {
+      const parts = bomData[selectedType][selectedModel];
+      const choices = parts.map((part) => ({
+        value: part.name,
+        label: part.name,
+      }));
+      bomPartNameChoice.setChoices(
+        [
+          { value: "", label: "جستجو یا انتخاب کنید...", placeholder: true },
+          ...choices,
+        ],
+        "value",
+        "label",
+        false
+      );
+      bomPartNameChoice.enable();
+    }
+  }
+
+  function handlePartNameChange(event) {
+    const selectedType = bomProductTypeChoice.getValue(true);
+    const selectedModel = bomModelChoice.getValue(true);
+    const selectedPartName = event.detail.value;
+    mobileForm.bomPartCode.value = "";
+    if (selectedType && selectedModel && selectedPartName) {
+      const part = bomData[selectedType][selectedModel].find(
+        (p) => p.name === selectedPartName
+      );
+      if (part) {
+        mobileForm.bomPartCode.value = part.code;
+      }
+    }
+  }
 
   // ===== توابع کمکی =====
   function toEnglishDigits(str) {
@@ -111,83 +216,31 @@ export function init() {
     }
   }
 
-
-  // =====> کد جدید را اینجا اضافه کنید <=====
- async function inlineAllStyles(element) {
+  async function inlineAllStyles(element) {
     const styleSheets = Array.from(document.styleSheets);
-    let cssText = '';
+    let cssText = "";
     for (const sheet of styleSheets) {
       if (sheet.href) {
         try {
           const response = await fetch(sheet.href);
           if (response.ok) {
             const text = await response.text();
-            cssText += text + '\n';
+            cssText += text + "\n";
           }
         } catch (e) {
-          console.warn('Could not fetch stylesheet for inlining:', sheet.href, e);
+          console.warn(
+            "Could not fetch stylesheet for inlining:",
+            sheet.href,
+            e
+          );
         }
       }
     }
-    const styleElement = document.createElement('style');
+    const styleElement = document.createElement("style");
     styleElement.textContent = cssText;
     element.prepend(styleElement);
   }
 
-  // =====> این تابع را با نسخه صحیح و کامل جایگزین کنید <=====
-  async function exportToImage() {
-    if (Object.keys(finalizedFormData).length === 0) {
-      showToast("لطفا ابتدا فرم را ثبت نهایی کنید.", "warning");
-      throw new Error("Form not finalized before exporting to Image.");
-    }
-    const exportButton = pageElement.querySelector(".export-img-btn");
-    toggleButtonLoading(exportButton, true, "در حال آماده سازی تصویر...");
-    const printContainerOriginal = document.querySelector(".print-page-container");
-    const printContainer = printContainerOriginal.cloneNode(true);
-    printContainer.style.position = 'absolute';
-    printContainer.style.left = '-9999px';
-    printContainer.style.visibility = 'visible';
-    printContainer.style.opacity = '1';
-    document.body.appendChild(printContainer);
-    try {
-      const { tableData, ...globalInfo } = finalizedFormData;
-      const baseFileName = generateBaseFileName(globalInfo);
-      // (توابع داخلی buildFullPageHTML و createItemCardHTML در اینجا قرار دارند...)
-      const buildFullPageHTML = (itemsHTML) => { /* ... کد بدون تغییر ... */ };
-      const createItemCardHTML = (item, index) => { /* ... کد بدون تغییر ... */ };
-
-      const allItemsHTML = tableData.map(createItemCardHTML).join("");
-      printContainer.innerHTML = buildFullPageHTML(allItemsHTML);
-      
-      // حالا این کد به درستی کار می‌کند چون سرویس ورکر سالم است
-      await inlineAllStyles(printContainer);
-
-      await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 100));
-      const canvas = await html2canvas(printContainer, {
-        useCORS: true,
-        scale: window.devicePixelRatio || 2,
-        scrollX: -window.scrollX,
-        scrollY: -window.scrollY,
-        windowWidth: printContainer.scrollWidth,
-        windowHeight: printContainer.scrollHeight,
-      });
-      downloadFile(canvas.toDataURL("image/png"), `${baseFileName}.png`);
-    } catch (err) {
-      console.error(`خطا در ایجاد خروجی تصویر:`, err);
-      showToast(`دانلود فایل تصویر با مشکل مواجه شد.`, "error");
-      throw err;
-    } finally {
-      if (printContainer) {
-        document.body.removeChild(printContainer);
-      }
-      toggleButtonLoading(exportButton, false, `<i class="bi bi-camera-fill"></i> خروجی تصویر فرم`);
-    }
-  }
-  // =====> پایان کد جدید <=====
-
-
-  // تابع جدید برای ساخت نام یکسان برای همه فایل‌ها
   function generateBaseFileName(globalInfo) {
     const date = globalInfo.globalDate.replace(/\//g, ".");
     const line = globalInfo.globalLine.replace(/\s/g, "_");
@@ -196,10 +249,11 @@ export function init() {
   }
 
   // ===== توابع مدیریت فرم =====
+
   function resetForm() {
     if (tableBody) tableBody.innerHTML = "";
     if (mobileForm.summaryList) mobileForm.summaryList.innerHTML = "";
-    resetMobileForm({ focusOnPartName: false });
+    resetMobileForm();
     const dateInput = document.getElementById("jalali_date");
     const today = new Date();
     const formatter = new Intl.DateTimeFormat("fa-IR-u-nu-latn", {
@@ -223,7 +277,11 @@ export function init() {
     pageElement
       .querySelectorAll("input, select, button")
       .forEach((el) => (el.disabled = false));
-    if (mobilePartNameChoice) mobilePartNameChoice.enable();
+
+    if (bomProductTypeChoice) bomProductTypeChoice.enable();
+    if (bomModelChoice) bomModelChoice.enable();
+    if (bomPartNameChoice) bomPartNameChoice.enable();
+
     const finalizeBtn = pageElement.querySelector(".finalize-btn");
     if (finalizeBtn)
       finalizeBtn.innerHTML = `<i class="bi bi-check2-circle"></i> ثبت نهایی فرم`;
@@ -251,54 +309,139 @@ export function init() {
     });
   }
 
+  // [جدید] تابع ریست سبک فقط برای فیلدهای قطعه
+  function resetPartSpecificFields() {
+    editingRowIndex = null;
+
+    // پاک کردن ارورهای ولیدیشن
+    document
+      .querySelectorAll(
+        "#mobile-form-wrapper [data-required-name], #mobile-form-wrapper .choices"
+      )
+      .forEach((el) => {
+        const parent =
+          el.closest(".mobile-form-group") || el.closest(".bom-selector-item");
+        if (parent) parent.classList.remove("required-field-error");
+      });
+
+    // فقط فیلدهای مربوط به قطعه ریست می‌شوند
+    if (bomPartNameChoice) bomPartNameChoice.clearInput();
+    mobileForm.bomPartCode.value = "";
+
+    const fieldsToReset = [
+      "totalCount",
+      "group",
+      "item",
+      "supplierInjection",
+      "supplierPress",
+      "supplierInternal",
+      "supplierExternal",
+      "sourcePackaging",
+      "sourceWarehouse",
+      "sourceProduction",
+      "defectsSummary",
+      "comments",
+    ];
+
+    fieldsToReset.forEach((key) => {
+      const el = mobileForm[key];
+      if (el && el.tagName) {
+        if (el.type === "number") el.value = key === "totalCount" ? "1" : "0";
+        else if (el.tagName === "SELECT") el.selectedIndex = 0;
+        else el.value = "";
+      }
+    });
+
+    mobileForm.addBtn.innerHTML =
+      '<i class="bi bi-check-circle-fill"></i> ثبت و افزودن به لیست';
+    mobileForm.addBtn.style.backgroundColor = "var(--success-color)";
+    updateDefectLegendsSelection();
+
+    // فوکوس روی فیلد نام قطعه برای ورود سریع بعدی
+    setTimeout(() => {
+      if (bomPartNameChoice && !bomPartNameChoice.isDisabled()) {
+        bomPartNameChoice.showDropdown();
+      }
+    }, 50);
+  }
+
+  // این تابع برای ریست کامل فرم (مثلا با دکمه ریست کلی) استفاده می‌شود
+  function resetMobileForm() {
+    editingRowIndex = null;
+
+    document
+      .querySelectorAll("#mobile-form-wrapper .required-field-error")
+      .forEach((el) => el.classList.remove("required-field-error"));
+
+    if (bomProductTypeChoice) bomProductTypeChoice.clearStore();
+    if (bomModelChoice) bomModelChoice.clearStore();
+    if (bomPartNameChoice) bomPartNameChoice.clearStore();
+
+    if (bomData && bomProductTypeChoice) {
+      populateProductTypes(Object.keys(bomData));
+      bomProductTypeChoice.enable();
+    }
+    if (bomModelChoice) bomModelChoice.disable();
+    if (bomPartNameChoice) bomPartNameChoice.disable();
+
+    resetPartSpecificFields();
+  }
+
   function createRowHTML() {
     const groupOptionsHTML = (scrapFormData.groups || [])
       .map((g) => `<option value="${g}">${g}</option>`)
       .join("");
     return `
-    <td>${tableBody.rows.length + 1}</td>
-    <td><input type="text" name="product_model"></td>
-    <td><select name="group">${groupOptionsHTML}</select></td>
-    <td><input type="number" name="item"></td>
-    <td><select name="part_name"></select></td>
-    <td><input type="number" name="total_count" value="0"></td>
-    <td><input type="number" name="supplier_injection" value="0"></td>
-    <td><input type="number" name="supplier_press" value="0"></td>
-    <td><input type="number" name="supplier_internal" value="0"></td>
-    <td><input type="number" name="supplier_external" value="0"></td>
-    <td><input type="number" name="source_packaging" value="0"></td>
-    <td><input type="number" name="source_warehouse" value="0"></td>
-    <td><input type="number" name="source_production" value="0"></td>
-    <td><input type="text" name="defects_summary" readonly></td>
-    <td><input type="text" name="comments"></td>
-    <td><input type="hidden" name="timestamp"></td>
-    <td><input type="hidden" name="product_type"></td>
-    <td></td>`;
+      <td></td>
+      <td><input type="hidden" name="product_type"></td>
+      <td><input type="hidden" name="product_model"></td>
+      <td><input type="hidden" name="part_code"></td>
+      <td><select name="group">${groupOptionsHTML}</select></td>
+      <td><input type="number" name="item"></td>
+      <td><select name="part_name"></select></td>
+      <td><input type="number" name="total_count"></td>
+      <td><input type="number" name="supplier_injection"></td>
+      <td><input type="number" name="supplier_press"></td>
+      <td><input type="number" name="supplier_internal"></td>
+      <td><input type="number" name="supplier_external"></td>
+      <td><input type="number" name="source_packaging"></td>
+      <td><input type="number" name="source_warehouse"></td>
+      <td><input type="number" name="source_production"></td>
+      <td><input type="text" name="defects_summary" readonly></td>
+      <td><input type="text" name="comments"></td>
+      <td><input type="hidden" name="timestamp"></td>
+      <td></td>
+    `;
   }
 
   function addRow(fromMobileData) {
     const newRow = tableBody.insertRow();
     newRow.innerHTML = createRowHTML();
-    if (fromMobileData) {
-      Object.keys(fromMobileData).forEach((key) => {
-        const input = newRow.querySelector(`[name="${key}"]`);
-        if (input) {
-          if (key === "part_name") {
-            const option = document.createElement("option");
-            option.value = fromMobileData[key];
-            option.textContent = fromMobileData[key];
-            input.appendChild(option);
-          }
-          input.value = fromMobileData[key];
+    Object.keys(fromMobileData).forEach((key) => {
+      const input = newRow.querySelector(`[name="${key}"]`);
+      if (input) {
+        if (key === "part_name" || key === "group") {
+          const option = document.createElement("option");
+          option.value = fromMobileData[key];
+          option.textContent = fromMobileData[key];
+          input.innerHTML = "";
+          input.appendChild(option);
         }
-      });
-    }
+        input.value = fromMobileData[key];
+      }
+    });
+    Array.from(tableBody.rows).forEach(
+      (row, index) => (row.cells[0].textContent = index + 1)
+    );
   }
 
   function deleteRow(rowToDelete) {
     if (!rowToDelete) return;
     rowToDelete.remove();
     updateMobileSummary();
+    Array.from(tableBody.rows).forEach(
+      (row, index) => (row.cells[0].textContent = index + 1)
+    );
   }
 
   function confirmDeleteRow(rowElement) {
@@ -321,7 +464,7 @@ export function init() {
     });
   }
 
-  function startEditing(rowToEdit) {
+  async function startEditing(rowToEdit) {
     if (!rowToEdit) return;
     editingRowIndex = Array.from(tableBody.children).indexOf(rowToEdit);
     const data = Object.fromEntries(
@@ -331,13 +474,7 @@ export function init() {
       ])
     );
 
-    mobileForm.productType.value =
-      data.product_type || scrapFormData.productTypes[0];
-    updatePartNameDropdownForMobile();
-
-    mobilePartNameChoice.setChoiceByValue(data.part_name || "");
     mobileForm.totalCount.value = data.total_count;
-    mobileForm.productModel.value = data.product_model;
     mobileForm.group.value = data.group;
     mobileForm.item.value = data.item;
     mobileForm.supplierInjection.value = data.supplier_injection;
@@ -349,22 +486,21 @@ export function init() {
     mobileForm.sourceProduction.value = data.source_production;
     mobileForm.defectsSummary.value = data.defects_summary;
     mobileForm.comments.value = data.comments;
+
+    await bomProductTypeChoice.setChoiceByValue(data.product_type);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await bomModelChoice.setChoiceByValue(data.product_model);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await bomPartNameChoice.setChoiceByValue(data.part_name);
+
+    mobileForm.bomPartCode.value = data.part_code || "";
     mobileForm.addBtn.innerHTML =
       '<i class="bi bi-check-circle-fill"></i> به‌روزرسانی قطعه';
     mobileForm.addBtn.style.backgroundColor = "var(--primary-color)";
     updateDefectLegendsSelection();
-    const mobileFormContainer = document.querySelector(
-      ".mobile-form-container"
-    );
-    mobileFormContainer.scrollIntoView({ behavior: "smooth" });
-    const firstAccordionContent =
-      mobileFormContainer.querySelector(".accordion-content");
-    if (
-      firstAccordionContent &&
-      firstAccordionContent.style.display === "none"
-    ) {
-      firstAccordionContent.previousElementSibling.click();
-    }
+    document
+      .querySelector(".mobile-form-container")
+      .scrollIntoView({ behavior: "smooth" });
   }
 
   function getGlobalData() {
@@ -427,17 +563,9 @@ export function init() {
 
         try {
           showToast("فرم ثبت شد. در حال آماده‌سازی خروجی‌ها...", "info");
-
-          // +++ تغییر کلیدی: ترتیب دانلود عوض شد +++
-          // 1. اول تصویر که به رندر صحیح وابسته است
           await exportToImage();
-
-          // 2. سپس PDF
           await exportToPDF();
-
-          // 3. در آخر CSV که سبک‌ترین است
           await exportToCSV();
-
           showToast("تمام خروجی‌ها با موفقیت ایجاد شدند.", "success");
         } catch (error) {
           console.error("خطا در فرآیند دریافت خروجی‌ها:", error);
@@ -452,7 +580,11 @@ export function init() {
     pageElement
       .querySelectorAll("input, select")
       .forEach((el) => (el.disabled = true));
-    if (mobilePartNameChoice) mobilePartNameChoice.disable();
+
+    if (bomProductTypeChoice) bomProductTypeChoice.disable();
+    if (bomModelChoice) bomModelChoice.disable();
+    if (bomPartNameChoice) bomPartNameChoice.disable();
+
     pageElement
       .querySelectorAll(
         ".action-btn, .action-btn-icon, .summary-actions button, .counter-btn"
@@ -468,7 +600,6 @@ export function init() {
       });
     const finalizeBtn = pageElement.querySelector(".finalize-btn");
     finalizeBtn.innerHTML = `<i class="bi bi-lock-fill"></i> نهایی شده`;
-    // دکمه‌های خروجی دیگر نمایش داده نمی‌شوند چون دانلود خودکار است
     pageElement.querySelector(".export-btn").style.display = "none";
     pageElement.querySelector(".export-img-btn").style.display = "none";
     pageElement.querySelector(".export-pdf-btn").style.display = "none";
@@ -476,7 +607,6 @@ export function init() {
 
   // ===== توابع مربوط به خروجی‌ها =====
   function exportToCSV() {
-    // +++ تغییر: کل تابع داخل یک Promise قرار گرفت تا با async/await هماهنگ باشد +++
     return new Promise((resolve, reject) => {
       if (Object.keys(finalizedFormData).length === 0) {
         const err = new Error("Form not finalized before exporting to CSV.");
@@ -494,9 +624,10 @@ export function init() {
           "ردیف",
           "نوع محصول",
           "مدل محصول",
+          "کد قطعه",
+          "نام قطعه",
           "گروه",
           "آیتم",
-          "نام قطعه",
           "تعداد کل",
           "تامین کننده-تزریق",
           "تامین کننده-پرسکاری",
@@ -522,9 +653,10 @@ export function init() {
             index + 1,
             data.product_type,
             data.product_model,
+            data.part_code,
+            data.part_name,
             data.group,
             data.item,
-            data.part_name,
             data.total_count,
             data.supplier_injection,
             data.supplier_press,
@@ -542,41 +674,36 @@ export function init() {
           csvContent += rowDataValues.map(cleanCell).join(",") + "\r\n";
         });
         downloadFile(csvContent, `${fileName}.csv`, "text/csv;charset=utf-8;");
-        resolve(); // در صورت موفقیت، Promise را resolve می‌کنیم
+        resolve();
       } catch (error) {
         console.error("خطا در ایجاد خروجی CSV:", error);
         showToast("دانلود فایل CSV با مشکل مواجه شد.", "error");
-        reject(error); // در صورت خطا، Promise را reject می‌کنیم
+        reject(error);
       }
     });
   }
 
-  // =====> این تابع را به طور کامل جایگزین کنید <=====
   async function exportToImage() {
     if (Object.keys(finalizedFormData).length === 0) {
       showToast("لطفا ابتدا فرم را ثبت نهایی کنید.", "warning");
       throw new Error("Form not finalized before exporting to Image.");
     }
-
     const exportButton = pageElement.querySelector(".export-img-btn");
     toggleButtonLoading(exportButton, true, "در حال آماده سازی تصویر...");
-    
-    // یک کپی از کانتینر اصلی می‌سازیم تا روی صفحه اصلی تغییری ایجاد نشود
-    const printContainerOriginal = document.querySelector(".print-page-container");
+    const printContainerOriginal = document.querySelector(
+      ".print-page-container"
+    );
     const printContainer = printContainerOriginal.cloneNode(true);
-
-    // کپی را به صورت مخفی به صفحه اضافه می‌کنیم تا قابل رندر باشد
-    printContainer.style.position = 'absolute';
-    printContainer.style.left = '-9999px';
-    printContainer.style.visibility = 'visible'; // باید visible باشد تا html2canvas آن را ببیند
-    printContainer.style.opacity = '1';
+    printContainer.style.position = "absolute";
+    printContainer.style.left = "-9999px";
+    printContainer.style.visibility = "visible";
+    printContainer.style.opacity = "1";
     document.body.appendChild(printContainer);
 
     try {
       const { tableData, ...globalInfo } = finalizedFormData;
       const baseFileName = generateBaseFileName(globalInfo);
 
-      // --- توابع داخلی برای ساخت HTML (بدون تغییر) ---
       const buildFullPageHTML = (itemsHTML) => {
         const originalHeaderClone = document
           .getElementById("main-header")
@@ -589,65 +716,93 @@ export function init() {
       };
 
       const createItemCardHTML = (item, index) => {
-        const titleHTML = `${index + 1}. ${item.part_name} <span style="font-weight: 500; color: var(--secondary-color); font-size: 13px;">(${item.product_type})</span>`;
-        const headerHTML = `<div class="summary-card-header"><h2 class="summary-card-title">${titleHTML}</h2><div class="summary-card-meta" style="display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--secondary-color);"><span class="summary-timestamp" style="display: flex; align-items: center; gap: 4px;"><i class="bi bi-clock"></i> ${item.timestamp || ""}</span><span class="summary-card-count count-highlight">تعداد: ${item.total_count}</span></div></div>`;
+        const titleHTML = `${index + 1}. ${
+          item.part_name
+        } <span style="font-weight: 500; color: var(--secondary-color); font-size: 13px;">(${
+          item.product_model
+        })</span>`;
+        const headerHTML = `<div class="summary-card-header"><h2 class="summary-card-title">${titleHTML}</h2><div class="summary-card-meta" style="display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--secondary-color);"><span class="summary-timestamp" style="display: flex; align-items: center; gap: 4px;"><i class="bi bi-clock"></i> ${
+          item.timestamp || ""
+        }</span><span class="summary-card-count count-highlight">تعداد: ${
+          item.total_count
+        }</span></div></div>`;
         let detailsHTML = "";
-        if (item.product_model) detailsHTML += `<span><i class="bi bi-textarea-t icon-model"></i> مدل: ${item.product_model}</span>`;
-        if (item.group) detailsHTML += `<span><i class="bi bi-collection icon-group"></i> گروه: ${item.group}</span>`;
-        if (item.item) detailsHTML += `<span><i class="bi bi-tags icon-item"></i> آیتم: ${item.item}</span>`;
+        if (item.part_code)
+          detailsHTML += `<span><i class="bi bi-upc-scan icon-item"></i> کد: ${item.part_code}</span>`;
+        if (item.group)
+          detailsHTML += `<span><i class="bi bi-collection icon-group"></i> گروه: ${item.group}</span>`;
+        if (item.item)
+          detailsHTML += `<span><i class="bi bi-tags icon-item"></i> آیتم: ${item.item}</span>`;
         const supplierParts = [];
-        if (item.supplier_injection > 0) supplierParts.push(`تزریق: ${item.supplier_injection}`);
-        if (item.supplier_press > 0) supplierParts.push(`پرسکاری: ${item.supplier_press}`);
-        if (item.supplier_internal > 0) supplierParts.push(`داخلی: ${item.supplier_internal}`);
-        if (item.supplier_external > 0) supplierParts.push(`خارجی: ${item.supplier_external}`);
-        if (supplierParts.length > 0) detailsHTML += `<span><i class="bi bi-house-down icon-supplier"></i> تامین: ${supplierParts.join(" | ")}</span>`;
+        if (item.supplier_injection > 0)
+          supplierParts.push(`تزریق: ${item.supplier_injection}`);
+        if (item.supplier_press > 0)
+          supplierParts.push(`پرسکاری: ${item.supplier_press}`);
+        if (item.supplier_internal > 0)
+          supplierParts.push(`داخلی: ${item.supplier_internal}`);
+        if (item.supplier_external > 0)
+          supplierParts.push(`خارجی: ${item.supplier_external}`);
+        if (supplierParts.length > 0)
+          detailsHTML += `<span><i class="bi bi-house-down icon-supplier"></i> تامین: ${supplierParts.join(
+            " | "
+          )}</span>`;
         const sourceParts = [];
-        if (item.source_packaging > 0) sourceParts.push(`بسته‌بندی: ${item.source_packaging}`);
-        if (item.source_warehouse > 0) sourceParts.push(`انبار: ${item.source_warehouse}`);
-        if (item.source_production > 0) sourceParts.push(`حین تولید: ${item.source_production}`);
-        if (sourceParts.length > 0) detailsHTML += `<span><i class="bi bi-graph-down-arrow icon-source"></i> منشا: ${sourceParts.join(" | ")}</span>`;
+        if (item.source_packaging > 0)
+          sourceParts.push(`بسته‌بندی: ${item.source_packaging}`);
+        if (item.source_warehouse > 0)
+          sourceParts.push(`انبار: ${item.source_warehouse}`);
+        if (item.source_production > 0)
+          sourceParts.push(`حین تولید: ${item.source_production}`);
+        if (sourceParts.length > 0)
+          detailsHTML += `<span><i class="bi bi-graph-down-arrow icon-source"></i> منشا: ${sourceParts.join(
+            " | "
+          )}</span>`;
         const processInfoHTML = `<div class="card-details-row">${detailsHTML}</div>`;
-        const defectsAndNotesHTML = item.defects_summary || item.comments ? `<div class="card-details-row notes-row">${item.defects_summary ? `<span><i class="bi bi-card-text icon-defect"></i> ${item.defects_summary}</span>` : ""} ${item.comments ? `<span><i class="bi bi-chat-left-text"></i> ${item.comments}</span>` : ""}</div>` : "";
+        const defectsAndNotesHTML =
+          item.defects_summary || item.comments
+            ? `<div class="card-details-row notes-row">${
+                item.defects_summary
+                  ? `<span><i class="bi bi-card-text icon-defect"></i> ${item.defects_summary}</span>`
+                  : ""
+              } ${
+                item.comments
+                  ? `<span><i class="bi bi-chat-left-text"></i> ${item.comments}</span>`
+                  : ""
+              }</div>`
+            : "";
         return `<div class="summary-card-item">${headerHTML}<div class="summary-card-details">${processInfoHTML}${defectsAndNotesHTML}</div></div>`;
       };
-      // --- پایان توابع داخلی ---
 
       const allItemsHTML = tableData.map(createItemCardHTML).join("");
       printContainer.innerHTML = buildFullPageHTML(allItemsHTML);
 
-      // +++ تغییر اصلی اینجاست +++
-      // قبل از فراخوانی html2canvas، تمام استایل‌ها را داخلی می‌کنیم
       await inlineAllStyles(printContainer);
-      // +++ پایان تغییر اصلی +++
-
-      // منتظر می‌مانیم تا فونت‌ها و استایل‌ها کاملا اعمال شوند
       await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 100)); // یک تاخیر کوچک برای اطمینان
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const canvas = await html2canvas(printContainer, {
         useCORS: true,
-        scale: window.devicePixelRatio || 2, // استفاده از رزولوشن دستگاه برای کیفیت بهتر
+        scale: window.devicePixelRatio || 2,
         scrollX: -window.scrollX,
         scrollY: -window.scrollY,
         windowWidth: printContainer.scrollWidth,
         windowHeight: printContainer.scrollHeight,
       });
-
       downloadFile(canvas.toDataURL("image/png"), `${baseFileName}.png`);
-
     } catch (err) {
       console.error(`خطا در ایجاد خروجی تصویر:`, err);
       showToast(`دانلود فایل تصویر با مشکل مواجه شد.`, "error");
       throw err;
     } finally {
-      // کپی مخفی را در هر صورت از صفحه حذف می‌کنیم
-      if (printContainer) {
-        document.body.removeChild(printContainer);
-      }
-      toggleButtonLoading(exportButton, false, `<i class="bi bi-camera-fill"></i> خروجی تصویر فرم`);
+      if (printContainer) document.body.removeChild(printContainer);
+      toggleButtonLoading(
+        exportButton,
+        false,
+        `<i class="bi bi-camera-fill"></i> خروجی تصویر فرم`
+      );
     }
   }
-  // =====> پایان تابع جایگزین شده <=====
+
   async function loadFontAsBase64(url) {
     const response = await fetch(url);
     if (!response.ok) {
@@ -699,9 +854,6 @@ export function init() {
     const RLM_RTL = "\u200F";
     return RLM_RTL + reversedText;
   };
-
-  // مسیر: QC 33/features/scrap-form/scrap-form.js
-  // ... (کدهای دیگر فایل را دست نخورده باقی بگذارید) ...
 
   async function exportToPDF() {
     if (Object.keys(finalizedFormData).length === 0) {
@@ -772,7 +924,7 @@ export function init() {
           stack: [
             { text: rtl(item.part_name), style: "tableCellRight", bold: true },
             {
-              text: rtl(item.product_type),
+              text: rtl(item.product_model),
               style: "tableCellRightSmall",
               color: "#555",
             },
@@ -787,7 +939,7 @@ export function init() {
           { text: item.total_count, style: ["tableCell", "bold"] },
           { text: item.item, style: "tableCell" },
           { text: item.group, style: "tableCell" },
-          { text: item.product_model, style: "tableCell" },
+          { text: item.part_code, style: "tableCell" },
           partNameCell,
           { text: index + 1, style: "tableCell" },
         ];
@@ -796,7 +948,6 @@ export function init() {
       const docDefinition = {
         pageSize: "A4",
         pageOrientation: "portrait",
-        // +++ تغییر کلیدی: حاشیه بالا برای جلوگیری از تداخل هدر و جدول افزایش یافت
         pageMargins: [20, 120, 20, 75],
 
         header: {
@@ -834,7 +985,7 @@ export function init() {
             table: {
               headerRows: 1,
               widths: [
-                80,
+                60,
                 "*",
                 "auto",
                 "auto",
@@ -854,8 +1005,8 @@ export function init() {
                   { text: rtl("تعداد"), style: "tableHeader" },
                   { text: rtl("آیتم"), style: "tableHeader" },
                   { text: rtl("گروه"), style: "tableHeader" },
-                  { text: rtl("مدل"), style: "tableHeader" },
-                  { text: rtl("نام قطعه"), style: "tableHeader" },
+                  { text: rtl("کد قطعه"), style: "tableHeader" },
+                  { text: rtl("نام قطعه / مدل"), style: "tableHeader" },
                   { text: rtl("ردیف"), style: "tableHeader" },
                 ],
                 ...tableBodyContent,
@@ -985,9 +1136,7 @@ export function init() {
       );
     }
   }
-  // ... (بقیه کدهای فایل را دست نخورده باقی بگذارید) ...
 
-  // ... (بقیه کدهای فایل را دست نخورده باقی بگذارید) ...
   // ===== توابع مدیریت لیست و فرم موبایل =====
   function updateMobileSummary() {
     mobileForm.summaryList.innerHTML = "";
@@ -999,167 +1148,52 @@ export function init() {
         ])
       );
       if (!data.part_name || !data.total_count || data.total_count <= 0) return;
+
       const li = document.createElement("li");
       li.dataset.rowIndex = index;
-      let detailsHTML = "";
-      if (data.product_model)
-        detailsHTML += `<span><i class="bi bi-textarea-t icon-model"></i> مدل: ${data.product_model}</span>`;
-      if (data.group)
-        detailsHTML += `<span><i class="bi bi-collection icon-group"></i> گروه: ${data.group}</span>`;
-      if (data.item)
-        detailsHTML += `<span><i class="bi bi-tags icon-item"></i> آیتم: ${data.item}</span>`;
-      const supplierParts = [];
-      if (data.supplier_injection > 0)
-        supplierParts.push(`تزریق: ${data.supplier_injection}`);
-      if (data.supplier_press > 0)
-        supplierParts.push(`پرسکاری: ${data.supplier_press}`);
-      if (data.supplier_internal > 0)
-        supplierParts.push(`داخلی: ${data.supplier_internal}`);
-      if (data.supplier_external > 0)
-        supplierParts.push(`خارجی: ${data.supplier_external}`);
-      if (supplierParts.length > 0)
-        detailsHTML += `<span><i class="bi bi-house-down icon-supplier"></i> ${supplierParts.join(
-          "، "
-        )}</span>`;
-      const sourceParts = [];
-      if (data.source_packaging > 0)
-        sourceParts.push(`بسته‌بندی: ${data.source_packaging}`);
-      if (data.source_warehouse > 0)
-        sourceParts.push(`انبار: ${data.source_warehouse}`);
-      if (data.source_production > 0)
-        sourceParts.push(`حین تولید: ${data.source_production}`);
-      if (sourceParts.length > 0)
-        detailsHTML += `<span><i class="bi bi-graph-down-arrow icon-source"></i> ${sourceParts.join(
-          "، "
-        )}</span>`;
-      if (data.defects_summary)
-        detailsHTML += `<span><i class="bi bi-card-text icon-defect"></i> ${data.defects_summary}</span>`;
-      if (data.comments)
-        detailsHTML += `<span><i class="bi bi-chat-left-text"></i> ${data.comments}</span>`;
 
       const titleHTML = `${index + 1}. ${
         data.part_name
-      } <span class="summary-product-type">(${data.product_type})</span>`;
+      } <span class="summary-product-type">(${data.product_model})</span>`;
 
-      const mainRowHTML = `
-      <div class="summary-main-row" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
-        <span class="summary-text" style="font-weight: bold; flex-grow: 1;">${titleHTML}</span>
-        <div class="summary-controls" style="display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--secondary-color);">
-            <span class="summary-timestamp" style="display: flex; align-items: center; gap: 4px;">
-                <i class="bi bi-clock"></i>
-                ${data.timestamp || ""}
-            </span>
-            <span class="summary-count">تعداد: ${data.total_count}</span>
-            <div class="summary-actions" style="display: flex; gap: 0;">
+      const detailsParts = [
+        `<span><i class="bi bi-upc-scan icon-item"></i> کد: ${
+          data.part_code || "---"
+        }</span>`,
+        data.group
+          ? `<span><i class="bi bi-collection icon-group"></i> گروه: ${data.group}</span>`
+          : "",
+        data.item
+          ? `<span><i class="bi bi-tags icon-item"></i> آیتم: ${data.item}</span>`
+          : "",
+        data.defects_summary
+          ? `<span><i class="bi bi-card-text icon-defect"></i> ${data.defects_summary}</span>`
+          : "",
+        data.comments
+          ? `<span><i class="bi bi-chat-left-text"></i> ${data.comments}</span>`
+          : "",
+      ];
+
+      li.innerHTML = `
+        <div class="summary-main-row">
+            <span class="summary-text">${titleHTML}</span>
+            <div class="summary-count">تعداد: <strong>${
+              data.total_count
+            }</strong></div>
+            <div class="summary-actions">
                 <button type="button" class="summary-edit-btn" title="ویرایش"><i class="bi bi-pencil-square"></i></button>
                 <button type="button" class="summary-delete-btn" title="حذف"><i class="bi bi-trash3-fill"></i></button>
             </div>
         </div>
-      </div>`;
-
-      li.innerHTML = `${mainRowHTML}<div class="summary-details">${detailsHTML}</div>`;
+        <div class="summary-details">${detailsParts
+          .filter(Boolean)
+          .join("")}</div>
+      `;
       mobileForm.summaryList.appendChild(li);
     });
   }
 
-  function resetMobileForm(options = {}) {
-    const { focusOnPartName = true } = options;
-    editingRowIndex = null;
-    document
-      .querySelectorAll("#mobile-form-wrapper [data-required-name]")
-      .forEach((el) => {
-        const container =
-          el.id === "mobile-part-name" || el.id === "mobile-product-type"
-            ? el.closest(".mobile-form-group")
-            : el.closest(".counter-input-group") || el;
-        if (container) container.classList.remove("required-field-error");
-      });
-
-    const fieldsToReset = [
-      "partName",
-      "totalCount",
-      "supplierInjection",
-      "supplierPress",
-      "supplierInternal",
-      "supplierExternal",
-      "sourcePackaging",
-      "sourceWarehouse",
-      "sourceProduction",
-      "defectsSummary",
-      "comments",
-    ];
-    if (mobilePartNameChoice) mobilePartNameChoice.setChoiceByValue("");
-
-    fieldsToReset.forEach((key) => {
-      const el = mobileForm[key];
-      if (el && el.tagName) {
-        if (el.type === "number")
-          el.value = key === "totalCount" ? 1 : el.min || 0;
-        else if (el.tagName === "SELECT") el.selectedIndex = 0;
-        else if (el.type === "text" || el.type === "textarea") el.value = "";
-      }
-    });
-
-    const lastValidRow =
-      tableBody &&
-      [...tableBody.rows]
-        .reverse()
-        .find((row) => row.querySelector('[name="part_name"]').value);
-
-    if (lastValidRow) {
-      mobileForm.productType.value = lastValidRow.querySelector(
-        '[name="product_type"]'
-      ).value;
-      mobileForm.productModel.value = lastValidRow.querySelector(
-        '[name="product_model"]'
-      ).value;
-      mobileForm.group.value =
-        lastValidRow.querySelector('[name="group"]').value;
-      mobileForm.item.value = lastValidRow.querySelector('[name="item"]').value;
-    } else {
-      mobileForm.productType.selectedIndex = 0;
-      mobileForm.productModel.value = "";
-      mobileForm.group.value = scrapFormData.groups[0] || "";
-      mobileForm.item.value = "";
-    }
-
-    updatePartNameDropdownForMobile();
-
-    mobileForm.addBtn.innerHTML =
-      '<i class="bi bi-check-circle-fill"></i> ثبت و افزودن به لیست';
-    mobileForm.addBtn.style.backgroundColor = "var(--success-color)";
-    updateDefectLegendsSelection();
-
-    if (focusOnPartName && window.innerWidth < 992) {
-      setTimeout(() => {
-        mobilePartNameChoice.showDropdown();
-        const searchInput =
-          mobilePartNameChoice.containerOuter.element.querySelector(
-            "input.choices__input"
-          );
-        if (searchInput) {
-          searchInput.focus();
-        }
-      }, 50);
-    }
-  }
-
   // ===== توابع اعتبارسنجی و محاسباتی =====
-  function updatePartNameDropdownForMobile() {
-    const productType = mobileForm.productType.value;
-    const newParts = scrapFormData.parts[productType] || [];
-    const choicesArray = [
-      { value: "", label: "انتخاب قطعه...", placeholder: true, disabled: true },
-    ].concat(newParts.map((name) => ({ value: name, label: name })));
-    if (mobilePartNameChoice) {
-      const currentVal = mobilePartNameChoice.getValue(true);
-      mobilePartNameChoice.setChoices(choicesArray, "value", "label", true);
-      if (newParts.includes(currentVal)) {
-        mobilePartNameChoice.setChoiceByValue(currentVal);
-      }
-    }
-  }
-
   function getDefectsSum(defectsString) {
     if (!defectsString || defectsString.trim() === "") return 0;
     return defectsString.split(" | ").reduce((sum, part) => {
@@ -1171,11 +1205,9 @@ export function init() {
   function getValidationStatus(data, rowIndex = "") {
     const requiredFields = {
       product_type: "نوع محصول",
+      product_model: "مدل",
       part_name: "نام قطعه",
       total_count: "تعداد کل",
-      product_model: "مدل محصول",
-      group: "گروه",
-      item: "آیتم",
       defects_summary: "شرح ضایعات",
     };
     for (const field in requiredFields) {
@@ -1225,6 +1257,46 @@ export function init() {
         } برابر نیست.`,
       };
     return { isValid: true };
+  }
+
+  function validateMobileForm() {
+    document
+      .querySelectorAll(".bom-selector-item, .mobile-form-group")
+      .forEach((el) => el.classList.remove("required-field-error"));
+
+    const fieldsToValidate = [
+      {
+        choice: bomProductTypeChoice,
+        el: mobileForm.bomProductType.closest(".mobile-form-group"),
+        name: "نوع محصول",
+      },
+      {
+        choice: bomModelChoice,
+        el: mobileForm.bomModel.closest(".mobile-form-group"),
+        name: "مدل",
+      },
+      {
+        choice: bomPartNameChoice,
+        el: mobileForm.bomPartName.closest(".mobile-form-group"),
+        name: "نام قطعه",
+      },
+      {
+        el: mobileForm.defectsSummary.closest(".mobile-form-group"),
+        value: mobileForm.defectsSummary.value,
+        name: "شرح ضایعات",
+      },
+    ];
+
+    for (const field of fieldsToValidate) {
+      const value = field.choice ? field.choice.getValue(true) : field.value;
+      if (!value) {
+        showToast(`لطفاً فیلد "${field.name}" را تکمیل کنید.`, "error");
+        field.el.classList.add("required-field-error");
+        field.el.scrollIntoView({ behavior: "smooth", block: "center" });
+        return false;
+      }
+    }
+    return true;
   }
 
   function validateAllForms() {
@@ -1326,7 +1398,6 @@ export function init() {
     });
   }
 
-  // ===== توابع عمومی و راه‌اندازی اولیه =====
   function populateSelect(selectElement, dataArray, selectFirst = false) {
     if (!selectElement) return;
     selectElement.innerHTML = "";
@@ -1350,247 +1421,192 @@ export function init() {
     });
   }
 
-  function addSafeEventListener(
-    selector,
-    event,
-    handler,
-    parent = pageElement
-  ) {
-    const element = parent.querySelector(selector);
-    if (element) {
-      element.addEventListener(event, handler);
-    } else {
-      console.warn(`Element "${selector}" not found.`);
+  function handleAddItem() {
+    if (!validateMobileForm()) return;
+
+    const now = new Date();
+    const timeString = `${now.getHours().toString().padStart(2, "0")}:${now
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
+
+    const mobileData = {
+      product_type: bomProductTypeChoice.getValue(true),
+      product_model: bomModelChoice.getValue(true),
+      part_name: bomPartNameChoice.getValue(true),
+      part_code: mobileForm.bomPartCode.value,
+      total_count: mobileForm.totalCount.value,
+      group: mobileForm.group.value,
+      item: mobileForm.item.value,
+      supplier_injection: mobileForm.supplierInjection.value,
+      supplier_press: mobileForm.supplierPress.value,
+      supplier_internal: mobileForm.supplierInternal.value,
+      supplier_external: mobileForm.supplierExternal.value,
+      source_packaging: mobileForm.sourcePackaging.value,
+      source_warehouse: mobileForm.sourceWarehouse.value,
+      source_production: mobileForm.sourceProduction.value,
+      defects_summary: mobileForm.defectsSummary.value,
+      comments: mobileForm.comments.value,
+      timestamp: timeString,
+    };
+
+    const status = getValidationStatus(mobileData);
+    if (!status.isValid) {
+      showToast(status.message, "error");
+      return;
     }
+
+    if (editingRowIndex !== null) {
+      const rowToUpdate = tableBody.rows[editingRowIndex];
+      if (rowToUpdate) {
+        Object.keys(mobileData).forEach((key) => {
+          const input = rowToUpdate.querySelector(`[name="${key}"]`);
+          if (input) input.value = mobileData[key];
+        });
+        showToast(`قطعه شماره ${editingRowIndex + 1} به‌روز شد.`, "success");
+      }
+    } else {
+      addRow(mobileData);
+      showToast(`قطعه (${mobileData.part_name}) با موفقیت ثبت شد.`, "success");
+    }
+    updateMobileSummary();
+    resetPartSpecificFields();
   }
 
   // --- راه‌اندازی اولیه صفحه ---
-  populateSelect(document.getElementById("line"), scrapFormData.lines);
-  populateSelect(mobileForm.productType, scrapFormData.productTypes, true);
-  populateSelect(mobileForm.group, scrapFormData.groups);
-  populateLegends(
-    document.getElementById("legends-list"),
-    scrapFormData.defects
-  );
-  mobilePartNameChoice = new Choices(mobileForm.partName, choicesConfig);
-  updatePartNameDropdownForMobile();
-  legendsContainer.style.display = "block";
-  const dateInput = document.getElementById("jalali_date");
-  if (dateInput) {
-    const today = new Date();
-    const formatter = new Intl.DateTimeFormat("fa-IR-u-nu-latn", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      calendar: "persian",
-    });
-    dateInput.value = formatter.format(today);
-    if (window.jdp) {
-      window.jdp.render(dateInput, {
-        usePersianDigits: true,
-        format: "YYYY/MM/DD",
-      });
-    }
-  }
-
-  // --- ثبت Event Listener ها ---
-  addSafeEventListener(".finalize-btn", "click", finalizeForm);
-  // این سه خط حذف یا کامنت می‌شوند چون دیگر به صورت تکی استفاده نمی‌شوند
-  // addSafeEventListener(".export-btn", "click", exportToCSV);
-  // addSafeEventListener(".export-img-btn", "click", exportToImage);
-  // addSafeEventListener(".export-pdf-btn", "click", exportToPDF);
-
-  if (mobileForm.productType) {
-    mobileForm.productType.addEventListener(
-      "change",
-      updatePartNameDropdownForMobile
+  function initializePage() {
+    populateSelect(document.getElementById("line"), scrapFormData.lines);
+    populateSelect(mobileForm.group, scrapFormData.groups);
+    populateLegends(
+      document.getElementById("legends-list"),
+      scrapFormData.defects
     );
-  }
 
-  if (mobileForm.addBtn) {
-    mobileForm.addBtn.addEventListener("click", () => {
-      const requiredElements = document.querySelectorAll(
-        "#mobile-form-wrapper [data-required-name]"
-      );
-      let firstInvalidElement = null;
-      requiredElements.forEach((el) => {
-        const container =
-          el.id === "mobile-part-name" || el.id === "mobile-product-type"
-            ? el.parentElement
-            : el.closest(".counter-input-group") ||
-              el.closest(".mobile-form-group") ||
-              el;
-        if (container) container.classList.remove("required-field-error");
+    bomProductTypeChoice = new Choices(
+      mobileForm.bomProductType,
+      choicesConfig
+    );
+    bomModelChoice = new Choices(mobileForm.bomModel, choicesConfig);
+    bomPartNameChoice = new Choices(mobileForm.bomPartName, {
+      ...choicesConfig,
+      searchEnabled: true,
+    });
 
-        const choicesWrapper = container.querySelector(".choices");
-        if (choicesWrapper)
-          choicesWrapper.classList.remove("required-field-error");
+    initializeBomSelectors();
+    legendsContainer.style.display = "block";
+
+    const dateInput = document.getElementById("jalali_date");
+    if (dateInput) {
+      const today = new Date();
+      const formatter = new Intl.DateTimeFormat("fa-IR-u-nu-latn", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        calendar: "persian",
       });
-      for (const el of requiredElements) {
-        if (!el.value || (el.id === "mobile-total-count" && el.value === "0")) {
-          const container =
-            el.id === "mobile-part-name" || el.id === "mobile-product-type"
-              ? el.parentElement
-              : el.closest(".counter-input-group") ||
-                el.closest(".mobile-form-group") ||
-                el;
-
-          if (container) {
-            const choicesWrapper = container.querySelector(".choices");
-            if (choicesWrapper) {
-              choicesWrapper.classList.add("required-field-error");
-            } else {
-              container.classList.add("required-field-error");
-            }
-          }
-
-          if (!firstInvalidElement) firstInvalidElement = el;
-        }
+      dateInput.value = formatter.format(today);
+      if (window.jdp) {
+        window.jdp.render(dateInput, {
+          usePersianDigits: true,
+          format: "YYYY/MM/DD",
+        });
       }
-      if (firstInvalidElement) {
-        showToast(
-          `لطفا فیلد "${firstInvalidElement.dataset.requiredName}" را پر کنید.`,
-          "error"
-        );
-        if (firstInvalidElement.id === "mobile-part-name")
-          mobilePartNameChoice.showDropdown();
-        else firstInvalidElement.focus();
-        const accordionContent =
-          firstInvalidElement.closest(".accordion-content");
-        if (accordionContent && accordionContent.style.display === "none") {
-          accordionContent.style.display = "flex";
-          accordionContent.previousElementSibling.classList.add("active");
-        }
-        return;
-      }
+    }
 
-      const now = new Date();
-      const timeString = `${now.getHours().toString().padStart(2, "0")}:${now
-        .getMinutes()
-        .toString()
-        .padStart(2, "0")}`;
+    // --- ثبت Event Listener ها ---
+    const finalizeBtn = pageElement.querySelector(".finalize-btn");
+    if (finalizeBtn) finalizeBtn.addEventListener("click", finalizeForm);
 
-      const mobileData = {
-        product_type: mobileForm.productType.value,
-        product_model: mobileForm.productModel.value,
-        group: mobileForm.group.value,
-        item: mobileForm.item.value,
-        part_name: mobileForm.partName.value,
-        total_count: mobileForm.totalCount.value,
-        supplier_injection: mobileForm.supplierInjection.value,
-        supplier_press: mobileForm.supplierPress.value,
-        supplier_internal: mobileForm.supplierInternal.value,
-        supplier_external: mobileForm.supplierExternal.value,
-        source_packaging: mobileForm.sourcePackaging.value,
-        source_warehouse: mobileForm.sourceWarehouse.value,
-        source_production: mobileForm.sourceProduction.value,
-        defects_summary: mobileForm.defectsSummary.value,
-        comments: mobileForm.comments.value,
-        timestamp: timeString,
-      };
-      const status = getValidationStatus(mobileData);
-      if (!status.isValid) {
-        showToast(status.message, "error");
-        return;
-      }
-      if (editingRowIndex !== null) {
-        const rowToUpdate = tableBody.rows[editingRowIndex];
-        if (rowToUpdate) {
-          Object.keys(mobileData).forEach((key) => {
-            const input = rowToUpdate.querySelector(`[name="${key}"]`);
-            if (input) {
-              input.value = mobileData[key];
-            }
-          });
-          showToast(`قطعه شماره ${editingRowIndex + 1} به‌روز شد.`, "success");
-        }
-      } else {
-        addRow(mobileData);
-        showToast(
-          `قطعه شماره ${tableBody.rows.length} (${mobileData.part_name}) ثبت شد.`,
-          "success"
-        );
-      }
-      updateMobileSummary();
-      resetMobileForm();
-    });
-  }
-  if (mobileForm.summaryList) {
-    mobileForm.summaryList.addEventListener("click", (event) => {
-      if (pageElement.classList.contains("form-locked")) return;
-      const button = event.target.closest("button");
-      if (!button) return;
-      const li = button.closest("li[data-row-index]");
-      if (!li) return;
-      const rowIndex = parseInt(li.dataset.rowIndex, 10);
-      const rowElement = tableBody.rows[rowIndex];
-      if (!rowElement) return;
-      if (button.classList.contains("summary-edit-btn"))
-        startEditing(rowElement);
-      else if (button.classList.contains("summary-delete-btn"))
-        confirmDeleteRow(rowElement);
-    });
-  }
-  let touchTimer,
-    isLongPress = false;
-  legendsContainer.addEventListener("touchstart", (event) => {
-    const item = event.target.closest("li[data-defect-name]");
-    if (item) {
+    mobileForm.bomProductType.addEventListener(
+      "change",
+      handleProductTypeChange
+    );
+    mobileForm.bomModel.addEventListener("change", handleModelChange);
+    mobileForm.bomPartName.addEventListener("change", handlePartNameChange);
+    mobileForm.addBtn.addEventListener("click", handleAddItem);
+
+    if (mobileForm.summaryList) {
+      mobileForm.summaryList.addEventListener("click", (event) => {
+        if (pageElement.classList.contains("form-locked")) return;
+        const button = event.target.closest("button");
+        if (!button) return;
+        const li = button.closest("li[data-row-index]");
+        if (!li) return;
+        const rowIndex = parseInt(li.dataset.rowIndex, 10);
+        const rowElement = tableBody.rows[rowIndex];
+        if (!rowElement) return;
+        if (button.classList.contains("summary-edit-btn"))
+          startEditing(rowElement);
+        else if (button.classList.contains("summary-delete-btn"))
+          confirmDeleteRow(rowElement);
+      });
+    }
+
+    let touchTimer,
       isLongPress = false;
-      touchTimer = setTimeout(() => {
-        isLongPress = true;
-        updateDefectCount(item.dataset.defectName, -1);
-        navigator.vibrate?.(50);
-      }, 500);
-    }
-  });
-  legendsContainer.addEventListener("touchend", (e) => {
-    clearTimeout(touchTimer);
-    if (isLongPress) e.preventDefault();
-  });
-  legendsContainer.addEventListener("touchmove", () =>
-    clearTimeout(touchTimer)
-  );
-  legendsContainer.addEventListener("click", (e) => {
-    const item = e.target.closest("li[data-defect-name]");
-    if (item && !isLongPress) updateDefectCount(item.dataset.defectName, 1);
-  });
-  legendsContainer.addEventListener("contextmenu", (e) => {
-    const item = e.target.closest("li[data-defect-name]");
-    if (item) {
-      e.preventDefault();
-      updateDefectCount(item.dataset.defectName, -1);
-    }
-  });
-  const mobileFormWrapper = document.getElementById("mobile-form-wrapper");
-  if (mobileFormWrapper) {
-    mobileFormWrapper.addEventListener("click", (e) => {
-      if (pageElement.classList.contains("form-locked")) return;
-      if (e.target.matches(".counter-btn")) {
-        const targetInput = document.getElementById(e.target.dataset.target);
-        if (targetInput) {
-          let value = parseInt(targetInput.value, 10) || 0;
-          const min = parseInt(targetInput.min, 10);
-          if (e.target.classList.contains("plus-btn")) value++;
-          else if (value > (isNaN(min) ? 0 : min)) value--;
-          targetInput.value = value;
-        }
+    legendsContainer.addEventListener("touchstart", (event) => {
+      const item = event.target.closest("li[data-defect-name]");
+      if (item) {
+        isLongPress = false;
+        touchTimer = setTimeout(() => {
+          isLongPress = true;
+          updateDefectCount(item.dataset.defectName, -1);
+          navigator.vibrate?.(50);
+        }, 500);
       }
     });
+    legendsContainer.addEventListener("touchend", (e) => {
+      clearTimeout(touchTimer);
+      if (isLongPress) e.preventDefault();
+    });
+    legendsContainer.addEventListener("touchmove", () =>
+      clearTimeout(touchTimer)
+    );
+    legendsContainer.addEventListener("click", (e) => {
+      const item = e.target.closest("li[data-defect-name]");
+      if (item && !isLongPress) updateDefectCount(item.dataset.defectName, 1);
+    });
+    legendsContainer.addEventListener("contextmenu", (e) => {
+      const item = e.target.closest("li[data-defect-name]");
+      if (item) {
+        e.preventDefault();
+        updateDefectCount(item.dataset.defectName, -1);
+      }
+    });
+
+    const mobileFormWrapper = document.getElementById("mobile-form-wrapper");
+    if (mobileFormWrapper) {
+      mobileFormWrapper.addEventListener("click", (e) => {
+        if (pageElement.classList.contains("form-locked")) return;
+        if (e.target.matches(".counter-btn")) {
+          const targetInput = document.getElementById(e.target.dataset.target);
+          if (targetInput) {
+            let value = parseInt(targetInput.value, 10) || 0;
+            const min = parseInt(targetInput.min, 10);
+            if (e.target.classList.contains("plus-btn")) value++;
+            else if (value > (isNaN(min) ? 0 : min)) value--;
+            targetInput.value = value;
+          }
+        }
+      });
+    }
+
+    [
+      "jalali_date",
+      "line",
+      "approver-control",
+      "approver-line",
+      "approver-eng",
+    ].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el)
+        el.addEventListener("input", (e) =>
+          e.target.classList.remove("required-field-error")
+        );
+    });
+
+    window.activeFormResetter = resetFormWithConfirmation;
   }
 
-  [
-    "jalali_date",
-    "line",
-    "approver-control",
-    "approver-line",
-    "approver-eng",
-  ].forEach((id) => {
-    const el = document.getElementById(id);
-    if (el)
-      el.addEventListener("input", (e) =>
-        e.target.classList.remove("required-field-error")
-      );
-  });
-  window.activeFormResetter = resetFormWithConfirmation;
+  initializePage();
 }

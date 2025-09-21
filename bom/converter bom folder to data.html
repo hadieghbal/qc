@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>ابزار ساخت BOM JSON</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            direction: rtl;
+            background-color: #f4f7f9;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 20px auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            background-color: #fff;
+        }
+        h1 {
+            color: #0056b3;
+            border-bottom: 2px solid #eef2f7;
+            padding-bottom: 10px;
+        }
+        .instructions {
+            background-color: #eef2f7;
+            border-right: 4px solid #0056b3;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        ol li { margin-bottom: 10px; }
+        .action-button {
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .action-button:hover:not(:disabled) { background-color: #004494; }
+        .action-button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        #log-container {
+            background-color: #2d333b;
+            color: #cdd9e5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-family: "Courier New", monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #4d545e;
+        }
+        #log-container div {
+            border-bottom: 1px solid #444;
+            padding: 4px 0;
+        }
+        #log-container div:last-child { border-bottom: none; }
+        .success { color: #57ab5a; font-weight: bold; }
+        .error { color: #e57373; font-weight: bold; }
+        .info { color: #6ac3e0; }
+        #download-section {
+            display: none;
+            margin-top: 25px;
+            padding: 20px;
+            background-color: #d1e7dd;
+            border: 1px solid #badbcc;
+            border-radius: 5px;
+            text-align: center;
+        }
+        #download-section p { margin-top: 0; font-weight: bold; color: #0f5132; }
+        .download-btn { background-color: #198754; }
+        .download-btn:hover { background-color: #157347; }
+    </style>
+    <!-- کتابخانه برای خواندن فایل اکسل -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+    <h1>ابزار ساخت فایل `bom-data.json`</h1>
+    <div class="instructions">
+        <strong>دستورالعمل:</strong>
+        <ol>
+            <li>روی دکمه‌ی "۱. انتخاب پوشه bom" کلیک کنید.</li>
+            <li>در پنجره‌ای که باز می‌شود، پوشه `bom` اصلی پروژه خود را پیدا و انتخاب کنید. (پوشه‌ای که داخلش پوشه‌های `اتومات`, `دوقلو` و... قرار دارد).</li>
+            <li>منتظر بمانید تا فرآیند پردازش تمام شود (گزارش آن در کادر مشکی نمایش داده می‌شود).</li>
+            <li>پس از اتمام موفقیت‌آمیز، بخش دانلود ظاهر می‌شود. روی دکمه "۲. دانلود فایل bom-data.json" کلیک کنید.</li>
+            <li>فایل دانلود شده را به مسیر `QC/bom/` در پروژه خود منتقل کنید.</li>
+        </ol>
+        <p><strong>نکته:</strong> این ابزار در مرورگرهای کروم (Chrome) و مایکروسافت اج (Edge) بهترین عملکرد را دارد.</p>
+    </div>
+
+    <button id="select-folder-btn" class="action-button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.826a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .54-1.31zM2.19 4a1 1 0 0 0-.996.819l-.637 7a1 1 0 0 0 .996.819h10.348a1 1 0 0 0 .996-.819l.637-7a1 1 0 0 0-.996-.819H2.19z"/></svg>
+        ۱. انتخاب پوشه bom
+    </button>
+
+    <div id="log-container" style="display: none;"></div>
+
+    <div id="download-section">
+        <p>✅ پردازش با موفقیت انجام شد!</p>
+        <button id="download-btn" class="action-button download-btn">
+             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+            ۲. دانلود فایل bom-data.json
+        </button>
+    </div>
+
+    <script>
+        const selectFolderBtn = document.getElementById('select-folder-btn');
+        const logContainer = document.getElementById('log-container');
+        const downloadSection = document.getElementById('download-section');
+        const downloadBtn = document.getElementById('download-btn');
+
+        let generatedJsonString = '';
+
+        function log(message, type = 'info') {
+            logContainer.style.display = 'block';
+            logContainer.innerHTML += `<div class="${type}">${message}</div>`;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        selectFolderBtn.addEventListener('click', async () => {
+            if (!window.showDirectoryPicker) {
+                log('خطا: مرورگر شما از این قابلیت پشتیبانی نمی‌کند. لطفاً از آخرین نسخه کروم یا اج استفاده کنید.', 'error');
+                return;
+            }
+
+            logContainer.innerHTML = '';
+            downloadSection.style.display = 'none';
+            selectFolderBtn.disabled = true;
+
+            const bomData = {};
+
+            try {
+                log('۱. لطفاً پوشه `bom` را انتخاب کنید...');
+                const dirHandle = await window.showDirectoryPicker();
+
+                for await (const entry of dirHandle.values()) {
+                    if (entry.kind === 'directory') {
+                        const productType = entry.name;
+                        bomData[productType] = {};
+                        log(`- در حال پردازش نوع محصول: <strong class="info">${productType}</strong>`);
+                        const productDirHandle = entry;
+
+                        for await (const fileEntry of productDirHandle.values()) {
+                            if (fileEntry.kind === 'file' && fileEntry.name.endsWith('.xlsx')) {
+                                const modelName = fileEntry.name.replace('.xlsx', '');
+                                log(`  -- خواندن فایل مدل: ${fileEntry.name}`);
+                                
+                                const file = await fileEntry.getFile();
+                                const buffer = await file.arrayBuffer();
+                                const workbook = XLSX.read(buffer, { type: 'buffer' });
+                                const sheetName = workbook.SheetNames[0];
+                                const worksheet = workbook.Sheets[sheetName];
+                                
+                                const partsList = XLSX.utils.sheet_to_json(worksheet, {
+                                    header: ["name", "code"],
+                                    range: 1 
+                                }).filter(part => part.name && part.code);
+                                
+                                bomData[productType][modelName] = partsList;
+                            }
+                        }
+                    }
+                }
+                
+                generatedJsonString = JSON.stringify(bomData, null, 2);
+                log('✅ پردازش تمام فایل‌ها با موفقیت به پایان رسید.', 'success');
+                downloadSection.style.display = 'block';
+
+            } catch (err) {
+                if (err.name === 'AbortError') {
+                    log('عملیات توسط کاربر لغو شد.', 'error');
+                } else {
+                    log('یک خطای غیرمنتظره رخ داد: ' + err.message, 'error');
+                    console.error(err);
+                }
+            } finally {
+                selectFolderBtn.disabled = false;
+            }
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const blob = new Blob([generatedJsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bom-data.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            log('فایل `bom-data.json` برای دانلود آماده شد.', 'success');
+        });
+    </script>
+</body>
+</html>

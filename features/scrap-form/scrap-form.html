@@ -8,6 +8,15 @@
     .actions-container {
       justify-content: center;
     }
+    /* استایل برای فیلد کد قطعه که فقط خواندنی است */
+    #bom-part-code:read-only {
+      background-color: #e9ecef;
+      cursor: default;
+      text-align: center;
+      font-weight: bold;
+      letter-spacing: 2px;
+      color: var(--primary-color);
+    }
   </style>
 
   <div class="top-controls">
@@ -19,7 +28,6 @@
       <label for="line">خط :</label>
       <select id="line" name="line"></select>
     </div>
-    <!-- + اضافه شد: فیلد کشویی جدید برای نوع ضایعات -->
     <div class="form-meta">
       <label for="waste_type_select">نوع ضایعات :</label>
       <select id="waste_type_select" name="waste_type">
@@ -33,8 +41,6 @@
     <tbody id="main-table-body"></tbody>
   </table>
 
-  <!-- - حذف شد: آکاردئون نوع ضایعات که اشتباه بود -->
-
   <div id="mobile-form-wrapper">
     <div class="mobile-form-container">
       <h3><i class="bi bi-plus-circle-dotted"></i> ثبت یا ویرایش قطعه</h3>
@@ -42,17 +48,45 @@
         اطلاعات قطعه <i class="bi bi-chevron-down"></i>
       </div>
       <div class="accordion-content" style="display: flex">
+        <!-- ============================================= -->
+        <!-- ===== بخش جدید: انتخابگر هوشمند قطعه (BOM) ===== -->
+        <!-- ============================================= -->
         <div class="mobile-form-group">
-          <label for="mobile-product-type">نوع محصول:</label>
+          <label for="bom-product-type" class="required">نوع محصول:</label>
           <select
-            id="mobile-product-type"
-            data-required-name="نوع محصول"
+            id="bom-product-type"
+            placeholder="انتخاب نوع محصول..."
           ></select>
         </div>
         <div class="mobile-form-group">
-          <label for="mobile-part-name">نام قطعه:</label>
-          <select id="mobile-part-name" data-required-name="نام قطعه"></select>
+          <label for="bom-model" class="required">مدل:</label>
+          <select
+            id="bom-model"
+            placeholder="ابتدا نوع را انتخاب کنید..."
+            disabled
+          ></select>
         </div>
+        <div class="mobile-form-group">
+          <label for="bom-part-name" class="required">نام قطعه:</label>
+          <select
+            id="bom-part-name"
+            placeholder="ابتدا مدل را انتخاب کنید..."
+            disabled
+          ></select>
+        </div>
+        <div class="mobile-form-group">
+          <label for="bom-part-code">کد قطعه:</label>
+          <input
+            type="text"
+            id="bom-part-code"
+            placeholder="کد اینجا نمایش داده می‌شود"
+            readonly
+          />
+        </div>
+        <!-- ============================================= -->
+        <!-- =========== پایان بخش انتخابگر BOM =========== -->
+        <!-- ============================================= -->
+
         <div class="mobile-form-group">
           <label for="mobile-total-count">تعداد کل:</label>
           <div class="counter-input-group">
@@ -78,14 +112,6 @@
               −
             </button>
           </div>
-        </div>
-        <div class="mobile-form-group">
-          <label for="mobile-product-model">مدل محصول:</label>
-          <input
-            type="text"
-            id="mobile-product-model"
-            data-required-name="مدل محصول"
-          />
         </div>
         <div class="mobile-form-group">
           <label for="mobile-group">گروه:</label>
