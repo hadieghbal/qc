@@ -1,6 +1,6 @@
 // service-worker.js (نسخه نهایی و کاملاً صحیح)
 
-const CACHE_NAME = "qc-app v14"; // نسخه را برای فعال‌سازی به‌روزرسانی افزایش دهید
+const CACHE_NAME = "qc-app v15"; // نسخه را برای فعال‌سازی به‌روزرسانی افزایش دهید
 
 // مسیر پایه پروژه شما
 const BASE_PATH = "/qc";
@@ -10,7 +10,7 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/`,
   `${BASE_PATH}/index.html`,
   `${BASE_PATH}/manifest.json`,
-  `${BASE_PATH}/bom/bom-data.json`
+  `${BASE_PATH}/bom/bom-data.json`,
 
   // --- اسکریپت‌ها ---
   `${BASE_PATH}/js/main.js`,
