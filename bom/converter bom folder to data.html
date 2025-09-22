@@ -80,7 +80,6 @@
         .download-btn { background-color: #198754; }
         .download-btn:hover { background-color: #157347; }
     </style>
-    <!-- کتابخانه برای خواندن فایل اکسل -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -164,7 +163,8 @@
                                 const partsList = XLSX.utils.sheet_to_json(worksheet, {
                                     header: ["name", "code"],
                                     range: 1 
-                                }).filter(part => part.name && part.code);
+                                })
+                                .filter(part => part.name && part.code != null);
                                 
                                 bomData[productType][modelName] = partsList;
                             }
