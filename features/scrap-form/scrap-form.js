@@ -1490,6 +1490,7 @@ export function init() {
     bomPartNameChoice = new Choices(mobileForm.bomPartName, {
       ...choicesConfig,
       searchEnabled: true,
+      searchResultLimit: 100,
     });
 
     initializeBomSelectors();
