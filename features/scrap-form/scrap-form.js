@@ -330,8 +330,8 @@ export function init() {
 
     const fieldsToReset = [
       "totalCount",
-      "group",
-      "item",
+      //"group",
+      //"item",
       "supplierInjection",
       "supplierPress",
       "supplierInternal",
