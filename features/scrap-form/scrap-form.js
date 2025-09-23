@@ -359,10 +359,12 @@ export function init() {
 
     // فوکوس روی فیلد نام قطعه برای ورود سریع بعدی
     setTimeout(() => {
-      if (bomPartNameChoice && !bomPartNameChoice.isDisabled()) {
+      // ✅ این روش صحیح برای چک کردن وضعیت در کتابخانه Choices.js است
+      if (bomPartNameChoice && !mobileForm.bomPartName.disabled) {
         bomPartNameChoice.showDropdown();
+        bomPartNameChoice.input.focus();
       }
-    }, 50);
+    }, 100);
   }
 
   // این تابع برای ریست کامل فرم (مثلا با دکمه ریست کلی) استفاده می‌شود
