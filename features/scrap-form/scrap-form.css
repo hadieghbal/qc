@@ -2,6 +2,44 @@
 /* ===== PAGE SPECIFIC: SCRAP FORM ============= */
 /* ============================================= */
 
+/* جلوگیری از refresh شدن با اسکرول در موبایل و تبلت */
+#scrap-form-page {
+  overscroll-behavior-y: contain;
+  -webkit-overscroll-behavior-y: contain;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* برای لیست‌های کشویی - اجازه اسکرول طبیعی */
+.choices__list--dropdown {
+  overscroll-behavior-y: auto;
+  -webkit-overscroll-behavior-y: auto;
+}
+
+/* برای body اصلی */
+body {
+  overscroll-behavior-y: none;
+  -webkit-overscroll-behavior-y: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* - حذف شد: استایل برای دکمه‌های رادیویی دیگر نیاز نیست */
+
+/* --- Table specific styles --- */
+table {
+  min-width: 1600px;
+}
+th[data-target-name] {
+  cursor: pointer;
+  background-color: #fffae6;
+}
+/* --- پایان کدهای جلوگیری از رفرش صفحه --- */
+
+
+
+
+
 /* - حذف شد: استایل برای دکمه‌های رادیویی دیگر نیاز نیست */
 
 /* --- Table specific styles --- */
