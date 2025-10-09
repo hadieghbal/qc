@@ -208,14 +208,18 @@ tbody tr.invalid-row {
 .print-page-container .icon-item {
   color: var(--icon-item-color);
 }
+
+/* +++ استایل‌های جدید برای آیکون‌های تامین کننده و منشا +++ */
 .summary-details .icon-supplier,
 .print-page-container .icon-supplier {
-  color: var(--icon-supplier-color);
+  color: #fd7e14; /* نارنجی */
 }
 .summary-details .icon-source,
 .print-page-container .icon-source {
-  color: var(--icon-source-color);
+  color: #6f42c1; /* بنفش */
 }
+/* +++ پایان استایل‌های جدید +++ */
+
 .summary-details .icon-defect,
 .print-page-container .icon-defect {
   color: var(--icon-defect-color);

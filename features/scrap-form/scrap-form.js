@@ -1,4 +1,3 @@
-// مسیر: features/scrap-form/scrap-form.js
 import { scrapFormData } from "./scrap-form-data.js";
 
 export function init() {
@@ -1158,6 +1157,25 @@ export function init() {
         data.part_name
       } <span class="summary-product-type">(${data.product_model})</span>`;
 
+      // +++ بخش جدید برای اطلاعات تامین کننده و منشا +++
+      const supplierParts = [];
+      if (data.supplier_injection > 0)
+        supplierParts.push(`تزریق: ${data.supplier_injection}`);
+      if (data.supplier_press > 0)
+        supplierParts.push(`پرسکاری: ${data.supplier_press}`);
+      if (data.supplier_internal > 0)
+        supplierParts.push(`داخلی: ${data.supplier_internal}`);
+      if (data.supplier_external > 0)
+        supplierParts.push(`خارجی: ${data.supplier_external}`);
+
+      const sourceParts = [];
+      if (data.source_packaging > 0)
+        sourceParts.push(`بسته‌بندی: ${data.source_packaging}`);
+      if (data.source_warehouse > 0)
+        sourceParts.push(`انبار: ${data.source_warehouse}`);
+      if (data.source_production > 0)
+        sourceParts.push(`حین تولید: ${data.source_production}`);
+
       const detailsParts = [
         `<span><i class="bi bi-upc-scan icon-item"></i> کد: ${
           data.part_code || "---"
@@ -1167,6 +1185,17 @@ export function init() {
           : "",
         data.item
           ? `<span><i class="bi bi-tags icon-item"></i> آیتم: ${data.item}</span>`
+          : "",
+        // +++ افزودن اطلاعات جدید به لیست جزئیات +++
+        supplierParts.length > 0
+          ? `<span><i class="bi bi-house-down icon-supplier"></i> تامین: ${supplierParts.join(
+              " | "
+            )}</span>`
+          : "",
+        sourceParts.length > 0
+          ? `<span><i class="bi bi-graph-down-arrow icon-source"></i> منشا: ${sourceParts.join(
+              " | "
+            )}</span>`
           : "",
         data.defects_summary
           ? `<span><i class="bi bi-card-text icon-defect"></i> ${data.defects_summary}</span>`
@@ -1382,6 +1411,56 @@ export function init() {
     updateDefectLegendsSelection();
   }
 
+  // +++ تابع جدید برای وارد کردن تعداد دقیق نقص +++
+  function setDefectCount(defectName) {
+    if (pageElement.classList.contains("form-locked")) return;
+    const targetInput = mobileForm.defectsSummary;
+    const defectsMap = new Map(
+      (targetInput.value || "")
+        .split(" | ")
+        .map((part) => part.split(": "))
+        .filter((p) => p.length === 2)
+        .map(([k, v]) => [k.trim(), parseInt(v.trim(), 10)])
+    );
+    const currentCount = defectsMap.get(defectName) || 0;
+
+    Swal.fire({
+      title: `تعداد نقص "${defectName}"`,
+      text: "تعداد دقیق را وارد کنید. برای حذف، عدد 0 را وارد کنید.",
+      input: "number",
+      inputValue: currentCount,
+      showCancelButton: true,
+      confirmButtonText: "ثبت",
+      cancelButtonText: "انصراف",
+      inputValidator: (value) => {
+        if (!value || parseInt(value, 10) < 0) {
+          return "لطفاً یک عدد معتبر (بزرگتر یا مساوی صفر) وارد کنید.";
+        }
+      },
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const newCount = parseInt(result.value, 10);
+        if (!isNaN(newCount)) {
+          if (newCount > 0) {
+            defectsMap.set(defectName, newCount);
+          } else {
+            defectsMap.delete(defectName);
+          }
+          targetInput.value = Array.from(
+            defectsMap,
+            ([text, count]) => `${text}: ${count}`
+          ).join(" | ");
+
+          if (targetInput.value) {
+            const container = targetInput.closest(".mobile-form-group");
+            if (container) container.classList.remove("required-field-error");
+          }
+          updateDefectLegendsSelection();
+        }
+      }
+    });
+  }
+
   function updateDefectLegendsSelection() {
     const defectCounts = new Map(
       (mobileForm.defectsSummary.value || "")
@@ -1545,30 +1624,32 @@ export function init() {
       });
     }
 
-    let touchTimer,
-      isLongPress = false;
-    legendsContainer.addEventListener("touchstart", (event) => {
-      const item = event.target.closest("li[data-defect-name]");
-      if (item) {
-        isLongPress = false;
-        touchTimer = setTimeout(() => {
-          isLongPress = true;
-          updateDefectCount(item.dataset.defectName, -1);
-          navigator.vibrate?.(50);
-        }, 500);
-      }
-    });
-    legendsContainer.addEventListener("touchend", (e) => {
-      clearTimeout(touchTimer);
-      if (isLongPress) e.preventDefault();
-    });
-    legendsContainer.addEventListener("touchmove", () =>
-      clearTimeout(touchTimer)
-    );
+    // +++ تغییر در منطق مدیریت نقص‌ها با قابلیت تشخیص سه کلیک +++
+    let clickTimeout = null;
+    let clickCount = 0;
+    const clickDelay = 300; // میلی‌ثانیه برای تشخیص چند کلیک
+
     legendsContainer.addEventListener("click", (e) => {
-      const item = e.target.closest("li[data-defect-name]");
-      if (item && !isLongPress) updateDefectCount(item.dataset.defectName, 1);
+        const item = e.target.closest("li[data-defect-name]");
+        if (!item) return;
+
+        clickCount++;
+
+        if (clickCount === 1) {
+            clickTimeout = setTimeout(() => {
+                // اگر بعد از 300 میلی‌ثانیه کلیک دیگری نشد، عمل تک کلیک را انجام بده
+                updateDefectCount(item.dataset.defectName, 1);
+                clickCount = 0;
+            }, clickDelay);
+        } else if (clickCount === 3) { // +++ تغییر: تشخیص سه کلیک +++
+            clearTimeout(clickTimeout);
+            setDefectCount(item.dataset.defectName);
+            clickCount = 0;
+        }
     });
+
+    // لمس طولانی و کلیک راست برای کاهش تعداد
+    let touchTimer;
     legendsContainer.addEventListener("contextmenu", (e) => {
       const item = e.target.closest("li[data-defect-name]");
       if (item) {
@@ -1576,7 +1657,19 @@ export function init() {
         updateDefectCount(item.dataset.defectName, -1);
       }
     });
-
+    legendsContainer.addEventListener("touchstart", (e) => {
+      const item = e.target.closest("li[data-defect-name]");
+      if(item){
+         touchTimer = setTimeout(() => {
+            updateDefectCount(item.dataset.defectName, -1);
+            navigator.vibrate?.(50);
+        }, 500);
+      }
+    });
+    legendsContainer.addEventListener("touchend", () => clearTimeout(touchTimer));
+    legendsContainer.addEventListener("touchmove", () => clearTimeout(touchTimer));
+    // +++ پایان تغییرات +++
+    
     const mobileFormWrapper = document.getElementById("mobile-form-wrapper");
     if (mobileFormWrapper) {
       mobileFormWrapper.addEventListener("click", (e) => {
