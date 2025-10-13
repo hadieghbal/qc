@@ -1,10 +1,9 @@
-// مسیر: js/main.js (نسخه کامل و اصلاح شده)
-
 // وارد کردن منطق هر صفحه با نام مستعار برای خوانایی بیشتر
 import { init as initScrapForm } from "../features/scrap-form/scrap-form.js";
 import { init as initChecklistInjection } from "../features/checklist-injection/checklist-injection.js";
 import { init as initPersonnelForm } from "../features/personnel-form/personnel-form.js";
 import { init as initOrgChart } from "../features/org-chart/org-chart.js";
+import { init as initLineQuality } from "../features/line-quality/line-quality.js";
 
 // ==========================================
 // ===== بخش ۱: تنظیمات سراسری و DOM ========
@@ -146,6 +145,14 @@ const routes = {
     docCode: "P1-QC-F-001/001",
     headerType: "back-and-universal-menu",
     init: initScrapForm,
+  },
+  "/line-quality": {
+    path: "features/line-quality/line-quality.html",
+    css: "features/line-quality/line-quality.css",
+    title: "فرم کیفیت خطوط",
+    docCode: "P1-QC-F-002/001",
+    headerType: "back-and-universal-menu",
+    init: initLineQuality,
   },
   "/charts": {
     path: "features/charts/charts.html",

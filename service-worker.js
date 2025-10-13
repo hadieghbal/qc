@@ -1,6 +1,4 @@
-// service-worker.js (نسخه نهایی و کاملاً صحیح)
-
-const CACHE_NAME = "qc v5"; // نسخه را برای فعال‌سازی به‌روزرسانی افزایش دهید
+const CACHE_NAME = "qc v8"; // نسخه برای فعال‌سازی به‌روزرسانی افزایش یافت
 
 // مسیر پایه پروژه شما
 const BASE_PATH = "/qc";
@@ -30,6 +28,8 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/features/personnel-form/personnel-form.js`,
   `${BASE_PATH}/features/scrap-form/scrap-form-data.js`,
   `${BASE_PATH}/features/scrap-form/scrap-form.js`,
+  `${BASE_PATH}/features/line-quality/line-quality-data.js`, // + اضافه شد
+  `${BASE_PATH}/features/line-quality/line-quality.js`,     // + اضافه شد
   `${BASE_PATH}/features/kham/kham.js`,
 
   // --- استایل‌شیت‌ها ---
@@ -41,12 +41,14 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/features/checklist-injection/checklist-injection.css`,
   `${BASE_PATH}/features/org-chart/org-chart.css`,
   `${BASE_PATH}/features/scrap-form/scrap-form.css`,
+  `${BASE_PATH}/features/line-quality/line-quality.css`,   // + اضافه شد
 
   // --- صفحات HTML ---
   `${BASE_PATH}/features/home/home.html`,
   `${BASE_PATH}/features/forms/forms.html`,
   `${BASE_PATH}/features/checklists/checklists.html`,
   `${BASE_PATH}/features/scrap-form/scrap-form.html`,
+  `${BASE_PATH}/features/line-quality/line-quality.html`,
   `${BASE_PATH}/features/checklist-injection/checklist-injection.html`,
   `${BASE_PATH}/features/iso-docs/iso-docs.html`,
   `${BASE_PATH}/features/instruction/instruction.html`,
