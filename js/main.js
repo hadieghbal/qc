@@ -1,9 +1,13 @@
+// QC/js/main.js (کد کامل اصلاح شده)
+
 // وارد کردن منطق هر صفحه با نام مستعار برای خوانایی بیشتر
 import { init as initScrapForm } from "/features/home/forms/scrap-form/scrap-form.js";
 import { init as initChecklistInjection } from "/features/home/forms/checklists/checklist-injection/checklist-injection.js";
 import { init as initPersonnelForm } from "/features/home/charts/personnel-form/personnel-form.js";
 import { init as initOrgChart } from "/features/home/charts/org-chart/org-chart.js";
 import { init as initLineQuality } from "/features/home/forms/line-quality/line-quality.js";
+// 💥 تغییر شماره ۱: وارد کردن تابع init برای آموزش‌ها
+import { init as initTraining } from "/features/home/training/training.js";
 
 // ==========================================
 // ===== بخش ۱: تنظیمات سراسری و DOM ========
@@ -20,19 +24,19 @@ const backButtonHTML = `<button onclick="history.back()" class="menu-button" tit
 
 function getUniversalMenuHTML() {
   return `
-    <div class="page-menu">
-      <button id="menu-btn" class="menu-button" title="منو"><i class="bi bi-list"></i></button>
-      <div id="main-menu" class="main-menu">
-        <ul>
-          <li><a href="#/"><i class="bi bi-house-door-fill"></i> صفحه اصلی</a></li>
-          <li class="separator"></li>
-          <li><a href="#" id="menu-reset-universal"><i class="bi bi-arrow-counterclockwise"></i> ریست کردن فرم</a></li>
-          <li class="separator"></li>
-          <li><a href="#" id="menu-exit-universal"><i class="bi bi-box-arrow-left"></i> خروج</a></li>
-        </ul>
-      </div>
-    </div>
-  `;
+  <div class="page-menu">
+   <button id="menu-btn" class="menu-button" title="منو"><i class="bi bi-list"></i></button>
+   <div id="main-menu" class="main-menu">
+    <ul>
+     <li><a href="#/"><i class="bi bi-house-door-fill"></i> صفحه اصلی</a></li>
+     <li class="separator"></li>
+     <li><a href="#" id="menu-reset-universal"><i class="bi bi-arrow-counterclockwise"></i> ریست کردن فرم</a></li>
+     <li class="separator"></li>
+     <li><a href="#" id="menu-exit-universal"><i class="bi bi-box-arrow-left"></i> خروج</a></li>
+    </ul>
+   </div>
+  </div>
+ `;
 }
 
 function setupGlobalMenuHandler() {
@@ -181,6 +185,13 @@ const routes = {
     headerType: "back-and-universal-menu",
     init: initChecklistInjection,
   },
+  // 💥 مسیر اصلی آموزش
+  "/training": {
+    path: "features/home/training/training.html",
+    title: "آموزش‌ها و راهنماها",
+    headerType: "back",
+    init: initTraining, // استفاده از تابع init که در بالا import شد
+  },
 };
 
 function loadPageCSS(cssPath) {
@@ -200,24 +211,41 @@ async function loadPage(path) {
   loader.style.display = "flex";
   pageContainer.innerHTML = "";
   window.activeFormResetter = null;
-  const route = routes[path] || routes["/"];
+
+  // 1. بررسی مسیر اصلی در آبجکت routes
+  let route = routes[path];
+
+  // 💥 (بخش اصلاح شده برای آموزش): اگر مسیر صریحاً تعریف نشده بود و با /training/ شروع می‌شد، 
+  // از پیکربندی مسیر پایه /training استفاده کن.
+  if (!route && path.startsWith("/training/")) {
+    route = routes["/training"]; 
+  }
+
+  const routeToUse = route || routes["/"]; 
+
   try {
-    const response = await fetch(route.path);
-    if (!response.ok) throw new Error(`Could not load page: ${route.path}`);
+    const response = await fetch(routeToUse.path);
+    if (!response.ok) throw new Error(`Could not load page: ${routeToUse.path}`);
+    
+    // بارگذاری HTML مسیر اصلی (مثلاً training.html)
     pageContainer.innerHTML = await response.text();
-    headerTitle.textContent = route.title;
-    headerDocCode.textContent = route.docCode || "";
+    
+    // تنظیمات هدر از روی مسیر اصلی آموزش انجام می‌شود
+    headerTitle.textContent = routeToUse.title; 
+    headerDocCode.textContent = routeToUse.docCode || "";
     pageMenuContainer.innerHTML = "";
-    if (route.headerType === "back") {
+    if (routeToUse.headerType === "back") {
       pageMenuContainer.innerHTML = backButtonHTML;
-    } else if (route.headerType === "back-and-universal-menu") {
+    } else if (routeToUse.headerType === "back-and-universal-menu") {
       pageMenuContainer.innerHTML = backButtonHTML + getUniversalMenuHTML();
     }
-    loadPageCSS(route.css);
-    if (typeof route.init === "function") {
+    loadPageCSS(routeToUse.css);
+
+    if (typeof routeToUse.init === "function") {
       setTimeout(() => {
         try {
-          route.init();
+          // 💥 فراخوانی init با مسیر کامل (path)، تا initTraining بتواند محتوای فرعی را بارگذاری کند.
+          routeToUse.init(path); 
         } catch (initError) {
           console.error(
             `Error during page initialization for ${path}:`,
@@ -237,7 +265,8 @@ async function loadPage(path) {
 
 function handleRouteChange() {
   const path = window.location.hash.slice(1) || "/";
-  loadPage(path);
+  // اطمینان از اینکه مسیر با / شروع می‌شود
+  loadPage(path.startsWith("/") ? path : `/${path}`);
 }
 
 // =========================================================================

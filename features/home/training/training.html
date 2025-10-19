@@ -1,0 +1,126 @@
+<div id="training-page">
+  <style>
+    /* 
+         استایل‌های کارت‌های ناوبری (nav-card) برای هماهنگی با صفحه اصلی و مستندات
+         (کپی شده از صفحه home یا iso-docs)
+    */
+    #training-page {
+      text-align: center;
+    }
+    .welcome-message {
+      margin: 20px 0 40px;
+      text-align: center;
+    }
+    .welcome-message h2 {
+      font-size: 28px;
+      color: var(--primary-color);
+      margin-bottom: 8px;
+    }
+    .welcome-message p {
+      font-size: 16px;
+      color: var(--secondary-color);
+    }
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .nav-card {
+      background-color: var(--form-bg-color);
+      padding: 25px;
+      border-radius: var(--border-radius);
+      border: 1px solid var(--border-color);
+      text-decoration: none;
+      color: var(--dark-color);
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      text-align: center;
+      cursor: pointer; 
+    }
+    .nav-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow);
+      border-color: var(--primary-color);
+    }
+    .nav-card i {
+      font-size: 48px;
+      color: var(--primary-color);
+    }
+    .nav-card h3 {
+      margin: 0;
+      font-size: 20px;
+    }
+    .nav-card p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--secondary-color);
+    }
+    .nav-card.disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background-color: var(--light-color);
+    }
+    .nav-card.disabled:hover {
+      transform: none;
+      box-shadow: none;
+      border-color: var(--border-color);
+    }
+    /* استایل برای محتوای آموزش‌های داخلی (برای هماهنگی) */
+    #training-content-detail {
+        padding-top: 20px;
+    }
+    .content-header {
+        text-align: right;
+        margin-bottom: 20px;
+    }
+    .page-content {
+        text-align: right;
+    }
+    .page-content h3 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--border-color);
+        padding-bottom: 5px;
+        margin-top: 30px;
+        margin-bottom: 15px;
+    }
+  </style>
+
+  <div class="welcome-message">
+    <!-- عنوان 'آموزش‌ها' که در هدر نمایش داده می‌شود، از اینجا حذف شد -->
+    <p>راهنمای تصویری و متنی کار با سیستم. لطفاً بخش مورد نظر خود را برای شروع انتخاب کنید.</p>
+  </div>
+
+  <div class="nav-grid">
+    <!-- ۱. معرفی محصولات -->
+    <a href="#" class="nav-card" data-feature-path="products-intro">
+      <i class="bi bi-box-seam"></i>
+      <h3>معرفی محصولات</h3>
+      <p>آشنایی با انواع محصولات پاکشوما</p>
+    </a>
+
+    <!-- ۲. قطعه شناسی -->
+    <a href="#" class="nav-card" data-feature-path="parts-id">
+      <i class="bi bi-gear-wide-connected"></i>
+      <h3>قطعه شناسی</h3>
+      <p>آشنایی با قطعات اصلی و فرعی</p>
+    </a>
+
+    <!-- ۳. ابزار شناسی -->
+    <a href="#" class="nav-card" data-feature-path="tools-id">
+      <i class="bi bi-tools"></i>
+      <h3>ابزار شناسی</h3>
+      <p>معرفی ابزارهای مورد نیاز</p>
+    </a>
+
+    <!-- ۴. عمومی -->
+    <a href="#" class="nav-card" data-feature-path="general">
+      <i class="bi bi-info-circle"></i>
+      <h3>عمومی</h3>
+      <p>نکات و دستورالعمل‌های کلی</p>
+    </a>
+  </div>
+</div>
+<footer class="designer-credit">Designed by HRE</footer>
