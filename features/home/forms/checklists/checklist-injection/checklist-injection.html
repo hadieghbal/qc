@@ -1,0 +1,167 @@
+<div id="checklist-injection-page">
+  <style>
+    #mobile-form-wrapper {
+      display: block !important;
+    }
+    .actions-container {
+      justify-content: center;
+    }
+  </style>
+
+  <div class="top-controls">
+    <div class="form-meta">
+      <label for="date_input" class="required">تاریخ:</label>
+      <input type="text" id="date_input" required />
+    </div>
+    <div class="form-meta">
+      <label for="hall_input" class="required">سالن:</label>
+      <select id="hall_input" required></select>
+    </div>
+    <div class="form-meta">
+      <label for="shift_input" class="required">شیفت:</label>
+      <select id="shift_input" required></select>
+    </div>
+    <div class="form-meta">
+      <label for="time_slot_input" class="required">ساعت:</label>
+      <select id="time_slot_input" required></select>
+    </div>
+  </div>
+
+  <table style="display: none">
+    <tbody id="main-table-body"></tbody>
+  </table>
+
+  <div id="mobile-form-wrapper">
+    <div class="mobile-form-container">
+      <h3><i class="bi bi-plus-circle-dotted"></i> ثبت یا ویرایش دستگاه</h3>
+
+      <div class="accordion-header active">
+        اطلاعات دستگاه، مواد و فرآیند <i class="bi bi-chevron-down"></i>
+      </div>
+      <div class="accordion-content" style="display: flex">
+        <div class="mobile-form-group">
+          <label for="mobile-device-name" class="required">دستگاه:</label>
+          <select id="mobile-device-name" required></select>
+        </div>
+
+        <div class="mobile-form-group">
+          <label class="required">قطعه:</label>
+          <div id="mobile-parts-container" class="dynamic-list-wrapper"></div>
+        </div>
+
+        <div class="mobile-form-group">
+          <label class="required">مواد:</label>
+          <div
+            id="mobile-materials-container"
+            class="dynamic-list-wrapper"
+          ></div>
+        </div>
+
+        <div class="mobile-form-group">
+          <label>مستربچ:</label>
+          <div
+            id="mobile-masterbatches-container"
+            class="dynamic-list-wrapper"
+          ></div>
+        </div>
+
+        <div class="mobile-form-group">
+          <label for="mobile-cycleTime" class="required">سیکل زمانی:</label>
+          <input
+            type="number"
+            id="mobile-cycleTime"
+            placeholder="به ثانیه وارد کنید"
+            required
+          />
+        </div>
+      </div>
+
+      <div class="accordion-header">
+        کنترل کیفی، نقص و توضیحات <i class="bi bi-chevron-down"></i>
+      </div>
+      <div class="accordion-content">
+        <div class="mobile-form-group">
+          <label class="required">ظاهری:</label>
+          <div class="check-group mobile-checks" data-prop="appearance"></div>
+        </div>
+        <div class="mobile-form-group">
+          <label class="required">مونتاژی:</label>
+          <div class="check-group mobile-checks" data-prop="assembly"></div>
+        </div>
+        <div class="mobile-form-group">
+          <label class="required">بسته‌بندی:</label>
+          <div class="check-group mobile-checks" data-prop="packaging"></div>
+        </div>
+        <div class="mobile-form-group defect-group">
+          <label for="mobile-defects-summary" id="defects-summary-label"
+            >شرح نقص:</label
+          >
+          <input
+            type="text"
+            id="mobile-defects-summary"
+            readonly
+            placeholder="از لیست زیر انتخاب کنید"
+          />
+          <div id="injection-legends-wrapper-mobile"></div>
+        </div>
+        <div class="mobile-form-group">
+          <label for="mobile-notes">توضیحات:</label>
+          <input type="text" id="mobile-notes" />
+        </div>
+      </div>
+
+      <button id="mobile-add-btn" class="action-btn" style="margin-top: 20px">
+        <i class="bi bi-check-circle-fill"></i> ثبت و افزودن به لیست
+      </button>
+    </div>
+    <ul id="mobile-summary-list"></ul>
+  </div>
+
+  <div class="approvers-container">
+    <h4><i class="bi bi-patch-check-fill"></i> تایید کنندگان نهایی</h4>
+    <div class="approver-group">
+      <label for="approver-qc" class="required">۱. بازرس کنترل کیفیت:</label>
+      <input type="text" id="approver-qc" required />
+    </div>
+    <div class="approver-group">
+      <label for="approver-prod" class="required">۲. سرپرست شیفت:</label>
+      <input type="text" id="approver-prod" required />
+    </div>
+    <div class="approver-group">
+      <label for="approver-shift" class="required"
+        >۳. سرپرست کنترل کیفیت:</label
+      >
+      <input type="text" id="approver-shift" required />
+    </div>
+  </div>
+
+  <div class="actions-container">
+    <button id="finalize-btn" class="action-btn finalize-btn">
+      <i class="bi bi-check2-circle"></i> ثبت نهایی فرم
+    </button>
+    <button
+      id="export-csv-btn"
+      class="action-btn export-btn"
+      style="display: none"
+    >
+      <i class="bi bi-file-earmark-spreadsheet-fill"></i> خروجی CSV
+    </button>
+    <button
+      id="export-img-btn"
+      class="action-btn export-img-btn"
+      style="display: none"
+    >
+      <i class="bi bi-camera-fill"></i> خروجی تصویر فرم
+    </button>
+  </div>
+  <div class="print-page-container"></div>
+</div>
+
+<div
+  id="injection-legends-main"
+  class="legends-container-full"
+  style="display: none"
+>
+  <h4>برای ثبت نقص روی موارد زیر کلیک کنید:</h4>
+  <ul class="legends-list"></ul>
+</div>

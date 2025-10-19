@@ -1,9 +1,9 @@
 // وارد کردن منطق هر صفحه با نام مستعار برای خوانایی بیشتر
-import { init as initScrapForm } from "../features/scrap-form/scrap-form.js";
-import { init as initChecklistInjection } from "../features/checklist-injection/checklist-injection.js";
-import { init as initPersonnelForm } from "../features/personnel-form/personnel-form.js";
-import { init as initOrgChart } from "../features/org-chart/org-chart.js";
-import { init as initLineQuality } from "../features/line-quality/line-quality.js";
+import { init as initScrapForm } from "/features/home/forms/scrap-form/scrap-form.js";
+import { init as initChecklistInjection } from "/features/home/forms/checklists/checklist-injection/checklist-injection.js";
+import { init as initPersonnelForm } from "/features/home/charts/personnel-form/personnel-form.js";
+import { init as initOrgChart } from "/features/home/charts/org-chart/org-chart.js";
+import { init as initLineQuality } from "/features/home/forms/line-quality/line-quality.js";
 
 // ==========================================
 // ===== بخش ۱: تنظیمات سراسری و DOM ========
@@ -105,26 +105,26 @@ const routes = {
     init: () => {},
   },
   "/iso-docs": {
-    path: "features/iso-docs/iso-docs.html",
+    path: "features/home/iso-docs/iso-docs.html",
     title: "مستندات ایزو",
     headerType: "back",
     init: () => {},
   },
   "/instruction": {
-    path: "features/instruction/instruction.html",
+    path: "features/home/iso-docs/instruction/instruction.html",
     title: "دستورالعمل کنترل فرآیند",
     docCode: "P1-QC-WI-001/001",
     headerType: "back",
     init: () => {},
   },
   "/forms": {
-    path: "features/forms/forms.html",
+    path: "features/home/forms/forms.html",
     title: "فرم‌های کنترلی",
     headerType: "back",
     init: () => {},
   },
   "/checklists": {
-    path: "features/checklists/checklists.html",
+    path: "features/home/forms/checklists/checklists.html",
     title: "انتخاب چک‌لیست",
     headerType: "back",
     init: function () {
@@ -139,43 +139,43 @@ const routes = {
     },
   },
   "/scrap-form": {
-    path: "features/scrap-form/scrap-form.html",
-    css: "features/scrap-form/scrap-form.css",
+    path: "features/home/forms/scrap-form/scrap-form.html",
+    css: "features/home/forms/scrap-form/scrap-form.css",
     title: "فرم هوشمند گزارش ضایعات",
     docCode: "P1-QC-F-001/001",
     headerType: "back-and-universal-menu",
     init: initScrapForm,
   },
   "/line-quality": {
-    path: "features/line-quality/line-quality.html",
-    css: "features/line-quality/line-quality.css",
+    path: "features/home/forms/line-quality/line-quality.html",
+    css: "features/home/forms/line-quality/line-quality.css",
     title: "فرم کیفیت خطوط",
     docCode: "P1-QC-F-002/001",
     headerType: "back-and-universal-menu",
     init: initLineQuality,
   },
   "/charts": {
-    path: "features/charts/charts.html",
+    path: "features/home/charts/charts.html",
     title: "چارت سازمانی",
     headerType: "back",
     init: () => {},
   },
   "/personnel-form": {
-    path: "features/personnel-form/personnel-form.html",
+    path: "features/home/charts/personnel-form/personnel-form.html",
     title: "مدیریت پرسنل",
     headerType: "back-and-universal-menu",
     init: initPersonnelForm,
   },
   "/org-chart": {
-    path: "features/org-chart/org-chart.html",
-    css: "features/org-chart/org-chart.css",
+    path: "features/home/charts/org-chart/org-chart.html",
+    css: "features/home/charts/org-chart/org-chart.css",
     title: "نمودار سازمانی",
     headerType: "back",
     init: initOrgChart,
   },
   "/checklist-injection": {
-    path: "features/checklist-injection/checklist-injection.html",
-    css: "features/checklist-injection/checklist-injection.css",
+    path: "features/home/forms/checklists/checklist-injection/checklist-injection.html",
+    css: "features/home/forms/checklists/checklist-injection/checklist-injection.css",
     title: "چک‌لیست کنترل کیفی تزریق",
     docCode: "IM1-QC-F-110/001",
     headerType: "back-and-universal-menu",
@@ -252,14 +252,18 @@ window.addEventListener("load", () => {
   setupAccordionHandlers();
 
   // ثبت Service Worker
-  if ('serviceWorker' in navigator) {
-      // ✨✨✨ این بخش اصلاح شد: آدرس 'service-worker.js' به صورت نسبی نوشته شد ✨✨✨
-      navigator.serviceWorker.register('service-worker.js')
-          .then(registration => {
-              console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          })
-          .catch(error => {
-              console.log('ServiceWorker registration failed: ', error);
-          });
+  if ("serviceWorker" in navigator) {
+    // ✨✨✨ این بخش اصلاح شد: آدرس 'service-worker.js' به صورت نسبی نوشته شد ✨✨✨
+    navigator.serviceWorker
+      .register("service-worker.js")
+      .then((registration) => {
+        console.log(
+          "ServiceWorker registration successful with scope: ",
+          registration.scope
+        );
+      })
+      .catch((error) => {
+        console.log("ServiceWorker registration failed: ", error);
+      });
   }
 });
