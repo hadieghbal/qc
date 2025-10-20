@@ -2,7 +2,7 @@
 //  Service Worker - QC v9
 // =============================
 
-const CACHE_NAME = "qc v9"; // نسخه جدید برای فعال‌سازی آپدیت
+const CACHE_NAME = "qc v16"; // نسخه جدید برای فعال‌سازی آپدیت
 const BASE_PATH = "/qc";    // مسیر پایه پروژه
 
 const FILES_TO_CACHE = [
