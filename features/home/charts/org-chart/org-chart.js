@@ -1,5 +1,5 @@
 // مسیر: js/pages/orgChart.js
-import { loadData } from "/js/utils/store.js";
+import { loadData } from "../../../../js/utils/store.js";
 
 export function init() {
   console.log("Org Chart Initialized with hierarchical logic!");
