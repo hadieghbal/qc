@@ -1,5 +1,5 @@
 // مسیر: js/pages/personnelForm.js
-import { orgChartData } from "/features/home/charts/org-chart/org-chart-data.js";
+import { orgChartData } from "../org-chart/org-chart-data.js";
 import { saveData, loadData } from "/js/utils/store.js";
 
 export function init() {

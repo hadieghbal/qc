@@ -1,5 +1,5 @@
 import { injectionChecklistData } from "./checklist-injection-data.js";
-import { saveData, loadData } from "/js/utils/store.js";
+import { saveData, loadData } from "../../../../../js/utils/store.js";
 
 export function init() {
   console.log("Checklist Injection Initialized! (Mobile-Only)");

@@ -1,9 +1,9 @@
 // qc/service-worker.js
 // =============================
-//  Service Worker - QC v10
+//  Service Worker - QC v11
 // =============================
 
-const CACHE_NAME = "qc v17"; // ✅ تغییر نسخه برای فعال‌سازی آپدیت Service Worker
+const CACHE_NAME = "qc v19"; // ✅ تغییر نسخه جدید
 const BASE_PATH = "/qc";    // مسیر پایه پروژه
 
 const FILES_TO_CACHE = [
@@ -28,8 +28,7 @@ const FILES_TO_CACHE = [
   // فیچرها (مسیرها درست هستند)
   `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection-data.js`,
   `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection.js`,
-  `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection.css`,
-  `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection.html`,
+  `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection.html`, // CSS تکراری حذف شد
 
   `${BASE_PATH}/features/home/charts/org-chart/org-chart-data.js`,
   `${BASE_PATH}/features/home/charts/org-chart/org-chart.js`,
@@ -60,7 +59,7 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/features/home/iso-docs/iso-docs.html`,
   `${BASE_PATH}/features/home/iso-docs/instruction/instruction.html`,
   `${BASE_PATH}/features/home/charts/org-chart/org-chart.html`,
-  // مسیر زیر در ساختار پروژه نیست اما در لیست شما هست. اگر واقعاً وجود دارد بگذارید، اگر نه، حذف کنید:
+  // مسیر زیر در ساختار پروژه نیست اما در لیست شما هست.
   // `${BASE_PATH}/features/non-conformity-form/non-conformity-form.html`, 
   `${BASE_PATH}/features/home/charts/personnel-form/personnel-form.html`,
   `${BASE_PATH}/features/home/charts/charts.html`,
@@ -90,7 +89,6 @@ self.addEventListener("install", (event) => {
       console.log("[ServiceWorker] Pre-caching files:", FILES_TO_CACHE.length);
       return cache.addAll(FILES_TO_CACHE);
     }).catch((err) => {
-      // این خطا احتمالاً به دلیل آدرس‌های غلط بود که اکنون با اصلاح shared.css و main.js باید برطرف شود
       console.error("[ServiceWorker] Failed to cache files:", err);
     })
   );
