@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
   <head>
@@ -8,7 +9,9 @@
     <meta name="theme-color" content="#0056b3" />
 
     <script>
+      // 💡 منطق پویا را باز می‌گردانیم
       const isLocalhost = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+      // اگر لوکال هاست بود، مسیر پایه ریشه (/) است. در غیر این صورت (گیت‌هاب پیج) /QC/ است.
       const projectBase = isLocalhost ? '/' : '/QC/'; 
       
       const baseTag = document.querySelector('base');
@@ -26,7 +29,6 @@
     <link rel="stylesheet" href="assets/libs/jdp.min.css" />
     <link rel="stylesheet" href="assets/libs/choices.min.css" />
     <link rel="stylesheet" href="assets/libs/toastify.min.css" />
-
     <link rel="stylesheet" href="assets/css/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="assets/css/shared.css" />
 
@@ -66,7 +68,7 @@
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           // در اینجا ثبت service-worker.js انجام می‌شود
-          // این فایل باید داخل خودش مسیرها را با PROJECT_BASE = '/QC/' اصلاح کند (در بخش بعد توضیح داده شده)
+          // Service Worker در کنار index.html است و آدرس‌دهی نسبی درست است
           navigator.serviceWorker
             .register("service-worker.js")
             .then((registration) => {
