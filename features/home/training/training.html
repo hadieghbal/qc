@@ -1,74 +1,15 @@
+
 <div id="training-page">
   <style>
     /* 
-         استایل‌های کارت‌های ناوبری (nav-card) برای هماهنگی با صفحه اصلی و مستندات
-         (کپی شده از صفحه home یا iso-docs)
+         فقط استایل‌های غیرتکراری و ضروری برای چیدمان داخلی آموزش‌ها باقی می‌ماند.
+         استایل‌های nav-card، nav-grid، و welcome-message از اینجا حذف و به shared.css منتقل شده‌اند.
     */
     #training-page {
       text-align: center;
     }
-    .welcome-message {
-      margin: 20px 0 40px;
-      text-align: center;
-    }
-    .welcome-message h2 {
-      font-size: 28px;
-      color: var(--primary-color);
-      margin-bottom: 8px;
-    }
-    .welcome-message p {
-      font-size: 16px;
-      color: var(--secondary-color);
-    }
-    .nav-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-    }
-    .nav-card {
-      background-color: var(--form-bg-color);
-      padding: 25px;
-      border-radius: var(--border-radius);
-      border: 1px solid var(--border-color);
-      text-decoration: none;
-      color: var(--dark-color);
-      transition: all 0.3s ease;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 15px;
-      text-align: center;
-      cursor: pointer; 
-    }
-    .nav-card:hover {
-      transform: translateY(-5px);
-      box-shadow: var(--shadow);
-      border-color: var(--primary-color);
-    }
-    .nav-card i {
-      font-size: 48px;
-      color: var(--primary-color);
-    }
-    .nav-card h3 {
-      margin: 0;
-      font-size: 20px;
-    }
-    .nav-card p {
-      margin: 0;
-      font-size: 14px;
-      color: var(--secondary-color);
-    }
-    .nav-card.disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      background-color: var(--light-color);
-    }
-    .nav-card.disabled:hover {
-      transform: none;
-      box-shadow: none;
-      border-color: var(--border-color);
-    }
-    /* استایل برای محتوای آموزش‌های داخلی (برای هماهنگی) */
+    
+    /* استایل برای محتوای آموزش‌های داخلی که به page-container تزریق می‌شود */
     #training-content-detail {
         padding-top: 20px;
     }
@@ -95,28 +36,28 @@
 
   <div class="nav-grid">
     <!-- ۱. معرفی محصولات -->
-    <a href="#" class="nav-card" data-feature-path="products-intro">
+    <a href="#" class="nav-card" data-feature-path="/training/products-intro">
       <i class="bi bi-box-seam"></i>
       <h3>معرفی محصولات</h3>
       <p>آشنایی با انواع محصولات پاکشوما</p>
     </a>
 
     <!-- ۲. قطعه شناسی -->
-    <a href="#" class="nav-card" data-feature-path="parts-id">
+    <a href="#" class="nav-card" data-feature-path="/training/parts-id">
       <i class="bi bi-gear-wide-connected"></i>
       <h3>قطعه شناسی</h3>
       <p>آشنایی با قطعات اصلی و فرعی</p>
     </a>
 
     <!-- ۳. ابزار شناسی -->
-    <a href="#" class="nav-card" data-feature-path="tools-id">
+    <a href="#" class="nav-card" data-feature-path="/training/tools-id">
       <i class="bi bi-tools"></i>
       <h3>ابزار شناسی</h3>
       <p>معرفی ابزارهای مورد نیاز</p>
     </a>
 
     <!-- ۴. عمومی -->
-    <a href="#" class="nav-card" data-feature-path="general">
+    <a href="#" class="nav-card" data-feature-path="/training/general">
       <i class="bi bi-info-circle"></i>
       <h3>عمومی</h3>
       <p>نکات و دستورالعمل‌های کلی</p>

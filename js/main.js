@@ -1,12 +1,14 @@
 // qc/js/main.js
 
 // وارد کردن منطق هر صفحه با نام مستعار برای خوانایی بیشتر
-// ✅ اصلاح شد: آدرس‌دهی از حالت مطلق (/features/...) به نسبی (../features/...) تغییر کرد.
 import { init as initScrapForm } from "../features/home/forms/scrap-form/scrap-form.js";
 import { init as initChecklistInjection } from "../features/home/forms/checklists/checklist-injection/checklist-injection.js";
 import { init as initPersonnelForm } from "../features/home/charts/personnel-form/personnel-form.js";
 import { init as initOrgChart } from "../features/home/charts/org-chart/org-chart.js";
 import { init as initLineQuality } from "../features/home/forms/line-quality/line-quality.js";
+// ✅ وارد کردن منطق آزمون‌ها
+import { init as initGroupA } from "../features/home/training/general/quizzes/group-a.js";
+import { init as initGroupB } from "../features/home/training/general/quizzes/group-b.js";
 
 // ==========================================
 // ===== بخش ۱: تنظیمات سراسری و DOM ========
@@ -93,6 +95,20 @@ function setupAccordionHandlers() {
           content.style.display === "flex" ? "none" : "flex";
       }
     }
+  });
+}
+
+// ✅ تابع کمکی برای ناوبری کارت‌ها (بهینه‌سازی شده برای مسیر مطلق)
+function initNavCard() {
+  document.querySelectorAll(".nav-card").forEach((card) => {
+    card.addEventListener("click", (e) => {
+      e.preventDefault();
+      const featurePath = card.getAttribute("data-feature-path");
+      if (featurePath) {
+        // ناوبری همیشه با مسیر مطلق که از / شروع می‌شود
+        window.location.hash = `#${featurePath}`;
+      }
+    });
   });
 }
 
@@ -184,6 +200,82 @@ const routes = {
     headerType: "back-and-universal-menu",
     init: initChecklistInjection,
   },
+  // ------------------------------------
+  // ✅ مسیرهای جدید بخش آموزش (Training)
+  // ------------------------------------
+  "/training": {
+    path: "features/home/training/training.html",
+    title: "آموزش‌ها",
+    headerType: "back",
+    init: initNavCard,
+  },
+  "/training/products-intro": {
+    path: "features/home/training/products-intro/products-intro.html",
+    title: "معرفی محصولات",
+    headerType: "back",
+    init: initNavCard,
+  },
+  "/training/parts-id": {
+    path: "features/home/training/parts-id/parts-id.html",
+    title: "قطعه شناسی",
+    headerType: "back",
+    init: initNavCard,
+  },
+  "/training/tools-id": {
+    path: "features/home/training/tools-id/tools-id.html",
+    title: "ابزار شناسی",
+    headerType: "back",
+    init: () => {},
+  },
+  "/training/general": {
+    path: "features/home/training/general/general.html",
+    title: "آموزش‌های عمومی",
+    headerType: "back",
+    init: initNavCard,
+  },
+  "/training/products-intro/washing-machines": {
+    path: "features/home/training/products-intro/content/washing-machines.html",
+    title: "ماشین لباسشویی و ظرفشویی",
+    headerType: "back",
+    init: () => {},
+  },
+  "/training/products-intro/vacuum-cleaners": {
+    path: "features/home/training/products-intro/content/vacuum-cleaners.html",
+    title: "جاروبرقی‌ها",
+    headerType: "back",
+    init: () => {},
+  },
+  // توجه: مسیر زیر فرض می‌کند که فایل 'other-appliances.html' موجود است.
+  "/training/products-intro/other-appliances": {
+    path: "features/home/training/products-intro/content/other-appliances.html",
+    title: "سایر لوازم خانگی",
+    headerType: "back",
+    init: () => {},
+  },
+  "/training/general/documents": {
+    path: "features/home/training/general/documents.html",
+    title: "اصطلاحات و مستندات",
+    headerType: "back",
+    init: () => {},
+  },
+  "/training/general/quizzes/quizzes": {
+    path: "features/home/training/general/quizzes/quizzes.html",
+    title: "آزمون‌ها و سوالات",
+    headerType: "back",
+    init: initNavCard,
+  },
+  "/training/general/quizzes/group-a": {
+    path: "features/home/training/general/quizzes/group-a.html",
+    title: "آزمون سوالات گروه A",
+    headerType: "back-and-universal-menu",
+    init: initGroupA,
+  },
+  "/training/general/quizzes/group-b": {
+    path: "features/home/training/general/quizzes/group-b.html",
+    title: "آزمون سوالات گروه B",
+    headerType: "back-and-universal-menu",
+    init: initGroupB,
+  },
 };
 
 function loadPageCSS(cssPath) {
@@ -203,7 +295,10 @@ async function loadPage(path) {
   loader.style.display = "flex";
   pageContainer.innerHTML = "";
   window.activeFormResetter = null;
-  const route = routes[path] || routes["/"];
+
+  const cleanPath = path.replace(/^\/+/, "/");
+  const route = routes[cleanPath] || routes["/"];
+
   try {
     const response = await fetch(route.path);
     if (!response.ok) throw new Error(`Could not load page: ${route.path}`);
@@ -223,7 +318,7 @@ async function loadPage(path) {
           route.init();
         } catch (initError) {
           console.error(
-            `Error during page initialization for ${path}:`,
+            `Error during page initialization for ${cleanPath}:`,
             initError
           );
           pageContainer.innerHTML = `<p style="text-align: center; color: var(--danger-color);">خطای داخلی در اسکریپت صفحه.</p>`;
@@ -232,7 +327,7 @@ async function loadPage(path) {
     }
   } catch (error) {
     console.error("Routing Error:", error);
-    pageContainer.innerHTML = `<p style="text-align: center; color: var(--danger-color);">خطا در بارگذاری صفحه.</p>`;
+    pageContainer.innerHTML = `<p style="text-align: center; color: var(--danger-color);">خطا در بارگذاری صفحه: ${cleanPath}</p>`;
   } finally {
     setTimeout(() => (loader.style.display = "none"), 50);
   }

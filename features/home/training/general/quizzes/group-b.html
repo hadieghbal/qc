@@ -1,0 +1,648 @@
+<div class="doc-container">
+    <h1>آزمون سوالات گروه B: فنی و ضایعات</h1>
+    
+    <style>
+      /* استایل‌های اختصاصی برای آزمون */
+      .quiz-question {
+        background-color: var(--form-bg-color);
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--border-color);
+      }
+      .question-text {
+        font-weight: bold;
+        font-size: 1.1em;
+        margin-bottom: 15px;
+        color: var(--dark-color);
+      }
+      .option-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 10px 20px;
+      }
+      .option-label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        padding: 8px 12px;
+        border-radius: var(--border-radius-sm);
+        transition: background-color 0.2s;
+        border: 1px solid transparent;
+      }
+      .option-label:hover {
+        background-color: var(--light-color);
+      }
+      .option-label input[type="radio"] {
+        margin-left: 10px;
+        cursor: pointer;
+      }
+
+      /* هایلایت‌های نمره‌دهی */
+      .option-label.correct {
+        background-color: var(--success-bg-color); /* سبز */
+        border-color: var(--success-color);
+      }
+      .option-label.incorrect {
+        background-color: var(--danger-bg-color); /* قرمز */
+        border-color: var(--danger-color);
+      }
+
+      /* استایل‌های فرم ثبت‌نام و نتیجه */
+      .registration-section {
+          padding: 20px;
+          margin-bottom: 30px;
+          border: 2px solid var(--primary-color);
+          border-radius: var(--border-radius);
+          background-color: var(--light-color);
+      }
+      .registration-section input[type="text"] {
+          width: 100%;
+          padding: 10px;
+          margin-top: 5px;
+          margin-bottom: 15px;
+          border: 1px solid var(--border-color);
+          border-radius: var(--border-radius-sm);
+      }
+      .registration-section button {
+          padding: 10px 20px;
+          background-color: var(--primary-color);
+          color: white;
+          border: none;
+          border-radius: var(--border-radius-sm);
+          cursor: pointer;
+          transition: background-color 0.3s;
+          float: left;
+      }
+      .registration-section button:hover {
+          background-color: var(--primary-dark-color);
+      }
+      .registration-section::after {
+          content: "";
+          display: table;
+          clear: both;
+      }
+      .result-box {
+          padding: 20px;
+          border: 2px solid var(--primary-color);
+          border-radius: var(--border-radius);
+          margin-top: 20px;
+          text-align: right;
+          background-color: var(--success-bg-color);
+      }
+      .result-box h3 {
+          color: var(--primary-color);
+          border-bottom: 1px solid var(--primary-color);
+          padding-bottom: 5px;
+          margin-top: 0;
+      }
+      .correct-count {
+          color: var(--success-color);
+          font-weight: bold;
+      }
+      .percentage-result {
+          color: var(--primary-dark-color);
+          font-weight: bold;
+      }
+    </style>
+
+    <form id="quiz-form">
+      <!-- بخش ثبت نام (به روز شده: حذف دکمه بالا و افزودن جایگاه تاریخ) -->
+      <div class="registration-section">
+          <h2>شروع آزمون</h2>
+          <label for="user-name">نام و نام خانوادگی:</label>
+          <input type="text" id="user-name" required placeholder="مثال: علی احمدی">
+          <p style="margin-top: 15px; font-size: 1.1em;"><strong>تاریخ:</strong> <span id="current-date"></span></p>
+          <div style="clear: both;"></div> <!-- برای اطمینان از قرارگیری صحیح عناصر -->
+      </div>
+      
+      <!-- کانتینر سوالات -->
+      <div id="questions-container">
+
+        <!-- سوال ۱ -->
+        <div class="quiz-question">
+            <p class="question-text">۱. مهمترین دلیل وجود ضایعات "سوراخ در بدنه" در مرحله پانج چیست؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q1" value="0"> الف) تنظیم نبودن قالب
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q1" value="1"> ب) کیفیت نامناسب ورق
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q1" value="2"> ج) خطای اپراتور در قرارگیری قطعه
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q1" value="3"> د) استهلاک ابزار پانچ
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲ -->
+        <div class="quiz-question">
+            <p class="question-text">۲. در صورت مشاهده نشتی آب از پمپ تخلیه لباسشویی، عیب اصلی معمولاً کجاست؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q2" value="0"> الف) خرابی پروانه پمپ
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q2" value="1"> ب) آب‌بندی (سیل) پمپ
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q2" value="2"> ج) ترک در بدنه پمپ
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q2" value="3"> د) شل بودن شلنگ تخلیه
+                </label>
+            </div>
+        </div>
+
+        <!-- سوال ۳ تا ۲۷ (ادامه سوالات قبلی) -->
+        <div class="quiz-question">
+            <p class="question-text">۳. ضایعات "پلیسه" در قطعات پلاستیکی به چه دلیلی ایجاد می‌شود؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q3" value="0"> الف) عدم تنظیم دمای تزریق
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q3" value="1"> ب) سرعت بالای تزریق
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q3" value="2"> ج) بسته نشدن کامل قالب
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q3" value="3"> د) کاهش فشار گیره
+                </label>
+            </div>
+        </div>
+
+        <!-- سوال ۴ -->
+        <div class="quiz-question">
+            <p class="question-text">۴. ابزاری که برای اطمینان از گشتاور بستن پیچ‌های موتور و وزنه‌های تعادل استفاده می‌شود، چیست؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q4" value="0"> الف) کولیس
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q4" value="1"> ب) مولتی‌متر
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q4" value="2"> ج) ترکمتر (Torque Wrench)
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q4" value="3"> د) فشارسنج
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۵ -->
+        <div class="quiz-question">
+            <p class="question-text">۵. اگر در یک ماشین لباسشویی، دور خشک‌کن کار نکند، کدام قطعه باید در ابتدا بررسی شود؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q5" value="0"> الف) شیر برقی
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q5" value="1"> ب) میکروسوئیچ درب
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q5" value="2"> ج) ترموستات
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q5" value="3"> د) المنت حرارتی
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۶ -->
+        <div class="quiz-question">
+            <p class="question-text">۶. ضایعات "سفیدک/لکه سفید" روی قطعات کروم (مانند درب جاروبرقی) به احتمال زیاد به کدام دلیل است؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q6" value="0"> الف) عدم شستشوی کافی بعد از آبکاری
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q6" value="1"> ب) استفاده از مواد شوینده قوی
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q6" value="2"> ج) مشکل در فرآیند آبکاری نیکل
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q6" value="3"> د) حمل‌ونقل نامناسب
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۷ -->
+        <div class="quiz-question">
+            <p class="question-text">۷. در ظرفشویی‌ها، وظیفه نرم کردن آب (جلوگیری از رسوب آهک) بر عهده کدام بخش است؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q7" value="0"> الف) مخزن نمک
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q7" value="1"> ب) سنسور کدورت آب
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q7" value="2"> ج) هیتر
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q7" value="3"> د) پمپ گردش آب
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۸ -->
+        <div class="quiz-question">
+            <p class="question-text">۸. دلیل اصلی انجام تست ارت (Earthing Test) در خط تولید چیست؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q8" value="0"> الف) اندازه‌گیری مقاومت قطعات
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q8" value="1"> ب) تأیید عملکرد الکترونیکی
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q8" value="2"> ج) اندازه‌گیری مصرف برق
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q8" value="3"> د) حفظ ایمنی کاربر در برابر شوک الکتریکی
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۹ -->
+        <div class="quiz-question">
+            <p class="question-text">۹. قطعاتی که دارای برچسب "برگشت به انبار ضایعات" (Scrap Yard Return) هستند، چه سرنوشتی خواهند داشت؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q9" value="0"> الف) مجدداً به خط تولید برمی‌گردند
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q9" value="1"> ب) به تأمین‌کننده عودت داده می‌شوند یا خرد می‌شوند
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q9" value="2"> ج) پس از تعمیر در بخش خدمات استفاده می‌شوند
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q9" value="3"> د) در یک محصول دیگر استفاده می‌شوند
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۰ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۰. ابزار "کولیس دیجیتال" بیشتر برای کنترل کدام مشخصه قطعات استفاده می‌شود؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q10" value="0"> الف) ابعاد و تلرانس‌ها
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q10" value="1"> ب) گشتاور بستن
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q10" value="2"> ج) جریان الکتریکی
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q10" value="3"> د) سختی متریال
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۱ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۱. علت رایج ایجاد ضایعه "ترک مویی" (Hairline Crack) در بدنه پلاستیکی چیست؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q11" value="0"> الف) نقص مواد اولیه
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q11" value="1"> ب) سرعت پایین تزریق
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q11" value="2"> ج) دمای پایین قالب
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q11" value="3"> د) فشار بیش از حد در زمان مونتاژ یا تنش پسماند
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۲ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۲. در جاروبرقی‌ها، اگر مکش دستگاه ضعیف باشد، کدام عیب مونتاژی محتمل‌تر است؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q12" value="0"> الف) سیم جمع کن خراب است
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q12" value="1"> ب) کلید پاور وصل نشده است
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q12" value="2"> ج) فیلترها درست جاگذاری یا تمیز نشده‌اند
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q12" value="3"> د) موتور بیش از حد داغ شده است
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۳ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۳. تعریف "ضایعات بحرانی" (Critical Defect) چیست؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q13" value="0"> الف) نقصی که فقط بر ظاهر محصول تأثیر می‌گذارد
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q13" value="1"> ب) نقصی که منجر به خطر ایمنی یا عدم کارکرد محصول می‌شود
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q13" value="2"> ج) نقصی که فقط هزینه‌بر است
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q13" value="3"> د) نقصی که به سختی قابل مشاهده است
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۴ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۴. عیب "لکه روغن" روی قطعات فلزی قبل از رنگ‌آمیزی چه تأثیری بر کیفیت محصول نهایی دارد؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q14" value="0"> الف) چسبندگی نامناسب رنگ و پوسته شدن
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q14" value="1"> ب) تغییر ابعاد قطعه
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q14" value="2"> ج) ایجاد صدای غیرعادی
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q14" value="3"> د) افزایش مصرف برق
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۵ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۵. در لباسشويي اتوماتیک، اگر آبگیری بیش از حد نرمال طول بکشد، احتمال خرابی کدام قطعه بیشتر است؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q15" value="0"> الف) المنت حرارتی
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q15" value="1"> ب) موتور اصلی
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q15" value="2"> ج) ترموستات
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q15" value="3"> د) شیر برقی ورودی
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۶ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۶. وظیفه اصلی "هیدروستات سطح آب" در ماشین لباسشویی چیست؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q16" value="0"> الف) اندازه‌گیری دمای آب
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q16" value="1"> ب) حس کردن میزان کثیفی آب
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q16" value="2"> ج) کنترل و تعیین سطح آب دیگ
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q16" value="3"> د) تخلیه آب
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۷ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۷. در فرآیند "نصب فوم" (Foaming) در بدنه یخچال/ظرفشویی، عدم کفایت تزریق فوم به چه ضایعه‌ای منجر می‌شود؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q17" value="0"> الف) رنگ‌رفتگی بدنه
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q17" value="1"> ب) کاهش عایق حرارتی و مصرف انرژی بالا
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q17" value="2"> ج) افزایش صدای موتور
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q17" value="3"> د) عدم تراز بودن درب
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۸ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۸. در صورت مشاهده "قالب‌زدگی" (Warping) در قطعات پلاستیکی بزرگ، دلیل فنی احتمالی چیست؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q18" value="0"> الف) سرد شدن نایکنواخت یا سریع قطعه
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q18" value="1"> ب) وجود رطوبت در مواد اولیه
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q18" value="2"> ج) فشار بیش از حد گیره
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q18" value="3"> د) سرعت پایین تزریق
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۹ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۹. کدام یک از این عیوب، عیب "عملکردی" (Functional Defect) محسوب می‌شود؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q19" value="0"> الف) خط و خش روی درب
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q19" value="1"> ب) رنگ‌رفتگی جزئی
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q19" value="2"> ج) نشت آب
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q19" value="3"> د) بریدگی جزئی لبه
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲۰ -->
+        <div class="quiz-question">
+            <p class="question-text">۲۰. در یک جاروبرقی با موتور ۲۲۰۰ وات، اگر در تست نهایی توان ۱۸۰۰ وات را نشان دهد، دلیل فنی محتمل چیست؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q20" value="0"> الف) خرابی برد سیم جمع کن
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q20" value="1"> ب) عیب در فیلترها یا سیستم هوا
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q20" value="2"> ج) نوسان برق ورودی کارخانه
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q20" value="3"> د) همه موارد
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲۱ -->
+        <div class="quiz-question">
+            <p class="question-text">۲۱. "خطای اپراتوری" در بستن قطعات (مانند نصب اشتباه تسمه) جزو کدام دسته از علل ریشه‌ای ضایعات است؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q21" value="0"> الف) Material (مواد)
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q21" value="1"> ب) Man (نیروی انسانی)
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q21" value="2"> ج) Machine (دستگاه)
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q21" value="3"> د) Method (روش)
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲۲ -->
+        <div class="quiz-question">
+            <p class="question-text">۲۲. چه تفاوتی بین ضایعات قابل تعمیر (Repairable Scrap) و غیر قابل تعمیر (Non-Repairable Scrap) وجود دارد؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q22" value="0"> الف) قابلیت تعمیر می‌تواند محصول را به حالت استاندارد برساند
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q22" value="1"> ب) قطعات غیر قابل تعمیر فقط مربوط به قطعات پلاستیکی هستند
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q22" value="2"> ج) هیچ تفاوتی ندارند و هر دو باید دور ریخته شوند
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q22" value="3"> د) قطعات قابل تعمیر همیشه به تأمین‌کننده عودت داده می‌شوند
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲۳ -->
+        <div class="quiz-question">
+            <p class="question-text">۲۳. وظیفه "لرزش‌گیر/کمپرسور" در جاروبرقی‌های جدید چیست؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q23" value="0"> الف) کاهش نویز موتور
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q23" value="1"> ب) جمع‌آوری بهتر گرد و غبار
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q23" value="2"> ج) تنظیم دور موتور
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q23" value="3"> د) کمک به فشرده‌سازی گرد و غبار
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲۴ -->
+        <div class="quiz-question">
+            <p class="question-text">۲۴. اگر هنگام تست ظرفشویی، آبگیری انجام شود اما عملیات شستشو آغاز نشود، کدام قطعه احتمالاً مشکل دارد؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q24" value="0"> الف) میکروسوئیچ درب
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q24" value="1"> ب) سنسور سطح آب
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q24" value="2"> ج) موتور اصلی پمپ گردش آب
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q24" value="3"> د) جاپودری
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲۵ -->
+        <div class="quiz-question">
+            <p class="question-text">۲۵. برای تست عملکرد "المنت حرارتی" لباسشویی باید کدام پارامتر را با مولتی‌متر اندازه‌گیری کرد؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q25" value="0"> الف) جریان (آمپر)
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q25" value="1"> ب) مقاومت (اهم)
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q25" value="2"> ج) ولتاژ (ولت)
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q25" value="3"> د) فرکانس (هرتز)
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲۶ -->
+        <div class="quiz-question">
+            <p class="question-text">۲۶. کدام یک از این ابزارها برای کنترل "تراز بودن" نهایی محصول استفاده می‌شود؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q26" value="0"> الف) تراز لیزری
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q26" value="1"> ب) ترمومتر
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q26" value="2"> ج) گیج فشار
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q26" value="3"> د) آمپرمتر
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲۷ -->
+        <div class="quiz-question">
+            <p class="question-text">۲۷. دلیل اصلی ایجاد ضایعه "عدم چسبندگی برچسب‌ها/لیبل‌ها" روی محصول چیست؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q27" value="0"> الف) استفاده از چسب با کیفیت پایین
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q27" value="1"> ب) وجود چربی، گرد و غبار یا رطوبت روی سطح
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q27" value="2"> ج) دمای پایین محیط کار
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q27" value="3"> د) همه موارد
+                </label>
+            </div>
+        </div>
+
+      </div>
+
+      <!-- دکمه ثبت نهایی (به روز شده) -->
+      <div class="registration-section submit-section" style="border: none; background-color: transparent; text-align: left;">
+          <button type="submit">دیدن نتایج و بررسی نهایی آزمون</button>
+      </div>
+      
+      <!-- نمایش نتیجه (منتقل شده به پایین) -->
+      <div id="quiz-result" style="margin-top: 20px;">
+          <p>پس از پاسخ به سوالات و کلیک بر روی "دیدن نتایج و بررسی نهایی آزمون"، نتیجه در این قسمت نمایش داده خواهد شد.</p>
+      </div>
+
+    </form>
+</div>

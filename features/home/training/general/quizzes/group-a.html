@@ -1,0 +1,648 @@
+<div class="doc-container">
+    <h1>آزمون سوالات گروه A: فرآیندی و استانداردها</h1>
+    
+    <style>
+      /* استایل‌های اختصاصی برای آزمون */
+      .quiz-question {
+        background-color: var(--form-bg-color);
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--border-color);
+      }
+      .question-text {
+        font-weight: bold;
+        font-size: 1.1em;
+        margin-bottom: 15px;
+        color: var(--dark-color);
+      }
+      .option-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 10px 20px;
+      }
+      .option-label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        padding: 8px 12px;
+        border-radius: var(--border-radius-sm);
+        transition: background-color 0.2s;
+        border: 1px solid transparent;
+      }
+      .option-label:hover {
+        background-color: var(--light-color);
+      }
+      .option-label input[type="radio"] {
+        margin-left: 10px;
+        cursor: pointer;
+      }
+
+      /* هایلایت‌های نمره‌دهی */
+      .option-label.correct {
+        background-color: var(--success-bg-color); /* سبز */
+        border-color: var(--success-color);
+      }
+      .option-label.incorrect {
+        background-color: var(--danger-bg-color); /* قرمز */
+        border-color: var(--danger-color);
+      }
+
+      /* استایل‌های فرم ثبت‌نام و نتیجه */
+      .registration-section {
+          padding: 20px;
+          margin-bottom: 30px;
+          border: 2px solid var(--primary-color);
+          border-radius: var(--border-radius);
+          background-color: var(--light-color);
+      }
+      .registration-section input[type="text"] {
+          width: 100%;
+          padding: 10px;
+          margin-top: 5px;
+          margin-bottom: 15px;
+          border: 1px solid var(--border-color);
+          border-radius: var(--border-radius-sm);
+      }
+      .registration-section button {
+          padding: 10px 20px;
+          background-color: var(--primary-color);
+          color: white;
+          border: none;
+          border-radius: var(--border-radius-sm);
+          cursor: pointer;
+          transition: background-color 0.3s;
+          float: left;
+      }
+      .registration-section button:hover {
+          background-color: var(--primary-dark-color);
+      }
+      .registration-section::after {
+          content: "";
+          display: table;
+          clear: both;
+      }
+      .result-box {
+          padding: 20px;
+          border: 2px solid var(--primary-color);
+          border-radius: var(--border-radius);
+          margin-top: 20px;
+          text-align: right;
+          background-color: var(--success-bg-color);
+      }
+      .result-box h3 {
+          color: var(--primary-color);
+          border-bottom: 1px solid var(--primary-color);
+          padding-bottom: 5px;
+          margin-top: 0;
+      }
+      .correct-count {
+          color: var(--success-color);
+          font-weight: bold;
+      }
+      .percentage-result {
+          color: var(--primary-dark-color);
+          font-weight: bold;
+      }
+    </style>
+
+    <form id="quiz-form">
+      <!-- بخش ثبت نام (به روز شده: حذف دکمه بالا و افزودن جایگاه تاریخ) -->
+      <div class="registration-section">
+          <h2>شروع آزمون</h2>
+          <label for="user-name">نام و نام خانوادگی:</label>
+          <input type="text" id="user-name" required placeholder="مثال: علی احمدی">
+          <p style="margin-top: 15px; font-size: 1.1em;"><strong>تاریخ:</strong> <span id="current-date"></span></p>
+          <div style="clear: both;"></div> <!-- برای اطمینان از قرارگیری صحیح عناصر -->
+      </div>
+      
+      <!-- کانتینر سوالات -->
+      <div id="questions-container">
+
+        <!-- سوال ۱ -->
+        <div class="quiz-question">
+            <p class="question-text">۱. جنس پنل لباسشويي‌هاي اتوماتيک و نيمه اتوماتيک معمولا از موادي مي باشد؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q1" value="0"> الف) P.P (پلي‌پروپيلن)
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q1" value="1"> ب) POM (پلي‌اکسي‌متيلن)
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q1" value="2"> ج) ABS (آکريلونيتريل بوتادين استايرن)
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q1" value="3"> د) P.C (پلي‌کربنات)
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲ -->
+        <div class="quiz-question">
+            <p class="question-text">۲. نوع پوشش رنگي متداول در کابين (بدنه) لباسشويي و ظرفشويي کدام است؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q2" value="0"> الف) رنگ روغني
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q2" value="1"> ب) رنگ پودري (الکترواستاتيک)
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q2" value="2"> ج) PCM (ورق رنگ شده)
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q2" value="3"> د) CVM (ورق طرح‌دار)
+                </label>
+            </div>
+        </div>
+
+        <!-- سوال ۳ تا ۲۷ (ادامه سوالات قبلی) -->
+        <div class="quiz-question">
+            <p class="question-text">۳. در فرآيند تزريق پلاستيک، مهم‌ترين پارامترهايي که بايد توسط سرشيفت کنترل شود کدام‌اند؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q3" value="0"> الف) دما
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q3" value="1"> ب) فشار
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q3" value="2"> ج) سرعت
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q3" value="3"> د) همه موارد
+                </label>
+            </div>
+        </div>
+
+        <!-- سوال ۴ -->
+        <div class="quiz-question">
+            <p class="question-text">۴. در لباسشويي‌هاي درب از بالا، علت عدم آبگيري مي‌تواند خرابي کدام يک از قطعات زير باشد؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q4" value="0"> الف) شير برقي ورودي
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q4" value="1"> ب) هيدروستات سطح آب
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q4" value="2"> ج) ميکروسوئيچ درب
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q4" value="3"> د) همه موارد
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۵ -->
+        <div class="quiz-question">
+            <p class="question-text">۵. در هنگام گرفتگي شديد دهانه جاروبرقي، ________ عمل کرده و اين وضعيت توسط ________ نمايش داده مي‌شود.</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q5" value="0"> الف) مکش - کليد پاور
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q5" value="1"> ب) اورينگ - سوپاپ
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q5" value="2"> ج) سوپاپ - نشانگر
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q5" value="3"> د) نشانگر - سوپاپ
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۶ -->
+        <div class="quiz-question">
+            <p class="question-text">۶. تفاوت اصلي مفهوم گارانتي (Guarantee) و وارانتي (Warranty) در چيست؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q6" value="0"> الف) گارانتي شامل قطعات مي‌شود - وارانتي شامل محصول
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q6" value="1"> ب) وارانتي شامل قطعات مي‌شود - گارانتي شامل محصول و قطعه مي‌شود
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q6" value="2"> ج) وارانتي شامل خدمات پس از فروش مي‌شود - گارانتي شامل قطعات
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q6" value="3"> د) گارانتی شامل خدمات پس از فروش و قطعات مي‌شود - وارانتی شامل کل محصول
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۷ -->
+        <div class="quiz-question">
+            <p class="question-text">۷. در محصولات جاروبرقي، نحوه عملکرد سيم جمع‌کن چند مدل است؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q7" value="0"> الف) اتوماتيک
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q7" value="1"> ب) برقي
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q7" value="2"> ج) پدالي
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q7" value="3"> د) الف و ج
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۸ -->
+        <div class="quiz-question">
+            <p class="question-text">۸. در لباسشويي‌هاي نيمه اتوماتيک (دوقلو)، انتقال قدرت از موتور به مجموعه گيربکس بر عهده کدام قطعه است؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q8" value="0"> الف) خازن
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q8" value="1"> ب) تسمه
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q8" value="2"> ج) پلاتين
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q8" value="3"> د) فولي
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۹ -->
+        <div class="quiz-question">
+            <p class="question-text">۹. مايع نرم‌کننده در کدام قسمت از جاپودري محصولات اتوماتيک شارژ مي‌شود؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q9" value="0"> الف) Main Wash
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q9" value="1"> ب) Soft Wash
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q9" value="2"> ج) Pre Wash
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q9" value="3"> د) هيچ‌کدام
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۰ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۰. قدرت مکش اسمي (وات) يک جاروبرقي، عمدتاً بر چه اساسي تعيين مي‌شود؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q10" value="0"> الف) موتور و طراحي محصول
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q10" value="1"> ب) شيلنگ و تلسکوپي
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q10" value="2"> ج) برد الکترونيکي
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q10" value="3"> د) حجم مخزن زباله
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۱ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۱. لباسشويي درب از بالا چند موتور دارد؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q11" value="0"> الف) 2 موتور مجزا
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q11" value="1"> ب) موتور گيربکسي
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q11" value="2"> ج) 1 موتور
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q11" value="3"> د) هيچ‌کدام
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۲ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۲. بوبين مخزن نمک در محصولات ظرفشويي، هنگام تست چه زماني فعال مي‌شود؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q12" value="0"> الف) در مرحله اول آبگيري
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q12" value="1"> ب) نيم ساعت بعد از شستشو
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q12" value="2"> ج) همزمان با عملکرد جاپودري
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q12" value="3"> د) مرحله آخر شستشو/آبکشي
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۳ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۳. عيب قطعات برقي (الکتريکي) در محصولات لباسشويي اتوماتيک و ظرفشويي چگونه تشخيص داده مي‌شود؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q13" value="0"> الف) صداي غيرعادي
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q13" value="1"> ب) دستگاه تست ايمني
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q13" value="2"> ج) نمايش کد خطا (ارور) روي نمايشگر
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q13" value="3"> د) هيچ‌کدام
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۴ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۴. بازرسي و نمونه‌برداري مواد ورودي (IQC) از محموله، بر چه اساسي انجام مي‌شود؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q14" value="0"> الف) به صورت کامل چک مي‌شود
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q14" value="1"> ب) بر اساس جدول استاندارد AQL
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q14" value="2"> ج) يک بار نمونه‌برداري و به صورت رندوم چک
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q14" value="3"> د) سخت‌گيرانه و رندوم چک
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۵ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۵. قطعات ورودي بر چه اساسي بازرسي و کنترل مي‌شوند؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q15" value="0"> الف) بر اساس دستورالعمل کنترل
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q15" value="1"> ب) بر اساس مشخصات
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q15" value="2"> ج) بر اساس نمونه شاهد تاييدشده
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q15" value="3"> د) همه موارد
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۶ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۶. در نمونه‌برداري اوليه، کدام دسته از قطعات داراي سطح پذيرش سخت‌گيرانه‌تر مي‌باشند؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q16" value="0"> الف) قطعات برقي
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q16" value="1"> ب) قطعات رنگي و کروم
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q16" value="2"> ج) قطعات فلزي
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q16" value="3"> د) قطعات پلاستيکي
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۷ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۷. کدام مورد جزو مراحل اصلي بازرسي قطعات ورودي نيست؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q17" value="0"> الف) وزن قطعات
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q17" value="1"> ب) بسته بندي و نحوه چيدمان
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q17" value="2"> ج) مونتاژپذيري و شکل ظاهري
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q17" value="3"> د) شمارش تعداد قطعات
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۸ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۸. علامت ♻️ (مثلث روباز با سه پيکان) روي کارتن‌هاي محصولات به چه معني مي‌باشد؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q18" value="0"> الف) تأييديه ISO
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q18" value="1"> ب) نوع محصول
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q18" value="2"> ج) قابليت بازيافت
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q18" value="3"> د) نحوه حمل
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۱۹ -->
+        <div class="quiz-question">
+            <p class="question-text">۱۹. هدف از استاندارد ISO 9001 در يک سازمان توليدي چيست؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q19" value="0"> الف) مديريت کيفيت و بهبود مستمر
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q19" value="1"> ب) مدیریت انرژی
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q19" value="2"> ج) رضايت‌مندي مشتري
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q19" value="3"> د) هيچ‌کدام
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲۰ -->
+        <div class="quiz-question">
+            <p class="question-text">۲۰. اصلي‌ترين علت تصويربرداري روزانه ضايعات خطوط توليد چيست؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q20" value="0"> الف) بنا به درخواست تأمين‌کننده
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q20" value="1"> ب) ايجاد مستندات براي ريشه‌يابي و جلوگيري از تکرار ضايعات
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q20" value="2"> ج) اجبار بودن تصويربرداري جهت اخذ قطعه جبراني
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q20" value="3"> د) همه موارد
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲۱ -->
+        <div class="quiz-question">
+            <p class="question-text">۲۱. مولتي‌مترهاي موجود در خط تست، چه اطلاعاتي در حين تست به ما مي‌دهند؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q21" value="0"> الف) مقدار جريان مصرفي (آمپر)
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q21" value="1"> ب) توان مصرف‌کننده (وات)
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q21" value="2"> ج) مقدار ولتاژ (ولت)
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q21" value="3"> د) همه موارد
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲۲ -->
+        <div class="quiz-question">
+            <p class="question-text">۲۲. ضخامت متداول کابين و صليبي بالا لباسشويي اتوماتيک به ترتيب ________ و ________ ميلي‌متر مي‌باشد؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q22" value="0"> الف) 0.5 و 1.5
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q22" value="1"> ب) 0.8 و 0.5
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q22" value="2"> ج) 0.8 و 1.5
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q22" value="3"> د) 0.7 و 1.2
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲۳ -->
+        <div class="quiz-question">
+            <p class="question-text">۲۳. جنس استيل ورق کف سينک ظرفشويي و جنس استيل ورق سقف و بدنه بيروني مي‌باشد؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q23" value="0"> الف) 304 و 430
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q23" value="1"> ب) 321 و 310
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q23" value="2"> ج) 304 و 316
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q23" value="3"> د) 409 و 430
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲۴ -->
+        <div class="quiz-question">
+            <p class="question-text">۲۴. عدد درج شده با واحد kWh/annum روي ليبل انرژي محصولات شستشو، به چه معني مي‌باشد؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q24" value="0"> الف) مصرف انرژي در يک سال
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q24" value="1"> ب) مصرف برق در يک سال
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q24" value="2"> ج) مصرف انرژي در يک سيکل کاري
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q24" value="3"> د) مصرف برق در يک سيکل کاري
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲۵ -->
+        <div class="quiz-question">
+            <p class="question-text">۲۵. مراحل کامل سيکل کارکرد لباسشويي اتوماتيک به چه صورت مي‌باشد؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q25" value="0"> الف) شستشو - آبکشي - آبگيري
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q25" value="1"> ب) آبگيري - آبکشی - شستشو
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q25" value="2"> ج) آبگيري - شستشو - آبکشي
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q25" value="3"> د) شستشو - آبگيري - آبکشي
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲۶ -->
+        <div class="quiz-question">
+            <p class="question-text">۲۶. علت انجام کنترل فني بعد از تست چه مي باشد؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q26" value="0"> الف) عملکرد صحيح محصول
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q26" value="1"> ب) تست ايمني
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q26" value="2"> ج) کنترل ظاهري محصول
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q26" value="3"> د) اطمينان از مونتاژ صحيح قطعات
+                </label>
+            </div>
+        </div>
+        
+        <!-- سوال ۲۷ -->
+        <div class="quiz-question">
+            <p class="question-text">۲۷. منظور از FOC در سفارش قطعات چيست؟</p>
+            <div class="option-list">
+                <label class="option-label">
+                    <input type="radio" name="q27" value="0"> الف) قطعاتي که با هزينه اضافي ارسال مي‌شوند
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q27" value="1"> ب) قطعاتي که رايگان و براي جبران خرابي احتمالي ارسال مي‌شوند
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q27" value="2"> ج) قطعاتي که بايد پس از استفاده برگشت داده شوند
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q27" value="3"> د) قطعاتي که فقط براي تست کيفيت ارسال مي‌شوند
+                </label>
+            </div>
+        </div>
+
+      </div>
+
+      <!-- دکمه ثبت نهایی (به روز شده) -->
+      <div class="registration-section submit-section" style="border: none; background-color: transparent; text-align: left;">
+          <button type="submit">دیدن نتایج و بررسی نهایی آزمون</button>
+      </div>
+      
+      <!-- نمایش نتیجه (منتقل شده به پایین) -->
+      <div id="quiz-result" style="margin-top: 20px;">
+          <p>پس از پاسخ به سوالات و کلیک بر روی "دیدن نتایج و بررسی نهایی آزمون"، نتیجه در این قسمت نمایش داده خواهد شد.</p>
+      </div>
+
+    </form>
+</div>
