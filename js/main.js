@@ -1,9 +1,12 @@
+// qc/js/main.js
+
 // وارد کردن منطق هر صفحه با نام مستعار برای خوانایی بیشتر
-import { init as initScrapForm } from "/features/home/forms/scrap-form/scrap-form.js";
-import { init as initChecklistInjection } from "/features/home/forms/checklists/checklist-injection/checklist-injection.js";
-import { init as initPersonnelForm } from "/features/home/charts/personnel-form/personnel-form.js";
-import { init as initOrgChart } from "/features/home/charts/org-chart/org-chart.js";
-import { init as initLineQuality } from "/features/home/forms/line-quality/line-quality.js";
+// ✅ اصلاح شد: آدرس‌دهی از حالت مطلق (/features/...) به نسبی (../features/...) تغییر کرد.
+import { init as initScrapForm } from "../features/home/forms/scrap-form/scrap-form.js";
+import { init as initChecklistInjection } from "../features/home/forms/checklists/checklist-injection/checklist-injection.js";
+import { init as initPersonnelForm } from "../features/home/charts/personnel-form/personnel-form.js";
+import { init as initOrgChart } from "../features/home/charts/org-chart/org-chart.js";
+import { init as initLineQuality } from "../features/home/forms/line-quality/line-quality.js";
 
 // ==========================================
 // ===== بخش ۱: تنظیمات سراسری و DOM ========
@@ -251,9 +254,8 @@ window.addEventListener("load", () => {
   setupGlobalMenuHandler();
   setupAccordionHandlers();
 
-  // ثبت Service Worker
+  // ثبت Service Worker (قبلاً درست بود، تغییر نکرد)
   if ("serviceWorker" in navigator) {
-    // ✨✨✨ این بخش اصلاح شد: آدرس 'service-worker.js' به صورت نسبی نوشته شد ✨✨✨
     navigator.serviceWorker
       .register("service-worker.js")
       .then((registration) => {

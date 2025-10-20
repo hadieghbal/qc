@@ -1,23 +1,27 @@
+/* qc/assets/css/shared.css */
 /* ============================================= */
 /* ===== بخش ۱: فونت‌ها و متغیرهای اصلی (تم) ==== */
 /* ============================================= */
 @font-face {
   font-family: "Vazirmatn";
-  src: url("/assets/fonts/Vazirmatn-RD-Regular.woff2") format("woff2");
+  /* ✅ اصلاح شد: آدرس‌دهی نسبی به فونت‌ها */
+  src: url("../fonts/Vazirmatn-RD-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: "Vazirmatn";
-  src: url("/assets/fonts/Vazirmatn-RD-Medium.woff2") format("woff2");
+  /* ✅ اصلاح شد: آدرس‌دهی نسبی به فونت‌ها */
+  src: url("../fonts/Vazirmatn-RD-Medium.woff2") format("woff2");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: "Vazirmatn";
-  src: url("/assets/fonts/Vazirmatn-RD-Bold.woff2") format("woff2");
+  /* ✅ اصلاح شد: آدرس‌دهی نسبی به فونت‌ها */
+  src: url("../fonts/Vazirmatn-RD-Bold.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -1182,4 +1186,12 @@ label.required::after {
   border-radius: var(--border-radius);
   padding: 5px;
   background-color: var(--danger-bg-color);
+}
+
+/* ======================================================= */
+/* ===== بخش ۱۳: استایل‌های منو و دکمه بازگشت (اگر وجود دارد) ===== */
+/* ======================================================= */
+/* این بخش برای اطمینان از نمایش صحیح آیکون بازگشت در منوها اضافه شد. */
+.menu-button i.bi-arrow-right {
+    transform: scaleX(-1); /* فلش رو به عقب تبدیل شد */
 }
