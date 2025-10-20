@@ -1,39 +1,25 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
   <head>
-    <!-- 💡 اصلاح شده: تنظیم مسیر پایه به صورت ثابت روی /qc/ (نام ریپوزیتوری با حروف کوچک) -->
-    <!-- این تضمین می‌کند که آدرس‌های نسبی مثل assets/libs/... به /qc/assets/libs/... ترجمه شوند. -->
-    <base href="/qc/"> 
-    
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0056b3" />
-
-    <!-- ❌ منطق جاوااسکریپت داینامیک حذف شد تا تأخیر در تنظیم base ایجاد نشود -->
-    <!-- 
-    <script>
-      const isLocalhost = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
-      const projectBase = isLocalhost ? '/' : '/qc/'; 
-      
-      const baseTag = document.querySelector('base');
-      if (baseTag) {
-          baseTag.href = projectBase;
-      }
-    </script>
-    -->
-    
     <link rel="manifest" href="manifest.json" />
     <link rel="apple-touch-icon" href="assets/images/logo-192.png" />
     <link rel="icon" href="assets/images/logo-192.png" type="image/png" />
 
     <title>کنترل کیفیت پاکشوما</title>
 
+    <!-- ===== تغییر ۱: مسیرهای CSS کتابخانه‌ها اصلاح شد ===== -->
     <link rel="stylesheet" href="assets/libs/jdp.min.css" />
     <link rel="stylesheet" href="assets/libs/choices.min.css" />
     <link rel="stylesheet" href="assets/libs/toastify.min.css" />
+
+    <!-- این دو فایل در مسیر درستی هستند و نیازی به تغییر ندارند -->
     <link rel="stylesheet" href="assets/css/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="assets/css/shared.css" />
 
+    <!-- ===== تغییر ۲: مسیرهای JS کتابخانه‌ها اصلاح شد ===== -->
     <script src="assets/libs/html2canvas.min.js"></script>
     <script src="assets/libs/sweetalert2.all.min.js"></script>
     <script src="assets/libs/toastify.js"></script>
@@ -42,17 +28,21 @@
     <script src="assets/libs/pdfmake.min.js"></script>
     <script src="assets/libs/vfs_fonts.js"></script>
 
+    <!-- ===== تغییر ۳: مسیر فایل اصلی برنامه اصلاح شد ===== -->
     <script type="module" src="js/main.js"></script>
   </head>
   <body>
     <div class="container" id="app-root">
       <header id="main-header">
+        <!-- منوی همبرگری در اینجا توسط جاوااسکریپت قرار می‌گیرد -->
         <div id="page-menu-container" class="header-actions"></div>
 
+        <!-- عنوان صفحه که همیشه در وسط است -->
         <div class="header-center">
           <h1 id="header-title"></h1>
         </div>
 
+        <!-- لوگو و کد مدرک که همیشه در سمت چپ است -->
         <div id="header-branding-container" class="header-branding">
           <span id="header-logo-text" class="logo-text">Pakshoma</span>
           <span id="header-doc-code" class="doc-code"></span>
@@ -69,8 +59,6 @@
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
-          // در اینجا ثبت service-worker.js انجام می‌شود
-          // Service Worker در کنار index.html است و آدرس‌دهی نسبی درست است
           navigator.serviceWorker
             .register("service-worker.js")
             .then((registration) => {
