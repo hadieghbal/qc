@@ -1,17 +1,18 @@
-
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
   <head>
-    <base href="/"> 
+    <!-- 💡 اصلاح شده: تنظیم مسیر پایه به صورت ثابت روی /qc/ (نام ریپوزیتوری با حروف کوچک) -->
+    <!-- این تضمین می‌کند که آدرس‌های نسبی مثل assets/libs/... به /qc/assets/libs/... ترجمه شوند. -->
+    <base href="/qc/"> 
     
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0056b3" />
 
+    <!-- ❌ منطق جاوااسکریپت داینامیک حذف شد تا تأخیر در تنظیم base ایجاد نشود -->
+    <!-- 
     <script>
-      // 💡 منطق پویا را باز می‌گردانیم
       const isLocalhost = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
-      // اگر لوکال هاست بود، مسیر پایه ریشه (/) است. در غیر این صورت (گیت‌هاب پیج) /qc/ است.
       const projectBase = isLocalhost ? '/' : '/qc/'; 
       
       const baseTag = document.querySelector('base');
@@ -19,6 +20,7 @@
           baseTag.href = projectBase;
       }
     </script>
+    -->
     
     <link rel="manifest" href="manifest.json" />
     <link rel="apple-touch-icon" href="assets/images/logo-192.png" />
