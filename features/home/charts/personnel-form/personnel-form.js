@@ -1,6 +1,6 @@
 // مسیر: js/pages/personnelForm.js
 import { orgChartData } from "../org-chart/org-chart-data.js";
-import { saveData, loadData } from '../../../js/utils/store.js';
+import { saveData, loadData } from '../../../../js/utils/store.js';
 
 export function init() {
   console.log("Personnel Form Initialized with Supervisor Finder!");
