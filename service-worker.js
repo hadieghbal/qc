@@ -11,7 +11,7 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/`,
   `${BASE_PATH}/index.html`,
   `${BASE_PATH}/manifest.json`,
-  `${BASE_PATH}/bom/bom-data.json`,
+  `${BASE_PATH}/bom/bom-data.json`, // این فایل JSON همچنان کش می‌شود که منطقی است.
 
   // --- اسکریپت‌ها ---
   `${BASE_PATH}/js/main.js`,
@@ -28,7 +28,7 @@ const FILES_TO_CACHE = [
   // فیچرها (مسیرها درست هستند)
   `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection-data.js`,
   `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection.js`,
-  `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection.html`, // CSS تکراری حذف شد
+  `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection.html`, 
 
   `${BASE_PATH}/features/home/charts/org-chart/org-chart-data.js`,
   `${BASE_PATH}/features/home/charts/org-chart/org-chart.js`,
@@ -38,6 +38,11 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/features/home/forms/line-quality/line-quality-data.js`,
   `${BASE_PATH}/features/home/forms/line-quality/line-quality.js`,
   `${BASE_PATH}/features/kham/kham.js`,
+
+  // ✅ اضافه شده برای بخش آموزش (JS)
+  `${BASE_PATH}/features/home/training/general/quizzes/group-a.js`,
+  `${BASE_PATH}/features/home/training/general/quizzes/group-b.js`,
+  `${BASE_PATH}/features/home/training/training.js`, // فایل training.js اصلی
 
   // --- استایل‌ها ---
   `${BASE_PATH}/assets/css/shared.css`,
@@ -59,10 +64,25 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/features/home/iso-docs/iso-docs.html`,
   `${BASE_PATH}/features/home/iso-docs/instruction/instruction.html`,
   `${BASE_PATH}/features/home/charts/org-chart/org-chart.html`,
-  // مسیر زیر در ساختار پروژه نیست اما در لیست شما هست.
+  // مسیر زیر در ساختار پروژه نیست اما در لیست شما بود و اگر در آینده اضافه شد باید کامنتش باز شود:
   // `${BASE_PATH}/features/non-conformity-form/non-conformity-form.html`, 
   `${BASE_PATH}/features/home/charts/personnel-form/personnel-form.html`,
   `${BASE_PATH}/features/home/charts/charts.html`,
+
+  // ✅ اضافه شده برای بخش آموزش (HTML)
+  `${BASE_PATH}/features/home/training/training.html`,
+  `${BASE_PATH}/features/home/training/products-intro/products-intro.html`,
+  `${BASE_PATH}/features/home/training/parts-id/parts-id.html`,
+  `${BASE_PATH}/features/home/training/tools-id/tools-id.html`,
+  `${BASE_PATH}/features/home/training/general/general.html`,
+  `${BASE_PATH}/features/home/training/products-intro/content/washing-machines.html`,
+  `${BASE_PATH}/features/home/training/products-intro/content/vacuum-cleaners.html`,
+  // مسیر زیر در ساختار پروژه شما مشخص نیست، اما در main.js اشاره شد، اگر وجود دارد اضافه شود:
+  `${BASE_PATH}/features/home/training/products-intro/content/other-appliances.html`, 
+  `${BASE_PATH}/features/home/training/general/documents.html`,
+  `${BASE_PATH}/features/home/training/general/quizzes/quizzes.html`,
+  `${BASE_PATH}/features/home/training/general/quizzes/group-a.html`,
+  `${BASE_PATH}/features/home/training/general/quizzes/group-b.html`,
 
   // --- فونت‌ها ---
   `${BASE_PATH}/assets/fonts/bootstrap-icons.woff`,
