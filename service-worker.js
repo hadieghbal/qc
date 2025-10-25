@@ -3,7 +3,7 @@
 //  Service Worker - QC v12
 // =============================
 
-const CACHE_NAME = "qc v2"; // ✅ تغییر نسخه جدید
+const CACHE_NAME = "qc v3"; // ✅ تغییر نسخه جدید
 const BASE_PATH = "/qc";    // مسیر پایه پروژه
 
 const FILES_TO_CACHE = [
