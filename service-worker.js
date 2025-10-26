@@ -1,5 +1,4 @@
-
-const CACHE_NAME = "qc v5"; // ✅ تغییر نسخه جدید
+const CACHE_NAME = "qc v7"; // ✅ تغییر نسخه جدید برای اطمینان از به‌روزرسانی کش
 const BASE_PATH = "/qc";    // مسیر پایه پروژه
 
 const FILES_TO_CACHE = [
@@ -7,7 +6,7 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/`,
   `${BASE_PATH}/index.html`,
   `${BASE_PATH}/manifest.json`,
-  `${BASE_PATH}/bom/bom-data.json`, // این فایل JSON همچنان کش می‌شود که منطقی است.
+  `${BASE_PATH}/bom/bom-data.json`, 
 
   // --- اسکریپت‌ها ---
   `${BASE_PATH}/js/main.js`,
@@ -31,8 +30,12 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/features/home/charts/personnel-form/personnel-form.js`,
   `${BASE_PATH}/features/home/forms/scrap-form/scrap-form-data.js`,
   `${BASE_PATH}/features/home/forms/scrap-form/scrap-form.js`,
+  
+  // ✅ اضافه شده برای "کیفیت روزانه خطوط" (JS)
   `${BASE_PATH}/features/home/forms/line-quality/line-quality-data.js`,
   `${BASE_PATH}/features/home/forms/line-quality/line-quality.js`,
+  
+  // ✅ اضافه شده برای فایل kham.js
   `${BASE_PATH}/features/kham/kham.js`,
 
   // ✅ اضافه شده برای بخش آموزش (JS)
@@ -48,7 +51,10 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/assets/libs/toastify.min.css`,
   `${BASE_PATH}/features/home/charts/org-chart/org-chart.css`,
   `${BASE_PATH}/features/home/forms/scrap-form/scrap-form.css`,
+  
+  // ✅ اضافه شده برای "کیفیت روزانه خطوط" (CSS)
   `${BASE_PATH}/features/home/forms/line-quality/line-quality.css`,
+  
   `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection.css`,
 
   // --- صفحات HTML ---
@@ -56,12 +62,13 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/features/home/forms/forms.html`,
   `${BASE_PATH}/features/home/forms/checklists/checklists.html`,
   `${BASE_PATH}/features/home/forms/scrap-form/scrap-form.html`,
+  
+  // ✅ اضافه شده برای "کیفیت روزانه خطوط" (HTML)
   `${BASE_PATH}/features/home/forms/line-quality/line-quality.html`,
+  
   `${BASE_PATH}/features/home/iso-docs/iso-docs.html`,
   `${BASE_PATH}/features/home/iso-docs/instruction/instruction.html`,
   `${BASE_PATH}/features/home/charts/org-chart/org-chart.html`,
-  // مسیر زیر در ساختار پروژه نیست اما در لیست شما بود و اگر در آینده اضافه شد باید کامنتش باز شود:
-  // `${BASE_PATH}/features/non-conformity-form/non-conformity-form.html`, 
   `${BASE_PATH}/features/home/charts/personnel-form/personnel-form.html`,
   `${BASE_PATH}/features/home/charts/charts.html`,
 
@@ -74,11 +81,15 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/features/home/training/products-intro/content/washing-machines.html`,
   `${BASE_PATH}/features/home/training/products-intro/content/vacuum-cleaners.html`,
   // مسیر زیر در ساختار پروژه شما مشخص نیست، اما در main.js اشاره شد، اگر وجود دارد اضافه شود:
-  `${BASE_PATH}/features/home/training/products-intro/content/other-appliances.html`, 
+  // `${BASE_PATH}/features/home/training/products-intro/content/other-appliances.html`, 
+  // ✅ اضافه شده فایل‌های HTML گروه‌های آموزشی
   `${BASE_PATH}/features/home/training/general/documents.html`,
+  `${BASE_PATH}/features/home/training/general/group-a.html`,
+  `${BASE_PATH}/features/home/training/general/group-b.html`,
   `${BASE_PATH}/features/home/training/general/quizzes/quizzes.html`,
   `${BASE_PATH}/features/home/training/general/quizzes/group-a.html`,
   `${BASE_PATH}/features/home/training/general/quizzes/group-b.html`,
+
 
   // --- فونت‌ها ---
   `${BASE_PATH}/assets/fonts/bootstrap-icons.woff`,
@@ -165,6 +176,8 @@ self.addEventListener("fetch", (event) => {
           // اگر در کش یافت نشد، تلاش می‌کنیم با مسیر اصلی fetch کنیم
           return fetch(event.request);
         }).catch(() => {
+          // Fallback if fetch also fails (e.g., network error and not in cache)
+          // You might want to serve an offline page here if it's critical
           return new Response(null, { status: 404, statusText: "Not Found" });
         })
       );
@@ -178,6 +191,8 @@ self.addEventListener("fetch", (event) => {
           return cachedResponse;
         }
         return fetch(event.request).catch(() => {
+          // Fallback if fetch also fails (e.g., network error and not in cache)
+          // You might want to serve an offline page here if it's critical
           return new Response(null, { status: 404, statusText: "Not Found" });
         });
       })
