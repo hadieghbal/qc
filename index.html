@@ -10,16 +10,16 @@
 
     <title>کنترل کیفیت پاکشوما</title>
 
-    <!-- ===== تغییر ۱: مسیرهای CSS کتابخانه‌ها اصلاح شد ===== -->
+    <!-- مسیرهای CSS کتابخانه‌ها -->
     <link rel="stylesheet" href="assets/libs/jdp.min.css" />
     <link rel="stylesheet" href="assets/libs/choices.min.css" />
     <link rel="stylesheet" href="assets/libs/toastify.min.css" />
 
-    <!-- این دو فایل در مسیر درستی هستند و نیازی به تغییر ندارند -->
+    <!-- CSS های پروژه -->
     <link rel="stylesheet" href="assets/css/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="assets/css/shared.css" />
 
-    <!-- ===== تغییر ۲: مسیرهای JS کتابخانه‌ها اصلاح شد ===== -->
+    <!-- JS کتابخانه‌ها -->
     <script src="assets/libs/html2canvas.min.js"></script>
     <script src="assets/libs/sweetalert2.all.min.js"></script>
     <script src="assets/libs/toastify.js"></script>
@@ -28,7 +28,7 @@
     <script src="assets/libs/pdfmake.min.js"></script>
     <script src="assets/libs/vfs_fonts.js"></script>
 
-    <!-- ===== تغییر ۳: مسیر فایل اصلی برنامه اصلاح شد ===== -->
+    <!-- فایل اصلی برنامه -->
     <script type="module" src="js/main.js"></script>
   </head>
   <body>
@@ -56,9 +56,12 @@
       <main id="page-container"></main>
     </div>
 
+    <!-- ===== تغییر اعمال شده: مسیر ثبت Service Worker اصلاح شد ===== -->
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
+          // مسیر ثبت را فقط به نام فایل 'service-worker.js' تغییر دهید.
+          // این فرض را بر این می‌گذارد که service-worker.js در همان دایرکتوری index.html قرار دارد.
           navigator.serviceWorker
             .register("service-worker.js")
             .then((registration) => {
