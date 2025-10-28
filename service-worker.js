@@ -1,4 +1,4 @@
-const CACHE_NAME = "qc v9"; // ✅ تغییر نسخه جدید برای اطمینان از به‌روزرسانی کش (از v7 به v8)
+const CACHE_NAME = "qc v10"; // ✅ تغییر نسخه جدید برای اطمینان از به‌روزرسانی کش (از v7 به v8)
 const BASE_PATH = "/qc";    // مسیر پایه پروژه
 
 const FILES_TO_CACHE = [
@@ -69,16 +69,12 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/features/home/iso-docs/iso-docs.html`,
   `${BASE_PATH}/features/home/iso-docs/instruction/instruction.html`,
 
-
   // ✅ اضافه شده برای خط مشی ها
   `${BASE_PATH}/features/home/iso-docs/policies/policies.html`,
   `${BASE_PATH}/features/home/iso-docs/policies/policy-pakshoma.html`,
   `${BASE_PATH}/features/home/iso-docs/policies/policy-qc.html`,
 
   `${BASE_PATH}/features/home/charts/org-chart/org-chart.html`, // این فایل با محتوای جدید کش خواهد شد
-
-  `${BASE_PATH}/features/home/charts/org-chart/org-chart.html`,
-
   `${BASE_PATH}/features/home/charts/personnel-form/personnel-form.html`,
   `${BASE_PATH}/features/home/charts/charts.html`,
 
