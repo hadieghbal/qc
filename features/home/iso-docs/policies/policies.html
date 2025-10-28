@@ -1,0 +1,76 @@
+<div id="policies-page">
+  <style>
+    /* استایل‌های این صفحه دقیقاً مثل صفحات قبلی است تا ظاهر هماهنگ باشد */
+    .welcome-message {
+      margin: 20px 0 40px;
+      text-align: center;
+    }
+    .welcome-message h2 {
+      font-size: 28px;
+      color: var(--primary-color);
+      margin-bottom: 8px;
+    }
+    .welcome-message p {
+      font-size: 16px;
+      color: var(--secondary-color);
+    }
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .nav-card {
+      background-color: var(--form-bg-color);
+      padding: 25px;
+      border-radius: var(--border-radius);
+      border: 1px solid var(--border-color);
+      text-decoration: none;
+      color: var(--dark-color);
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      text-align: center;
+    }
+    .nav-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow);
+      border-color: var(--primary-color);
+    }
+    .nav-card i {
+      font-size: 48px;
+      color: var(--primary-color);
+    }
+    .nav-card h3 {
+      margin: 0;
+      font-size: 20px;
+    }
+    .nav-card p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--secondary-color);
+    }
+  </style>
+
+  <div class="welcome-message">
+    <h2>خط مشی‌ها</h2>
+    <p>لطفاً خط مشی مورد نظر خود را انتخاب کنید.</p>
+  </div>
+
+  <div class="nav-grid">
+    <!-- ۱. کارت خط مشی شرکت پاکشوما -->
+    <a href="#/policies/pakshoma" class="nav-card">
+      <i class="bi bi-building"></i>
+      <h3>خط مشی شرکت پاکشوما</h3>
+      <p>سند جامع خط مشی سازمان</p>
+    </a>
+
+    <!-- ۲. کارت خط مشی کنترل کیفیت -->
+    <a href="#/policies/qc" class="nav-card">
+      <i class="bi bi-patch-check"></i>
+      <h3>خط مشی کنترل کیفیت</h3>
+      <p>اصول و تعهدات مربوط به کیفیت</p>
+    </a>
+  </div>
+</div>

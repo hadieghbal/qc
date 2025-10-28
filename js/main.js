@@ -4,7 +4,7 @@
 import { init as initScrapForm } from "../features/home/forms/scrap-form/scrap-form.js";
 import { init as initChecklistInjection } from "../features/home/forms/checklists/checklist-injection/checklist-injection.js";
 import { init as initPersonnelForm } from "../features/home/charts/personnel-form/personnel-form.js";
-import { init as initOrgChart } from "../features/home/charts/org-chart/org-chart.js";
+//import { init as initOrgChart } from "../features/home/charts/org-chart/org-chart.js";
 import { init as initLineQuality } from "../features/home/forms/line-quality/line-quality.js";
 // ✅ وارد کردن منطق آزمون‌ها
 import { init as initGroupA } from "../features/home/training/general/quizzes/group-a.js";
@@ -107,6 +107,9 @@ function initNavCard() {
       if (featurePath) {
         // ناوبری همیشه با مسیر مطلق که از / شروع می‌شود
         window.location.hash = `#${featurePath}`;
+      } else {
+        // برای سازگاری با href فعلی شما در iso-docs.html
+        window.location.hash = card.getAttribute("href");
       }
     });
   });
@@ -127,12 +130,33 @@ const routes = {
     path: "features/home/iso-docs/iso-docs.html",
     title: "مستندات ایزو",
     headerType: "back",
-    init: () => {},
+    init: initNavCard, // ✅ اضافه شد برای اطمینان از کارکرد کارت ها در این صفحه
   },
   "/instruction": {
     path: "features/home/iso-docs/instruction/instruction.html",
     title: "دستورالعمل کنترل فرآیند",
     docCode: "P1-QC-WI-001/001",
+    headerType: "back",
+    init: () => {},
+  },
+  // ✅ مسیرهای جدید برای خط مشی ها
+  "/policies": {
+    path: "features/home/iso-docs/policies/policies.html",
+    title: "خط مشی‌ها",
+    headerType: "back",
+    init: initNavCard, // ✅ برای فعال کردن ناوبری کارت ها در این صفحه
+  },
+  "/policies/pakshoma": {
+    path: "features/home/iso-docs/policies/policy-pakshoma.html",
+    title: "خط مشی شرکت پاکشوما",
+    docCode: "QA-A-001/008", // ✅ کد مدرک اضافه شد
+    headerType: "back",
+    init: () => {},
+  },
+  "/policies/qc": {
+    path: "features/home/iso-docs/policies/policy-qc.html",
+    title: "خط مشی کنترل کیفیت",
+    docCode: "P1-QC-PM-001/001", // ✅ کد مدرک نمونه
     headerType: "back",
     init: () => {},
   },
@@ -190,7 +214,7 @@ const routes = {
     css: "features/home/charts/org-chart/org-chart.css",
     title: "نمودار سازمانی",
     headerType: "back",
-    init: initOrgChart,
+    init: () => {}, // این خط را به یک تابع خالی تغییر دهید
   },
   "/checklist-injection": {
     path: "features/home/forms/checklists/checklist-injection/checklist-injection.html",

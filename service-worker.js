@@ -1,4 +1,4 @@
-const CACHE_NAME = "qc v7"; // ✅ تغییر نسخه جدید برای اطمینان از به‌روزرسانی کش
+const CACHE_NAME = "qc v9"; // ✅ تغییر نسخه جدید برای اطمینان از به‌روزرسانی کش (از v7 به v8)
 const BASE_PATH = "/qc";    // مسیر پایه پروژه
 
 const FILES_TO_CACHE = [
@@ -25,8 +25,8 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection.js`,
   `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection.html`, 
 
-  `${BASE_PATH}/features/home/charts/org-chart/org-chart-data.js`,
-  `${BASE_PATH}/features/home/charts/org-chart/org-chart.js`,
+  // `${BASE_PATH}/features/home/charts/org-chart/org-chart-data.js`, // حذف شده
+  // `${BASE_PATH}/features/home/charts/org-chart/org-chart.js`,     // حذف شده
   `${BASE_PATH}/features/home/charts/personnel-form/personnel-form.js`,
   `${BASE_PATH}/features/home/forms/scrap-form/scrap-form-data.js`,
   `${BASE_PATH}/features/home/forms/scrap-form/scrap-form.js`,
@@ -49,7 +49,7 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/assets/libs/choices.min.css`,
   `${BASE_PATH}/assets/libs/jdp.min.css`,
   `${BASE_PATH}/assets/libs/toastify.min.css`,
-  `${BASE_PATH}/features/home/charts/org-chart/org-chart.css`,
+  `${BASE_PATH}/features/home/charts/org-chart/org-chart.css`, // این فایل با محتوای جدید کش خواهد شد
   `${BASE_PATH}/features/home/forms/scrap-form/scrap-form.css`,
   
   // ✅ اضافه شده برای "کیفیت روزانه خطوط" (CSS)
@@ -68,7 +68,13 @@ const FILES_TO_CACHE = [
   
   `${BASE_PATH}/features/home/iso-docs/iso-docs.html`,
   `${BASE_PATH}/features/home/iso-docs/instruction/instruction.html`,
-  `${BASE_PATH}/features/home/charts/org-chart/org-chart.html`,
+
+  // ✅ اضافه شده برای خط مشی ها
+  `${BASE_PATH}/features/home/iso-docs/policies/policies.html`,
+  `${BASE_PATH}/features/home/iso-docs/policies/policy-pakshoma.html`,
+  `${BASE_PATH}/features/home/iso-docs/policies/policy-qc.html`,
+
+  `${BASE_PATH}/features/home/charts/org-chart/org-chart.html`, // این فایل با محتوای جدید کش خواهد شد
   `${BASE_PATH}/features/home/charts/personnel-form/personnel-form.html`,
   `${BASE_PATH}/features/home/charts/charts.html`,
 
@@ -103,6 +109,7 @@ const FILES_TO_CACHE = [
   // --- تصاویر ---
   `${BASE_PATH}/assets/images/logo-192.png`,
   `${BASE_PATH}/assets/images/logo-512.png`,
+  `${BASE_PATH}/assets/images/chart.jpg`, // ✅ حتماً این خط را اضافه کنید تا تصویر چارت کش شود
 ];
 
 // =============================

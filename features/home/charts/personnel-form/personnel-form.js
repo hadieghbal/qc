@@ -1,9 +1,9 @@
 // مسیر: js/pages/personnelForm.js
-import { orgChartData } from "../org-chart/org-chart-data.js";
+// import { orgChartData } from "../org-chart/org-chart-data.js"; // این خط حذف شده است
 import { saveData, loadData } from '../../../../js/utils/store.js';
 
 export function init() {
-  console.log("Personnel Form Initialized with Supervisor Finder!");
+  console.log("Personnel Form Initialized!"); // تغییر پیام کنسول
   const Swal = window.Swal,
     Toastify = window.Toastify;
   const pageElement = document.getElementById("personnel-form-page");
@@ -24,6 +24,19 @@ export function init() {
   let personnel = [];
   let editingId = null;
 
+  // تعریف مستقیم داده‌های مورد نیاز (که قبلاً از orgChartData می‌آمدند)
+  const positions = ["مدیر", "سرپرست", "کارشناس", "بازرس", "کنترلر"];
+  const genders = ["مرد", "زن"];
+  const units = [
+    "مدیریت",
+    "تزریق",
+    "آزمایشگاه",
+    "حین تولید",
+    "گزارشات",
+    "ورودی",
+    "پیش تولید",
+  ];
+
   function showToast(message, type = "info") {
     const colors = {
       info: "linear-gradient(to right, #0dcaf0, #0d6efd)",
@@ -40,6 +53,11 @@ export function init() {
     }).showToast();
   }
 
+  // تابع findUltimateSupervisor دیگر برای نمایش در لیست پرسنل استفاده نمی‌شود
+  // اما اگر در آینده برای منطق دیگری به آن نیاز دارید، می‌توانید نگه دارید.
+  // فعلا برای هدف شما (فقط ثبت اطلاعات) می‌توان آن را حذف کرد.
+  // اگر نیاز به آن ندارید، بخش زیر را حذف کنید:
+  /*
   function findUltimateSupervisor(personId, allPersonnel) {
     let currentPerson = allPersonnel.find((p) => p.id === personId);
     let safetyCounter = 0;
@@ -58,6 +76,7 @@ export function init() {
     }
     return null;
   }
+  */
 
   function populateSelects() {
     const populate = (selectEl, data, placeholder) => {
@@ -66,14 +85,16 @@ export function init() {
         selectEl.innerHTML += `<option value="${item}">${item}</option>`;
       });
     };
-    populate(unitSelect, orgChartData.units, "واحد را انتخاب کنید...");
-    populate(positionSelect, orgChartData.positions, "سمت را انتخاب کنید...");
-    populate(genderSelect, orgChartData.genders, "جنسیت را انتخاب کنید...");
+    // استفاده از داده‌های تعریف شده در همین فایل
+    populate(unitSelect, units, "واحد را انتخاب کنید...");
+    populate(positionSelect, positions, "سمت را انتخاب کنید...");
+    populate(genderSelect, genders, "جنسیت را انتخاب کنید...");
 
     reportsToSelect.innerHTML = `<option value="">هیچکدام (سطح بالا)</option>`;
     personnel
       .sort((a, b) => a.name.localeCompare(b.name, "fa"))
       .forEach((p) => {
+        // جلوگیری از اینکه شخص، خودش را به عنوان سرپرست انتخاب کند
         if (!editingId || p.id !== editingId) {
           reportsToSelect.innerHTML += `<option value="${p.id}">${p.name} (${p.position})</option>`;
         }
@@ -91,18 +112,11 @@ export function init() {
     }
 
     personnel.forEach((p, index) => {
-      let supervisorHTML = "";
-      if (p.position === "سرپرست") {
-        const manager = personnel.find(
-          (m) => m.id === p.reportsTo && m.position === "مدیر"
-        );
-        if (manager) {
-          supervisorHTML = `<span><i class="bi bi-person-check-fill"></i> مدیر: ${manager.name}</span>`;
-        }
-      } else if (p.position !== "مدیر") {
-        const supervisor = findUltimateSupervisor(p.id, personnel);
+      let reportsToName = "ندارد (سطح بالا)";
+      if (p.reportsTo) {
+        const supervisor = personnel.find(sup => sup.id === p.reportsTo);
         if (supervisor) {
-          supervisorHTML = `<span><i class="bi bi-person-check-fill"></i> سرپرست: ${supervisor.name}</span>`;
+          reportsToName = `${supervisor.name} (${supervisor.position})`;
         }
       }
 
@@ -123,7 +137,7 @@ export function init() {
           <span><i class="bi bi-briefcase-fill"></i> سمت: ${p.position}</span>
           <span><i class="bi bi-building"></i> واحد: ${p.unit}</span>
           <span><i class="bi bi-gender-ambiguous"></i> جنسیت: ${p.gender}</span>
-          ${supervisorHTML}
+          <span><i class="bi bi-person-up"></i> گزارش به: ${reportsToName}</span>
         </div>
       `;
       personnelList.appendChild(li);
@@ -136,9 +150,13 @@ export function init() {
     formTitle.innerHTML = '<i class="bi bi-person-plus"></i> افزودن نیروی جدید';
     submitBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> ثبت';
     submitBtn.style.backgroundColor = "var(--success-color)";
-    populateSelects();
+    populateSelects(); // مجدداً پر کردن منوها برای حالت جدید
     codeInput.focus();
   }
+  
+  // تنظیم ریست کننده فعال برای منوی سراسری
+  window.activeFormResetter = resetForm;
+
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -161,6 +179,18 @@ export function init() {
       showToast("لطفاً تمام فیلدها را تکمیل کنید.", "error");
       return;
     }
+    
+    // بررسی کد تکراری در حالت افزودن جدید
+    if (!editingId && personnel.some(p => p.code === personData.code)) {
+        showToast("کد پرسنلی تکراری است.", "error");
+        return;
+    }
+    // بررسی کد تکراری در حالت ویرایش (به جز خودش)
+    if (editingId && personnel.some(p => p.code === personData.code && p.id !== editingId)) {
+        showToast("کد پرسنلی تکراری است.", "error");
+        return;
+    }
+
     if (editingId) {
       const index = personnel.findIndex((p) => p.id === editingId);
       personnel[index] = personData;
@@ -185,7 +215,7 @@ export function init() {
 
     if (editBtn) {
       editingId = id;
-      populateSelects();
+      populateSelects(); // مجدداً پر کردن منو سرپرست برای حذف خود فرد
       codeInput.value = person.code;
       nameInput.value = person.name;
       unitSelect.value = person.unit;
@@ -211,6 +241,17 @@ export function init() {
         cancelButtonText: "انصراف",
       }).then((result) => {
         if (result.isConfirmed) {
+          // بررسی اینکه آیا فردی به این پرسنل گزارش می‌دهد یا خیر
+          const dependents = personnel.filter(p => p.reportsTo === id);
+          if (dependents.length > 0) {
+            Swal.fire(
+              "خطا",
+              "این پرسنل دارای زیرمجموعه است و نمی‌تواند حذف شود. ابتدا زیرمجموعه‌های او را ویرایش کنید.",
+              "error"
+            );
+            return;
+          }
+
           personnel = personnel.filter((p) => p.id !== id);
           saveData(STORAGE_KEY, personnel);
           renderList();
@@ -221,6 +262,7 @@ export function init() {
     }
   });
 
+  // بارگذاری اولیه داده‌ها و رندر لیست
   personnel = loadData(STORAGE_KEY) || [];
   populateSelects();
   renderList();
