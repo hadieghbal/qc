@@ -46,6 +46,7 @@ export const appData = {
       "TT",
       "VC",
       "WM-KEN",
+      "RVC",
       "سایر",
     ],
 
