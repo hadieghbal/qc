@@ -39,6 +39,7 @@ export const lineQualityFormData = {
     "TT",
     "VC",
     "WM-KEN",
+    "RVC",
     "سایر",
   ],
 
