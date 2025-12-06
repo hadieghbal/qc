@@ -1,12 +1,12 @@
-const CACHE_NAME = "qc v11"; // ✅ تغییر نسخه جدید برای اطمینان از به‌روزرسانی کش (از v7 به v8)
-const BASE_PATH = "/qc";    // مسیر پایه پروژه
+const CACHE_NAME = "qc v12"; // ✅ تغییر نسخه جدید برای اطمینان از به‌روزرسانی کش (از v7 به v8)
+const BASE_PATH = "/qc"; // مسیر پایه پروژه
 
 const FILES_TO_CACHE = [
   // --- فایل‌های اصلی ---
   `${BASE_PATH}/`,
   `${BASE_PATH}/index.html`,
   `${BASE_PATH}/manifest.json`,
-  `${BASE_PATH}/bom/bom-data.json`, 
+  `${BASE_PATH}/bom/bom-data.json`,
 
   // --- اسکریپت‌ها ---
   `${BASE_PATH}/js/main.js`,
@@ -23,18 +23,18 @@ const FILES_TO_CACHE = [
   // فیچرها (مسیرها درست هستند)
   `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection-data.js`,
   `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection.js`,
-  `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection.html`, 
+  `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection.html`,
 
   // `${BASE_PATH}/features/home/charts/org-chart/org-chart-data.js`, // حذف شده
   // `${BASE_PATH}/features/home/charts/org-chart/org-chart.js`,     // حذف شده
   `${BASE_PATH}/features/home/charts/personnel-form/personnel-form.js`,
   `${BASE_PATH}/features/home/forms/scrap-form/scrap-form-data.js`,
   `${BASE_PATH}/features/home/forms/scrap-form/scrap-form.js`,
-  
+
   // ✅ اضافه شده برای "کیفیت روزانه خطوط" (JS)
   `${BASE_PATH}/features/home/forms/line-quality/line-quality-data.js`,
   `${BASE_PATH}/features/home/forms/line-quality/line-quality.js`,
-  
+
   // ✅ اضافه شده برای فایل kham.js
   `${BASE_PATH}/features/kham/kham.js`,
 
@@ -51,10 +51,10 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/assets/libs/toastify.min.css`,
   `${BASE_PATH}/features/home/charts/org-chart/org-chart.css`, // این فایل با محتوای جدید کش خواهد شد
   `${BASE_PATH}/features/home/forms/scrap-form/scrap-form.css`,
-  
+
   // ✅ اضافه شده برای "کیفیت روزانه خطوط" (CSS)
   `${BASE_PATH}/features/home/forms/line-quality/line-quality.css`,
-  
+
   `${BASE_PATH}/features/home/forms/checklists/checklist-injection/checklist-injection.css`,
 
   // --- صفحات HTML ---
@@ -62,10 +62,10 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/features/home/forms/forms.html`,
   `${BASE_PATH}/features/home/forms/checklists/checklists.html`,
   `${BASE_PATH}/features/home/forms/scrap-form/scrap-form.html`,
-  
+
   // ✅ اضافه شده برای "کیفیت روزانه خطوط" (HTML)
   `${BASE_PATH}/features/home/forms/line-quality/line-quality.html`,
-  
+
   `${BASE_PATH}/features/home/iso-docs/iso-docs.html`,
   `${BASE_PATH}/features/home/iso-docs/instruction/instruction.html`,
 
@@ -87,7 +87,7 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/features/home/training/products-intro/content/washing-machines.html`,
   `${BASE_PATH}/features/home/training/products-intro/content/vacuum-cleaners.html`,
   // مسیر زیر در ساختار پروژه شما مشخص نیست، اما در main.js اشاره شد، اگر وجود دارد اضافه شود:
-  // `${BASE_PATH}/features/home/training/products-intro/content/other-appliances.html`, 
+  // `${BASE_PATH}/features/home/training/products-intro/content/other-appliances.html`,
   // ✅ اضافه شده فایل‌های HTML گروه‌های آموزشی
   `${BASE_PATH}/features/home/training/general/documents.html`,
   `${BASE_PATH}/features/home/training/general/group-a.html`,
@@ -95,7 +95,6 @@ const FILES_TO_CACHE = [
   `${BASE_PATH}/features/home/training/general/quizzes/quizzes.html`,
   `${BASE_PATH}/features/home/training/general/quizzes/group-a.html`,
   `${BASE_PATH}/features/home/training/general/quizzes/group-b.html`,
-
 
   // --- فونت‌ها ---
   `${BASE_PATH}/assets/fonts/bootstrap-icons.woff`,
@@ -119,12 +118,18 @@ self.addEventListener("install", (event) => {
   console.log("[ServiceWorker] Install");
 
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log("[ServiceWorker] Pre-caching files:", FILES_TO_CACHE.length);
-      return cache.addAll(FILES_TO_CACHE);
-    }).catch((err) => {
-      console.error("[ServiceWorker] Failed to cache files:", err);
-    })
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => {
+        console.log(
+          "[ServiceWorker] Pre-caching files:",
+          FILES_TO_CACHE.length
+        );
+        return cache.addAll(FILES_TO_CACHE);
+      })
+      .catch((err) => {
+        console.error("[ServiceWorker] Failed to cache files:", err);
+      })
   );
 
   self.skipWaiting();
@@ -161,48 +166,56 @@ self.addEventListener("fetch", (event) => {
 
   // اگر درخواست از همان origin باشد
   if (url.origin === self.location.origin) {
-    
     // اگر پروژه در یک زیرمسیر (subfolder) قرار دارد (مثل GitHub Pages)
     if (BASE_PATH && !path.startsWith(BASE_PATH)) {
       // آدرس را برای یافتن در کش اصلاح می‌کنیم
-      
+
       // اگر درخواست برای ریشه پروژه است (مثل hadieghbal.github.io/)
-      if (path === '/') {
-        event.respondWith(caches.match(`${BASE_PATH}/index.html`, { ignoreSearch: true }));
+      if (path === "/") {
+        event.respondWith(
+          caches.match(`${BASE_PATH}/index.html`, { ignoreSearch: true })
+        );
         return;
       }
 
       // ساخت مسیر کش (مثلاً /assets/css/shared.css به /qc/assets/css/shared.css تبدیل شود)
-      const correctedPath = path.startsWith('/') ? `${BASE_PATH}${path}` : `${BASE_PATH}/${path}`;
-      
+      const correctedPath = path.startsWith("/")
+        ? `${BASE_PATH}${path}`
+        : `${BASE_PATH}/${path}`;
+
       event.respondWith(
-        caches.match(correctedPath, { ignoreSearch: true }).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          // اگر در کش یافت نشد، تلاش می‌کنیم با مسیر اصلی fetch کنیم
-          return fetch(event.request);
-        }).catch(() => {
-          // Fallback if fetch also fails (e.g., network error and not in cache)
-          // You might want to serve an offline page here if it's critical
-          return new Response(null, { status: 404, statusText: "Not Found" });
-        })
+        caches
+          .match(correctedPath, { ignoreSearch: true })
+          .then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            // اگر در کش یافت نشد، تلاش می‌کنیم با مسیر اصلی fetch کنیم
+            return fetch(event.request);
+          })
+          .catch(() => {
+            // Fallback if fetch also fails (e.g., network error and not in cache)
+            // You might want to serve an offline page here if it's critical
+            return new Response(null, { status: 404, statusText: "Not Found" });
+          })
       );
       return;
     }
 
     // منطق اصلی کش برای درخواست‌هایی که مسیر صحیح BASE_PATH را دارند
     event.respondWith(
-      caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        return fetch(event.request).catch(() => {
-          // Fallback if fetch also fails (e.g., network error and not in cache)
-          // You might want to serve an offline page here if it's critical
-          return new Response(null, { status: 404, statusText: "Not Found" });
-        });
-      })
+      caches
+        .match(event.request, { ignoreSearch: true })
+        .then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          return fetch(event.request).catch(() => {
+            // Fallback if fetch also fails (e.g., network error and not in cache)
+            // You might want to serve an offline page here if it's critical
+            return new Response(null, { status: 404, statusText: "Not Found" });
+          });
+        })
     );
   }
 });
