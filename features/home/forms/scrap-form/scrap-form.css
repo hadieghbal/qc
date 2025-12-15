@@ -2,8 +2,9 @@
 /* ===== PAGE SPECIFIC: SCRAP FORM ============= */
 /* ============================================= */
 
-html, body {
-  overscroll-behavior: none; /* جلوی رفرش یا back/forward با ژست‌ها */
+html,
+body {
+  overscroll-behavior: none;
   height: 100%;
   margin: 0;
 }
@@ -112,7 +113,6 @@ tbody tr.invalid-row {
   background-color: #fff;
 }
 
-/* + اضافه شد: استایل برای نمایش نوع محصول در کارت خلاصه */
 .summary-text .summary-product-type {
   font-weight: 500;
   color: var(--secondary-color);
@@ -121,7 +121,7 @@ tbody tr.invalid-row {
 }
 
 /* ============================================= */
-/* ===== بخش جدید: استایل‌های خروجی تصویر ===== */
+/* ===== استایل‌های خروجی تصویر ===== */
 /* ============================================= */
 
 .print-page-container .summary-card-item {
@@ -188,13 +188,32 @@ tbody tr.invalid-row {
   margin-top: 2px;
 }
 
+/* +++ استایل بج‌های نوع ضایعات +++ */
+.print-page-container .type-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  color: white;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+.print-page-container .type-badge.electric {
+  background-color: #dc3545; /* قرمز برای برقی */
+}
+.print-page-container .type-badge.non-electric {
+  background-color: #6c757d; /* خاکستری برای غیربرقی */
+}
+/* +++ پایان استایل بج‌ها +++ */
+
 /* ======================================================== */
-/* ===== بخش جدید: رنگی کردن آیکون‌ها (هم زنده و هم خروجی) ===== */
+/* ===== رنگ آیکون‌ها ===== */
 /* ======================================================== */
 
 .summary-details .icon-product-type,
 .print-page-container .icon-product-type {
-  color: #20c997; /* رنگ سبزآبی */
+  color: #20c997;
 }
 .summary-details .icon-model,
 .print-page-container .icon-model {
@@ -208,18 +227,14 @@ tbody tr.invalid-row {
 .print-page-container .icon-item {
   color: var(--icon-item-color);
 }
-
-/* +++ استایل‌های جدید برای آیکون‌های تامین کننده و منشا +++ */
 .summary-details .icon-supplier,
 .print-page-container .icon-supplier {
-  color: #fd7e14; /* نارنجی */
+  color: #fd7e14;
 }
 .summary-details .icon-source,
 .print-page-container .icon-source {
-  color: #6f42c1; /* بنفش */
+  color: #6f42c1;
 }
-/* +++ پایان استایل‌های جدید +++ */
-
 .summary-details .icon-defect,
 .print-page-container .icon-defect {
   color: var(--icon-defect-color);

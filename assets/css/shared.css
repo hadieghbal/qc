@@ -50,6 +50,9 @@
   --icon-comment-color: #6c757d;
   --success-bg-color: #d1e7dd;
   --danger-bg-color: #f8d7da;
+
+  /* ✅ متغیر جدید برای رنگ متن‌های راهنما (Placeholder) */
+  --placeholder-color: #aeb4b9;
 }
 
 /* ============================================= */
@@ -1193,7 +1196,7 @@ label.required::after {
 /* ======================================================= */
 /* این بخش برای اطمینان از نمایش صحیح آیکون بازگشت در منوها اضافه شد. */
 .menu-button i.bi-arrow-right {
-    transform: scaleX(-1); /* فلش رو به عقب تبدیل شد */
+  transform: scaleX(-1); /* فلش رو به عقب تبدیل شد */
 }
 
 /*

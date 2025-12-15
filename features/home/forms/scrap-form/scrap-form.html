@@ -1,18 +1,15 @@
 <div id="scrap-form-page">
   <style>
-      html, body {
-    /* این کد فقط در این صفحه، از رفرش شدن با کشیدن جلوگیری می‌کنه */
-    overscroll-behavior-y: contain;
-  }
-    /* این کد باعث می‌شه فرم اصلی همیشه نمایش داده بشه */
+    html,
+    body {
+      overscroll-behavior-y: contain;
+    }
     #mobile-form-wrapper {
       display: block !important;
     }
-    /* دکمه "افزودن ردیف" حذف شده، پس بقیه دکمه‌ها رو وسط‌چین می‌کنیم */
     .actions-container {
       justify-content: center;
     }
-    /* استایل برای فیلد کد قطعه که فقط خواندنی است */
     #bom-part-code:read-only {
       background-color: #e9ecef;
       cursor: default;
@@ -20,6 +17,16 @@
       font-weight: bold;
       letter-spacing: 2px;
       color: var(--primary-color);
+    }
+    /* استایل اختصاصی برای سلکت باکس معمولی */
+    select.form-select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #fff;
+      font-family: inherit;
+      font-size: 14px;
     }
   </style>
 
@@ -32,13 +39,7 @@
       <label for="line">خط :</label>
       <select id="line" name="line"></select>
     </div>
-    <div class="form-meta">
-      <label for="waste_type_select">نوع ضایعات :</label>
-      <select id="waste_type_select" name="waste_type">
-        <option value="غیربرقی" selected>غیربرقی</option>
-        <option value="برقی">برقی</option>
-      </select>
-    </div>
+    <!-- نوع ضایعات از اینجا حذف شد و به داخل فرم منتقل شد -->
   </div>
 
   <table style="display: none">
@@ -53,7 +54,7 @@
       </div>
       <div class="accordion-content" style="display: flex">
         <!-- ============================================= -->
-        <!-- ===== بخش جدید: انتخابگر هوشمند قطعه (BOM) ===== -->
+        <!-- ===== بخش انتخابگر هوشمند قطعه (BOM) ===== -->
         <!-- ============================================= -->
         <div class="mobile-form-group">
           <label for="bom-product-type" class="required">نوع محصول:</label>
@@ -70,6 +71,17 @@
             disabled
           ></select>
         </div>
+
+        <!-- فیلد جدید نوع ضایعات (Sticky) -->
+        <div class="mobile-form-group">
+          <label for="item-waste-type" class="required">نوع ضایعات:</label>
+          <select id="item-waste-type" class="form-select">
+            <option value="" disabled selected>انتخاب کنید...</option>
+            <option value="غیربرقی">غیربرقی</option>
+            <option value="برقی">برقی</option>
+          </select>
+        </div>
+
         <div class="mobile-form-group">
           <label for="bom-part-name" class="required">نام قطعه:</label>
           <select
