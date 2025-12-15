@@ -1,13 +1,15 @@
 import { injectionChecklistData } from "./checklist-injection-data.js";
-import { saveData, loadData } from "../../../../../js/utils/store.js";
 
 export function init() {
-  console.log("Checklist Injection Initialized! (Mobile-Only)");
-  // --- تعریف متغیرهای اصلی ---
+  console.log(
+    "Checklist Injection Initialized! (v: Smooth Scroll + Ordered Validation)"
+  );
+
   const Swal = window.Swal,
     Toastify = window.Toastify,
     Choices = window.Choices,
     html2canvas = window.html2canvas;
+
   const pageElement = document.getElementById("checklist-injection-page");
   const tableBody = document.getElementById("main-table-body");
   const mobileSummaryList = document.getElementById("mobile-summary-list");
@@ -24,30 +26,79 @@ export function init() {
     !mobileSummaryList ||
     !legendsMainContainer
   ) {
-    console.error(
-      "Core elements for Checklist Injection not found. Halting script."
-    );
+    console.error("Core elements for Checklist Injection not found.");
     return;
   }
 
-  // --- متغیرهای وضعیت ---
-  let data = [],
-    editingIndex = null,
-    finalizedData = {};
-
+  let data = [];
+  let editingIndex = null;
+  let finalizedData = {};
   let mobileDeviceChoice;
-  let partChoices = new Map(); // <-- جدید: برای نگهداری دراپ‌داون‌های قطعات
+
+  // نگهداری اینستنس‌های Choices
+  let partChoices = new Map();
+  let materialChoices = new Map();
+  let masterbatchChoices = new Map();
+
+  const STORAGE_PREFIX = "INJ_SETUP_";
 
   const choicesConfig = {
     searchPlaceholderValue: "جستجو...",
     removeItemButton: false,
     itemSelectText: "انتخاب",
     noResultsText: "موردی یافت نشد",
-    noChoicesText: "گزینه‌ای برای انتخاب وجود ندارد",
+    noChoicesText: "گزینه‌ای نیست",
     shouldSort: false,
+    searchResultLimit: 1000,
+    renderChoiceLimit: 1000,
   };
 
-  // --- توابع ---
+  // --- Helpers ---
+  function getTodayDateString() {
+    const dateInput = document.getElementById("date_input");
+    if (dateInput && dateInput.value) return dateInput.value;
+    const today = new Date();
+    const formatter = new Intl.DateTimeFormat("fa-IR-u-nu-latn", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      calendar: "persian",
+    });
+    return formatter.format(today);
+  }
+
+  function saveDeviceSettingsToMemory(settings) {
+    const date = getTodayDateString();
+    const key = `${STORAGE_PREFIX}${date}_${settings.deviceName}`;
+    const dataToStore = {
+      parts: settings.parts,
+      materials: settings.materials,
+      masterbatches: settings.masterbatches,
+      weight: settings.weight,
+      cycleTime: settings.cycleTime,
+    };
+    try {
+      localStorage.setItem(key, JSON.stringify(dataToStore));
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function loadDeviceSettingsFromMemory(deviceName) {
+    const date = getTodayDateString();
+    const key = `${STORAGE_PREFIX}${date}_${deviceName}`;
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : null;
+  }
+
+  function cleanupOldStorage() {
+    const todayDate = getTodayDateString();
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith(STORAGE_PREFIX) && !key.includes(todayDate)) {
+        localStorage.removeItem(key);
+      }
+    });
+  }
 
   function showToast(message, type = "error") {
     const colors = {
@@ -58,7 +109,7 @@ export function init() {
     };
     Toastify({
       text: message,
-      duration: 4000,
+      duration: 3000,
       close: true,
       gravity: "top",
       position: "center",
@@ -77,8 +128,11 @@ export function init() {
       id: Date.now() + Math.random(),
       deviceName: prefill.deviceName || "",
       parts: prefill.parts || [],
+      inspectionType: prefill.inspectionType || "initial",
+      serialNumbers: prefill.serialNumbers || Array(5).fill(""),
       materials: prefill.materials || [],
       masterbatches: prefill.masterbatches || [],
+      weight: prefill.weight || "",
       cycleTime: prefill.cycleTime || "",
       appearance: prefill.appearance || Array(5).fill(null),
       assembly: prefill.assembly || Array(5).fill(null),
@@ -106,17 +160,77 @@ export function init() {
   function formatCompoundList(listArray) {
     if (!listArray || listArray.length === 0) return "ثبت نشده";
     return listArray
-      .map((item) => `${item.name} (${item.percentage}%)`)
+      .map((item) => {
+        const desc = item.description ? ` (${item.description})` : "";
+        return `${item.name}${desc}: ${item.percentage}%`;
+      })
       .join(" + ");
   }
 
   function formatPartsList(partsArray) {
     if (!partsArray || partsArray.length === 0) return "ثبت نشده";
     return partsArray
-      .map((part) => `${part.name} (${part.weight}g)`)
+      .map((part) => {
+        const desc = part.description ? ` (${part.description})` : "";
+        return `${part.name}${desc}`;
+      })
       .join("، ");
   }
 
+  // --- HTML Generation ---
+  function createPartRowHTML(part = { name: "", description: "" }) {
+    return `
+   <div class="part-row">
+    <select class="name-input"></select>
+    <input type="text" class="description-input" value="${
+      part.description || ""
+    }" placeholder="توضیحات / کد...">
+    <div class="material-buttons">
+     <button type="button" class="material-action-btn remove-material-btn">−</button>
+     <button type="button" class="material-action-btn add-material-btn">+</button>
+    </div>
+   </div>`;
+  }
+
+  function createMaterialRowHTML(
+    material = { name: "", description: "", percentage: "" }
+  ) {
+    return `
+   <div class="material-row">
+    <select class="name-input"></select>
+    <input type="text" class="description-input" value="${
+      material.description || ""
+    }" placeholder="توضیحات">
+    <input type="number" class="numeric-input" value="${
+      material.percentage || ""
+    }" placeholder="%" min="0" max="100">
+    <div class="material-buttons">
+     <button type="button" class="material-action-btn remove-material-btn">−</button>
+     <button type="button" class="material-action-btn add-material-btn">+</button>
+    </div>
+   </div>`;
+  }
+
+  function createMasterbatchRowHTML(
+    masterbatch = { name: "", description: "", percentage: "" }
+  ) {
+    return `
+   <div class="masterbatch-row">
+    <select class="name-input"></select>
+    <input type="text" class="description-input" value="${
+      masterbatch.description || ""
+    }" placeholder="توضیحات">
+    <input type="number" class="numeric-input" value="${
+      masterbatch.percentage || ""
+    }" placeholder="%" min="0" max="100">
+    <div class="material-buttons">
+     <button type="button" class="material-action-btn remove-material-btn">−</button>
+     <button type="button" class="material-action-btn add-material-btn">+</button>
+    </div>
+   </div>`;
+  }
+
+  // --- Logic ---
   function createMobileCheckboxes() {
     const groups = pageElement.querySelectorAll(
       ".mobile-form-container .check-group"
@@ -185,52 +299,13 @@ export function init() {
       calendar: "persian",
     });
     dateInput.value = formatter.format(today);
-  }
-
-  //  <-- ویرایش شده: به جای input از select استفاده می‌کند
-  function createPartRowHTML(part = { name: "", weight: "" }) {
-    return `
-   <div class="part-row">
-    <select class="name-input"></select>
-    <input type="number" class="numeric-input" value="${part.weight}" placeholder="وزن (g)">
-    <div class="material-buttons">
-     <button type="button" class="material-action-btn remove-material-btn">−</button>
-     <button type="button" class="material-action-btn add-material-btn">+</button>
-    </div>
-   </div>`;
-  }
-
-  function createMaterialRowHTML(material = { name: "", percentage: "" }) {
-    return `
-   <div class="material-row">
-    <input type="text" class="name-input" value="${material.name}" placeholder="نام ماده">
-    <input type="number" class="numeric-input" value="${material.percentage}" placeholder="%">
-    <div class="material-buttons">
-     <button type="button" class="material-action-btn remove-material-btn">−</button>
-     <button type="button" class="material-action-btn add-material-btn">+</button>
-    </div>
-   </div>`;
-  }
-
-  function createMasterbatchRowHTML(
-    masterbatch = { name: "", percentage: "" }
-  ) {
-    return `
-   <div class="masterbatch-row">
-    <input type="text" class="name-input" value="${masterbatch.name}" placeholder="نام مستربچ">
-    <input type="number" class="numeric-input" value="${masterbatch.percentage}" placeholder="%">
-    <div class="material-buttons">
-     <button type="button" class="material-action-btn remove-material-btn">−</button>
-     <button type="button" class="material-action-btn add-material-btn">+</button>
-    </div>
-   </div>`;
+    cleanupOldStorage();
   }
 
   function updateDefectLabelRequirement() {
     const defectLabel = document.getElementById("defects-summary-label");
     const mobileForm = document.querySelector(".mobile-form-container");
     if (!defectLabel || !mobileForm) return;
-
     const isAnyNg = mobileForm.querySelector(".check-box.ng");
     if (isAnyNg) {
       defectLabel.classList.add("required");
@@ -239,18 +314,557 @@ export function init() {
     }
   }
 
+  function updateFormMode() {
+    const typeSelect = document.getElementById("mobile-inspection-type");
+    const mode = typeSelect.value;
+    const isRoutine = mode === "routine";
+    const activeColumns = isRoutine ? 2 : 5;
+
+    const serialInputs = document.querySelectorAll(
+      "#serial-inputs-wrapper .serial-input"
+    );
+    serialInputs.forEach((input, index) => {
+      if (index < activeColumns) {
+        input.classList.remove("hidden-col");
+      } else {
+        input.classList.add("hidden-col");
+        input.value = "";
+        input.classList.remove("required-field-error");
+      }
+      if (index === 0) {
+        if (!isRoutine) {
+          input.classList.add("master-sample-input");
+          input.placeholder = "سریال کامل";
+          input.type = "text";
+        } else {
+          input.classList.remove("master-sample-input");
+          input.placeholder = "4رقم";
+          input.type = "number";
+        }
+      } else {
+        input.type = "number";
+      }
+    });
+
+    const checkRows = document.querySelectorAll(".qc-grid-checks");
+    checkRows.forEach((row) => {
+      const boxes = Array.from(row.children);
+      boxes.forEach((box, index) => {
+        if (index < activeColumns) {
+          box.classList.remove("hidden-col");
+        } else {
+          box.classList.add("hidden-col");
+          box.classList.remove("ok", "ng");
+        }
+        if (index === 0 && !isRoutine) {
+          box.classList.add("master-sample-check");
+        } else {
+          box.classList.remove("master-sample-check");
+        }
+      });
+    });
+    updateDefectLabelRequirement();
+  }
+
+  // --- مدیریت Choices.js برای لیست‌ها ---
+  function initializeListChoices(
+    containerId,
+    dataList,
+    storageMap,
+    itemsData = []
+  ) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const rows = container.children;
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const selectElement = row.querySelector("select.name-input");
+      if (selectElement && !storageMap.has(selectElement)) {
+        const choice = new Choices(selectElement, choicesConfig);
+        choice.setChoices(getChoicesArray(dataList), "value", "label", true);
+        if (itemsData[i] && itemsData[i].name) {
+          choice.setChoiceByValue(itemsData[i].name);
+        }
+        storageMap.set(selectElement, choice);
+      }
+    }
+  }
+
+  // --- Initializers کلی ---
+  function initializeAllDynamicLists(dataObj = {}) {
+    // 1. قطعات
+    partChoices.forEach((c) => c.destroy());
+    partChoices.clear();
+    const partsContainer = document.getElementById("mobile-parts-container");
+    const partsData =
+      dataObj.parts && dataObj.parts.length > 0
+        ? dataObj.parts
+        : [{ name: "", description: "" }];
+    partsContainer.innerHTML = partsData
+      .map((p) => createPartRowHTML(p))
+      .join("");
+    initializeListChoices(
+      "mobile-parts-container",
+      injectionChecklistData.parts,
+      partChoices,
+      partsData
+    );
+
+    // 2. مواد
+    materialChoices.forEach((c) => c.destroy());
+    materialChoices.clear();
+    const matContainer = document.getElementById("mobile-materials-container");
+    const matData =
+      dataObj.materials && dataObj.materials.length > 0
+        ? dataObj.materials
+        : [{ name: "", description: "", percentage: "" }];
+    matContainer.innerHTML = matData
+      .map((m) => createMaterialRowHTML(m))
+      .join("");
+    initializeListChoices(
+      "mobile-materials-container",
+      injectionChecklistData.materials,
+      materialChoices,
+      matData
+    );
+
+    // 3. مستربچ
+    masterbatchChoices.forEach((c) => c.destroy());
+    masterbatchChoices.clear();
+    const mbContainer = document.getElementById(
+      "mobile-masterbatches-container"
+    );
+    const mbData =
+      dataObj.masterbatches && dataObj.masterbatches.length > 0
+        ? dataObj.masterbatches
+        : [{ name: "", description: "", percentage: "" }];
+    mbContainer.innerHTML = mbData
+      .map((m) => createMasterbatchRowHTML(m))
+      .join("");
+    initializeListChoices(
+      "mobile-masterbatches-container",
+      injectionChecklistData.masterbatches,
+      masterbatchChoices,
+      mbData
+    );
+  }
+
+  function clearFieldsOnly() {
+    initializeAllDynamicLists();
+
+    document.getElementById("mobile-weight").value = "";
+    document.getElementById("mobile-cycleTime").value = "";
+    document.getElementById("mobile-defects-summary").value = "";
+    document.getElementById("mobile-notes").value = "";
+    document.getElementById("mobile-inspection-type").value = "";
+    document
+      .querySelectorAll("#serial-inputs-wrapper .serial-input")
+      .forEach((inp) => (inp.value = ""));
+    document
+      .querySelectorAll("#mobile-form-wrapper .check-box")
+      .forEach((box) => (box.className = "check-box"));
+
+    updateFormMode();
+    updateDefectLabelRequirement();
+    updateDefectLegendsSelection();
+  }
+
+  function resetMobileForm() {
+    editingIndex = null;
+    if (mobileDeviceChoice) mobileDeviceChoice.setChoiceByValue("");
+    clearFieldsOnly();
+    const addBtn = document.getElementById("mobile-add-btn");
+    if (addBtn) {
+      addBtn.innerHTML =
+        '<i class="bi bi-check-circle-fill"></i> ثبت و افزودن به لیست';
+      addBtn.style.backgroundColor = "var(--success-color)";
+    }
+    document
+      .querySelectorAll(".required-field-error")
+      .forEach((el) => el.classList.remove("required-field-error"));
+  }
+
+  function onDeviceChange(event) {
+    const deviceName = event.detail.value;
+    if (!deviceName || editingIndex !== null) return;
+
+    const isDuplicate = data.some((item) => item.deviceName === deviceName);
+    if (isDuplicate) {
+      showToast(`دستگاه "${deviceName}" قبلاً در لیست ثبت شده است!`, "warning");
+      clearFieldsOnly();
+      return;
+    }
+
+    const savedSettings = loadDeviceSettingsFromMemory(deviceName);
+    if (savedSettings) {
+      initializeAllDynamicLists(savedSettings);
+      document.getElementById("mobile-weight").value =
+        savedSettings.weight || "";
+      document.getElementById("mobile-cycleTime").value =
+        savedSettings.cycleTime || "";
+      const typeSelect = document.getElementById("mobile-inspection-type");
+      typeSelect.value = "routine";
+      updateFormMode();
+      showToast("تنظیمات ذخیره شده بارگذاری شد.", "info");
+    } else {
+      clearFieldsOnly();
+    }
+  }
+
+  // =========================================
+  // === VALIDATION HELPER (Fix for Smooth Scroll) ===
+  // =========================================
+  function validateAndScroll(element, message) {
+    if (!element) return;
+
+    // 1. اضافه کردن کلاس خطا
+    if (
+      element.tagName === "SELECT" &&
+      element.classList.contains("name-input")
+    ) {
+      // برای choices.js
+      const choiceWrapper = element.closest(".choices");
+      if (choiceWrapper) choiceWrapper.classList.add("required-field-error");
+    } else {
+      // برای سایر فیلدها
+      element.classList.add("required-field-error");
+    }
+
+    // 2. اسکرول نرم به عنصر (یا والد آن اگر choices باشد)
+    const targetToScroll = element.closest(".choices") || element;
+    targetToScroll.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    // 3. فوکوس بدون پرش (Prevent Scroll)
+    // این قسمت کلیدی است: صبر می‌کنیم و سپس با preventScroll فوکوس می‌کنیم
+    setTimeout(() => {
+      if (typeof element.focus === "function") {
+        element.focus({ preventScroll: true });
+      }
+    }, 100);
+
+    showToast(message, "error");
+  }
+
+  function handleMobileSubmit() {
+    // 0. پاک کردن خطاهای قبلی
+    pageElement
+      .querySelectorAll(".required-field-error")
+      .forEach((el) => el.classList.remove("required-field-error"));
+
+    // 1. اعتبارسنجی هدر (Header)
+    const topFields = [
+      { id: "date_input", msg: "تاریخ الزامی است." },
+      { id: "hall_input", msg: "سالن الزامی است." },
+      { id: "shift_input", msg: "شیفت الزامی است." },
+      { id: "time_slot_input", msg: "ساعت الزامی است." },
+    ];
+    for (const field of topFields) {
+      const el = document.getElementById(field.id);
+      if (!el.value.trim()) {
+        validateAndScroll(el, field.msg);
+        return;
+      }
+    }
+
+    // 2. اعتبارسنجی دستگاه (Device)
+    const deviceName = mobileDeviceChoice.getValue(true);
+    if (!deviceName) {
+      const choicesEl = document
+        .querySelector("#mobile-device-name")
+        .closest(".choices");
+      choicesEl.classList.add("required-field-error");
+      showToast("لطفاً دستگاه را انتخاب کنید.", "error");
+      choicesEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    if (editingIndex === null) {
+      const isDuplicate = data.some((item) => item.deviceName === deviceName);
+      if (isDuplicate) {
+        showToast(
+          `خطا: دستگاه "${deviceName}" قبلاً در لیست وجود دارد.`,
+          "error"
+        );
+        return;
+      }
+    }
+
+    // 3. اعتبارسنجی قطعات (Parts)
+    const partRows = document.querySelectorAll(
+      "#mobile-parts-container .part-row"
+    );
+    const parts = [];
+    for (const row of partRows) {
+      const selectEl = row.querySelector("select.name-input");
+      const choiceInstance = partChoices.get(selectEl);
+      const partName = choiceInstance ? choiceInstance.getValue(true) : "";
+      const description = row.querySelector(".description-input").value.trim();
+
+      if (!partName) {
+        validateAndScroll(selectEl, "نام قطعه الزامی است.");
+        return;
+      }
+      parts.push({ name: partName, description: description });
+    }
+
+    // 4. اعتبارسنجی نوع تولید (Inspection Type)
+    const mode = document.getElementById("mobile-inspection-type").value;
+    if (!mode) {
+      validateAndScroll(
+        document.getElementById("mobile-inspection-type"),
+        "نوع تولید را انتخاب کنید."
+      );
+      return;
+    }
+
+    // 5. اعتبارسنجی مواد و مستربچ (Materials & Masterbatch Logic)
+    const materials = [];
+    const masterbatches = [];
+    let totalPercentage = 0;
+
+    // الف) مواد
+    const materialRows = document.querySelectorAll(
+      "#mobile-materials-container .material-row"
+    );
+    for (const row of materialRows) {
+      const selectEl = row.querySelector("select.name-input");
+      const choiceInstance = materialChoices.get(selectEl);
+      const matName = choiceInstance ? choiceInstance.getValue(true) : "";
+      const description = row.querySelector(".description-input").value.trim();
+      const percentageStr = row.querySelector(".numeric-input").value.trim();
+      const percentage = parseFloat(percentageStr);
+
+      if (matName || percentageStr) {
+        if (!matName) {
+          validateAndScroll(selectEl, "نام مواد را انتخاب کنید.");
+          return;
+        }
+        if (isNaN(percentage) || percentageStr === "") {
+          const inputEl = row.querySelector(".numeric-input");
+          validateAndScroll(inputEl, "درصد مواد الزامی است.");
+          return;
+        }
+        materials.push({ name: matName, description, percentage });
+        totalPercentage += percentage;
+      }
+    }
+
+    // ب) مستربچ
+    const mbRows = document.querySelectorAll(
+      "#mobile-masterbatches-container .masterbatch-row"
+    );
+    for (const row of mbRows) {
+      const selectEl = row.querySelector("select.name-input");
+      const choiceInstance = masterbatchChoices.get(selectEl);
+      const mbName = choiceInstance ? choiceInstance.getValue(true) : "";
+      const description = row.querySelector(".description-input").value.trim();
+      const percentageStr = row.querySelector(".numeric-input").value.trim();
+      const percentage = parseFloat(percentageStr);
+
+      if (mbName || percentageStr) {
+        if (!mbName) {
+          validateAndScroll(selectEl, "نام مستربچ را انتخاب کنید.");
+          return;
+        }
+        if (isNaN(percentage) || percentageStr === "") {
+          const inputEl = row.querySelector(".numeric-input");
+          validateAndScroll(inputEl, "درصد مستربچ الزامی است.");
+          return;
+        }
+        masterbatches.push({ name: mbName, description, percentage });
+        totalPercentage += percentage;
+      }
+    }
+
+    // ج) بررسی مجموع درصدها
+    if (materials.length === 0 && masterbatches.length === 0) {
+      const firstMatInput = document.querySelector(
+        "#mobile-materials-container select"
+      );
+      validateAndScroll(firstMatInput, "لطفاً حداقل یک ماده مصرفی وارد کنید.");
+      return;
+    }
+
+    if (Math.abs(totalPercentage - 100) > 0.1) {
+      document
+        .getElementById("mobile-materials-container")
+        .scrollIntoView({ behavior: "smooth", block: "center" });
+      showToast(
+        `مجموع درصدهای مواد و مستربچ باید ۱۰۰٪ باشد. (مجموع فعلی: ${totalPercentage}٪)`,
+        "error"
+      );
+      return;
+    }
+
+    // 6. وزن (Weight) - جابجا شد به قبل از سریال
+    const weight = document.getElementById("mobile-weight").value.trim();
+    if (!weight || isNaN(weight) || weight <= 0) {
+      validateAndScroll(
+        document.getElementById("mobile-weight"),
+        "وزن معتبر وارد کنید."
+      );
+      return;
+    }
+
+    // 7. سیکل زمانی (Cycle Time) - جابجا شد به قبل از سریال
+    const cycleTime = document.getElementById("mobile-cycleTime").value.trim();
+    if (!cycleTime || isNaN(cycleTime) || cycleTime <= 0) {
+      validateAndScroll(
+        document.getElementById("mobile-cycleTime"),
+        "سیکل زمانی معتبر وارد کنید."
+      );
+      return;
+    }
+
+    // 8. سریال‌ها (Serial Numbers) - جابجا شد به بعد از وزن و سیکل
+    const isRoutine = mode === "routine";
+    const activeCount = isRoutine ? 2 : 5;
+
+    if (!isRoutine) {
+      const masterInput = document.querySelector(
+        '#serial-inputs-wrapper .serial-input[data-index="0"]'
+      );
+      const masterVal = masterInput.value.trim();
+      if (
+        !masterVal ||
+        masterVal.length < 8 ||
+        masterVal.length > 20 ||
+        !/^\d+$/.test(masterVal)
+      ) {
+        validateAndScroll(
+          masterInput,
+          "سریال اصلی باید بین ۸ تا ۲۰ رقم عددی باشد."
+        );
+        return;
+      }
+    }
+    const serialInputs = document.querySelectorAll(
+      "#serial-inputs-wrapper .serial-input"
+    );
+    const serialValues = [];
+    for (let i = 0; i < activeCount; i++) {
+      const val = serialInputs[i].value.trim();
+      if (i > 0 && !val) {
+        validateAndScroll(serialInputs[i], `سریال ${i + 1} الزامی است.`);
+        return;
+      }
+      if (i > 0 && !/^\d{4}$/.test(val)) {
+        validateAndScroll(
+          serialInputs[i],
+          `سریال ${i + 1} باید دقیقاً ۴ رقم باشد.`
+        );
+        return;
+      }
+      serialValues.push(val);
+    }
+    while (serialValues.length < 5) serialValues.push("");
+
+    // 9. چک‌باکس‌ها
+    const checkProps = ["appearance", "assembly", "packaging"];
+    const checkData = {};
+    for (const prop of checkProps) {
+      const group = document.querySelector(
+        `.qc-grid-checks[data-prop="${prop}"]`
+      );
+      const boxes = Array.from(group.children).slice(0, activeCount);
+      checkData[prop] = [];
+      for (const box of boxes) {
+        if (box.classList.contains("ok")) checkData[prop].push("ok");
+        else if (box.classList.contains("ng")) checkData[prop].push("ng");
+        else {
+          showToast(
+            `وضعیت ${
+              prop === "appearance"
+                ? "ظاهری"
+                : prop === "assembly"
+                ? "مونتاژی"
+                : "بسته‌بندی"
+            } را مشخص کنید.`,
+            "error"
+          );
+          box.scrollIntoView({ behavior: "smooth", block: "center" });
+          box.style.border = "2px solid red";
+          setTimeout(() => (box.style.border = ""), 2000);
+          return;
+        }
+      }
+      while (checkData[prop].length < 5) checkData[prop].push(null);
+    }
+
+    // 10. نقص (Defects)
+    const hasNg = Object.values(checkData).flat().includes("ng");
+    const defectsSummary = document
+      .getElementById("mobile-defects-summary")
+      .value.trim();
+    if (hasNg && !defectsSummary) {
+      validateAndScroll(
+        document.getElementById("mobile-defects-summary"),
+        "در صورت وجود NG، شرح نقص الزامی است."
+      );
+      return;
+    }
+
+    // --- ساخت آیتم نهایی ---
+    const newItem = {
+      deviceName,
+      parts,
+      inspectionType: mode,
+      serialNumbers: serialValues,
+      materials,
+      masterbatches,
+      weight,
+      cycleTime,
+      defectsSummary,
+      notes: document.getElementById("mobile-notes").value.trim(),
+      ...checkData,
+    };
+
+    // --- ذخیره و نمایش پیام (اصلاح شده) ---
+    // آماده‌سازی متن پیام برای هر دو حالت
+    const partNamesJoined = parts.map((p) => p.name).join("، ");
+    const displayIndex =
+      editingIndex !== null ? editingIndex + 1 : data.length + 1;
+    const actionVerb = editingIndex !== null ? "ویرایش" : "ثبت";
+
+    if (editingIndex !== null) {
+      data[editingIndex] = { ...data[editingIndex], ...newItem };
+      saveDeviceSettingsToMemory(newItem);
+    } else {
+      data.push(createNewItem(newItem));
+      saveDeviceSettingsToMemory(newItem);
+    }
+
+    // نمایش پیام زیبا برای هر دو حالت
+    showToast(
+      `${displayIndex}، ${deviceName}، ${partNamesJoined} با موفقیت ${actionVerb} شد`,
+      "success"
+    );
+
+    render();
+    resetMobileForm();
+    setTimeout(() => {
+      if (mobileDeviceChoice) {
+        mobileDeviceChoice.showDropdown();
+        mobileDeviceChoice.input.element.focus();
+      }
+    }, 200);
+  }
+
   function render() {
     tableBody.innerHTML = "";
     mobileSummaryList.innerHTML = "";
-
     data.forEach((item, index) => {
       const li = document.createElement("li");
       li.dataset.id = item.id;
-
       const partNamesText =
         item.parts && item.parts.length > 0
           ? item.parts.map((p) => p.name).join("، ")
           : "قطعه نامشخص";
+      const typeLabel = item.inspectionType === "routine" ? "دوره‌ای" : "اولیه";
+      const badgeColor =
+        item.inspectionType === "routine" ? "#e2e3e5" : "#fff3cd";
+      const validSerials = item.serialNumbers.filter((s) => s).join(" - ");
 
       const headerHTML = `
     <div class="summary-card-header">
@@ -278,6 +892,16 @@ export function init() {
          : ""
      }
      ${
+       item.weight
+         ? `<span><i class="bi bi-speedometer2"></i> وزن: ${item.weight}g</span>`
+         : ""
+     }
+     ${
+       item.cycleTime
+         ? `<span><i class="bi bi-hourglass-split"></i> سیکل: ${item.cycleTime}s</span>`
+         : ""
+     }
+     ${
        item.materials && item.materials.length > 0
          ? `<span><i class="bi bi-palette-fill"></i> ${formatCompoundList(
              item.materials
@@ -291,16 +915,13 @@ export function init() {
            )}</span>`
          : ""
      }
-     ${
-       item.cycleTime
-         ? `<span><i class="bi bi-hourglass-split"></i> سیکل: ${item.cycleTime} ثانیه</span>`
-         : ""
-     }
     </div>`;
 
       const getCheckSummary = (prop, icon, label) => {
-        const ok = (item[prop] || []).filter((s) => s === "ok").length;
-        const ng = (item[prop] || []).filter((s) => s === "ng").length;
+        const activeCount = item.inspectionType === "routine" ? 2 : 5;
+        const slicedArr = (item[prop] || []).slice(0, activeCount);
+        const ok = slicedArr.filter((s) => s === "ok").length;
+        const ng = slicedArr.filter((s) => s === "ng").length;
         if (ok > 0 || ng > 0)
           return `<span><i class="bi ${icon}"></i> ${label}: ${
             ok > 0 ? `<span class="check-ok">OK:${ok}</span>` : ""
@@ -332,80 +953,88 @@ export function init() {
     </div>`
           : "";
 
+      const inspectionInfoHTML = `
+    <div class="card-details-row">
+     <span class="inspection-badge" style="background-color: ${badgeColor};"><i class="bi bi-tag-fill"></i> ${typeLabel}</span>
+     ${
+       validSerials
+         ? `<span><i class="bi bi-barcode"></i> سریال‌ها: ${validSerials}</span>`
+         : ""
+     }
+    </div>`;
+
       li.innerHTML = `
     ${headerHTML}
     <div class="summary-card-details">
+     ${inspectionInfoHTML}
      ${processInfoHTML}
      ${qualityInfoHTML}
      ${defectsAndNotesHTML}
     </div>`;
-
       mobileSummaryList.appendChild(li);
     });
     updateDefectLegendsSelection();
   }
 
-  // <-- جدید: تابع برای ساختن دراپ‌داون‌های قطعات
-  function initializeAllPartChoices(partsData = []) {
-    // پاک کردن نمونه‌های قبلی برای جلوگیری از نشت حافظه
-    partChoices.forEach((choice) => choice.destroy());
-    partChoices.clear();
+  function populateMobileForm(item) {
+    editingIndex = data.findIndex((d) => d.id === item.id);
+    if (mobileDeviceChoice)
+      mobileDeviceChoice.setChoiceByValue(item.deviceName || "");
 
-    const partRows = document.querySelectorAll(
-      "#mobile-parts-container .part-row"
+    // ایجاد ردیف خالی در صورت نبود داده (برای ویرایش)
+    const safeItem = {
+      ...item,
+      parts:
+        item.parts && item.parts.length > 0
+          ? item.parts
+          : [{ name: "", description: "" }],
+      materials:
+        item.materials && item.materials.length > 0
+          ? item.materials
+          : [{ name: "", description: "", percentage: "" }],
+      masterbatches:
+        item.masterbatches && item.masterbatches.length > 0
+          ? item.masterbatches
+          : [{ name: "", description: "", percentage: "" }],
+    };
+
+    initializeAllDynamicLists(safeItem);
+
+    document.getElementById("mobile-inspection-type").value =
+      item.inspectionType || "initial";
+    document.getElementById("mobile-weight").value = item.weight || "";
+    document.getElementById("mobile-cycleTime").value = item.cycleTime;
+
+    const serialInputs = document.querySelectorAll(
+      "#serial-inputs-wrapper .serial-input"
     );
-    partRows.forEach((row, index) => {
-      const selectElement = row.querySelector("select.name-input");
-      if (selectElement) {
-        const choice = new Choices(selectElement, choicesConfig);
-        choice.setChoices(
-          getChoicesArray(injectionChecklistData.parts),
-          "value",
-          "label",
-          true
-        );
-
-        // اگر در حالت ویرایش هستیم، مقدار را تنظیم کن
-        if (partsData[index] && partsData[index].name) {
-          choice.setChoiceByValue(partsData[index].name);
-        }
-        partChoices.set(selectElement, choice); // ذخیره نمونه برای استفاده‌های بعدی
-      }
+    serialInputs.forEach((inp, idx) => {
+      inp.value = item.serialNumbers[idx] || "";
     });
-  }
-
-  function resetMobileForm() {
-    editingIndex = null;
-    if (mobileDeviceChoice) mobileDeviceChoice.setChoiceByValue("");
-
-    document.getElementById("mobile-parts-container").innerHTML =
-      createPartRowHTML();
-    initializeAllPartChoices(); // <-- جدید: ساخت دراپ‌داون برای ردیف اولیه
-
-    document.getElementById("mobile-materials-container").innerHTML =
-      createMaterialRowHTML();
-    document.getElementById("mobile-masterbatches-container").innerHTML =
-      createMasterbatchRowHTML();
-
-    document.getElementById("mobile-cycleTime").value = "";
-    document.getElementById("mobile-defects-summary").value = "";
-    document.getElementById("mobile-notes").value = "";
-
-    document
-      .querySelectorAll("#mobile-form-wrapper .check-box")
-      .forEach((box) => (box.className = "check-box"));
-
+    document.getElementById("mobile-defects-summary").value =
+      item.defectsSummary;
+    document.getElementById("mobile-notes").value = item.notes;
+    ["appearance", "assembly", "packaging"].forEach((prop) => {
+      const group = document.querySelector(
+        `.mobile-form-container .check-group[data-prop="${prop}"]`
+      );
+      if (group)
+        (item[prop] || []).forEach((state, i) => {
+          const box = group.children[i];
+          if (box) box.className = `check-box ${state || ""}`;
+        });
+    });
     updateDefectLabelRequirement();
-
+    updateFormMode();
     const addBtn = document.getElementById("mobile-add-btn");
     if (addBtn) {
-      addBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> ثبت و افزودن';
-      addBtn.style.backgroundColor = "var(--success-color)";
+      addBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> به‌روزرسانی';
+      addBtn.style.backgroundColor = "var(--primary-color)";
     }
     updateDefectLegendsSelection();
     document
-      .querySelectorAll(".required-field-error")
-      .forEach((el) => el.classList.remove("required-field-error"));
+      .querySelector(".mobile-form-container")
+      ?.scrollIntoView({ behavior: "smooth" });
   }
 
   function resetForm() {
@@ -418,18 +1047,14 @@ export function init() {
       .forEach((el) => {
         el.disabled = false;
       });
-
     if (mobileDeviceChoice) mobileDeviceChoice.enable();
-
     const finalizeBtn = pageElement.querySelector("#finalize-btn");
     if (finalizeBtn)
       finalizeBtn.innerHTML = `<i class="bi bi-check2-circle"></i> ثبت نهایی فرم`;
-
     const exportCsvBtn = pageElement.querySelector("#export-csv-btn");
     if (exportCsvBtn) exportCsvBtn.style.display = "none";
     const exportImgBtn = pageElement.querySelector("#export-img-btn");
     if (exportImgBtn) exportImgBtn.style.display = "none";
-
     resetMobileForm();
     render();
     setupDate();
@@ -453,363 +1078,12 @@ export function init() {
     });
   }
 
-  function handleCheckClick(e) {
-    const checkBox = e.target.closest(".check-box");
-    if (!checkBox || checkBox.closest(".form-locked")) return;
-    if (checkBox.dataset.longPress) {
-      delete checkBox.dataset.longPress;
-      return;
-    }
-    e.preventDefault();
-
-    const currentState = checkBox.className;
-    if (currentState.includes("ok")) checkBox.className = "check-box ng";
-    else if (currentState.includes("ng")) checkBox.className = "check-box";
-    else checkBox.className = "check-box ok";
-
-    updateDefectLabelRequirement();
-  }
-
-  function deleteItem(id) {
-    const itemIndex = data.findIndex((i) => i.id === id);
-    if (itemIndex > -1) {
-      const itemName = data[itemIndex].deviceName || `ردیف ${itemIndex + 1}`;
-      Swal.fire({
-        title: "حذف ردیف",
-        text: `آیا از حذف "${itemName}" اطمینان دارید؟`,
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#3085d6",
-        confirmButtonText: "بله، حذف کن",
-        cancelButtonText: "انصراف",
-      }).then((result) => {
-        if (result.isConfirmed) {
-          data.splice(itemIndex, 1);
-          render();
-          showToast(`"${itemName}" حذف شد.`, "info");
-        }
-      });
-    }
-  }
-
-  function populateMobileForm(item) {
-    editingIndex = data.findIndex((d) => d.id === item.id);
-    if (mobileDeviceChoice)
-      mobileDeviceChoice.setChoiceByValue(item.deviceName || "");
-
-    const partsContainer = document.getElementById("mobile-parts-container");
-    partsContainer.innerHTML =
-      (item.parts.length > 0 ? item.parts : [{ name: "", weight: "" }])
-        .map((part) => createPartRowHTML(part))
-        .join("") || createPartRowHTML();
-
-    // <-- جدید: ساخت دراپ‌داون‌ها و مقداردهی آن‌ها
-    initializeAllPartChoices(item.parts);
-
-    const materialsContainer = document.getElementById(
-      "mobile-materials-container"
-    );
-    materialsContainer.innerHTML =
-      (item.materials.length > 0
-        ? item.materials
-        : [{ name: "", percentage: "" }]
-      )
-        .map((mat) => createMaterialRowHTML(mat))
-        .join("") || createMaterialRowHTML();
-
-    const masterbatchesContainer = document.getElementById(
-      "mobile-masterbatches-container"
-    );
-    masterbatchesContainer.innerHTML =
-      (item.masterbatches.length > 0
-        ? item.masterbatches
-        : [{ name: "", percentage: "" }]
-      )
-        .map((mb) => createMasterbatchRowHTML(mb))
-        .join("") || createMasterbatchRowHTML();
-
-    document.getElementById("mobile-cycleTime").value = item.cycleTime;
-    document.getElementById("mobile-defects-summary").value =
-      item.defectsSummary;
-    document.getElementById("mobile-notes").value = item.notes;
-
-    ["appearance", "assembly", "packaging"].forEach((prop) => {
-      const group = document.querySelector(
-        `.mobile-form-container .check-group[data-prop="${prop}"]`
-      );
-      if (group)
-        (item[prop] || []).forEach((state, i) => {
-          const box = group.children[i];
-          if (box) box.className = `check-box ${state || ""}`;
-        });
-    });
-
-    updateDefectLabelRequirement();
-
-    const addBtn = document.getElementById("mobile-add-btn");
-    if (addBtn) {
-      addBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> به‌روزرسانی';
-      addBtn.style.backgroundColor = "var(--primary-color)";
-    }
-    updateDefectLegendsSelection();
-    document
-      .querySelector(".mobile-form-container")
-      ?.scrollIntoView({ behavior: "smooth" });
-  }
-
-  function handleMobileSubmit() {
-    const mobileForm = document.querySelector(".mobile-form-container");
-
-    function focusOnInvalidElement(element, message) {
-      showToast(message);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "center" });
-        if (element.classList.contains("choices")) {
-          element.querySelector("input, select").focus();
-        } else if (typeof element.focus === "function") {
-          element.focus();
-        }
-      }
-    }
-
-    pageElement
-      .querySelectorAll(".required-field-error")
-      .forEach((el) => el.classList.remove("required-field-error"));
-
-    const topFields = [
-      { id: "date_input", message: "تاریخ اجباری است." },
-      { id: "hall_input", message: "انتخاب سالن اجباری است." },
-      { id: "shift_input", message: "انتخاب شیفت اجباری است." },
-      { id: "time_slot_input", message: "انتخاب ساعت اجباری است." },
-    ];
-    for (const field of topFields) {
-      const element = document.getElementById(field.id);
-      if (!element.value.trim()) {
-        element.classList.add("required-field-error");
-        focusOnInvalidElement(element, field.message);
-        return;
-      }
-    }
-
-    const deviceName = mobileDeviceChoice.getValue(true);
-    if (!deviceName) {
-      const el = document
-        .getElementById("mobile-device-name")
-        .closest(".choices");
-      el.classList.add("required-field-error");
-      focusOnInvalidElement(el, "انتخاب دستگاه اجباری است.");
-      return;
-    }
-
-    const partRows = document.querySelectorAll(
-      "#mobile-parts-container .part-row"
-    );
-    for (const row of partRows) {
-      // <-- ویرایش شده: خواندن مقدار از دراپ‌داون
-      const selectElement = row.querySelector("select.name-input");
-      const choiceInstance = partChoices.get(selectElement);
-      const partName = choiceInstance.getValue(true);
-      const weightInput = row.querySelector(".numeric-input");
-
-      if (!partName) {
-        const el = selectElement.closest(".choices");
-        el.classList.add("required-field-error");
-        focusOnInvalidElement(el, "نام قطعه اجباری است.");
-        return;
-      }
-      if (!weightInput.value.trim()) {
-        weightInput.classList.add("required-field-error");
-        focusOnInvalidElement(weightInput, "وزن قطعه اجباری است.");
-        return;
-      }
-    }
-
-    const materialRows = document.querySelectorAll(
-      "#mobile-materials-container .material-row"
-    );
-    for (const row of materialRows) {
-      const nameInput = row.querySelector(".name-input");
-      const percentInput = row.querySelector(".numeric-input");
-      if (!nameInput.value.trim()) {
-        nameInput.classList.add("required-field-error");
-        focusOnInvalidElement(nameInput, "نام ماده اجباری است.");
-        return;
-      }
-      if (!percentInput.value.trim()) {
-        percentInput.classList.add("required-field-error");
-        focusOnInvalidElement(percentInput, "درصد ماده اجباری است.");
-        return;
-      }
-    }
-
-    const masterbatchRows = document.querySelectorAll(
-      "#mobile-masterbatches-container .masterbatch-row"
-    );
-    for (const row of masterbatchRows) {
-      const nameInput = row.querySelector(".name-input");
-      const percentInput = row.querySelector(".numeric-input");
-      if (nameInput.value.trim() && !percentInput.value.trim()) {
-        percentInput.classList.add("required-field-error");
-        focusOnInvalidElement(percentInput, "درصد مستربچ اجباری است.");
-        return;
-      }
-      if (!nameInput.value.trim() && percentInput.value.trim()) {
-        nameInput.classList.add("required-field-error");
-        focusOnInvalidElement(nameInput, "نام مستربچ اجباری است.");
-        return;
-      }
-    }
-
-    let totalPercentage = 0;
-    materialRows.forEach((row) => {
-      const percent =
-        parseFloat(row.querySelector(".numeric-input").value) || 0;
-      totalPercentage += percent;
-    });
-    masterbatchRows.forEach((row) => {
-      if (row.querySelector(".name-input").value.trim()) {
-        const percent =
-          parseFloat(row.querySelector(".numeric-input").value) || 0;
-        totalPercentage += percent;
-      }
-    });
-
-    if (Math.abs(totalPercentage - 100) > 0.01) {
-      focusOnInvalidElement(
-        materialRows[0].querySelector(".numeric-input"),
-        `مجموع درصد مواد و مستربچ باید ۱۰۰٪ باشد (مقدار فعلی: ${totalPercentage.toFixed(
-          2
-        )}٪)`
-      );
-      return;
-    }
-
-    const cycleTimeInput = document.getElementById("mobile-cycleTime");
-    if (!cycleTimeInput.value.trim()) {
-      cycleTimeInput.classList.add("required-field-error");
-      focusOnInvalidElement(cycleTimeInput, "سیکل زمانی اجباری است.");
-      return;
-    }
-
-    const checkGroups = [
-      { prop: "appearance", name: "ظاهری" },
-      { prop: "assembly", name: "مونتاژی" },
-      { prop: "packaging", name: "بسته‌بندی" },
-    ];
-    for (const check of checkGroups) {
-      const group = mobileForm.querySelector(
-        `.check-group[data-prop="${check.prop}"]`
-      );
-      let allChecked = true;
-      for (const box of group.children) {
-        if (!box.classList.contains("ok") && !box.classList.contains("ng")) {
-          allChecked = false;
-          break;
-        }
-      }
-      if (!allChecked) {
-        group.classList.add("required-field-error");
-        focusOnInvalidElement(
-          group,
-          `لطفاً تمام موارد چک‌لیست "${check.name}" را مشخص کنید.`
-        );
-        return;
-      }
-    }
-
-    const isAnyNgChecked = mobileForm.querySelector(".check-box.ng");
-    const defectsInput = document.getElementById("mobile-defects-summary");
-    if (isAnyNgChecked && !defectsInput.value.trim()) {
-      defectsInput.classList.add("required-field-error");
-      focusOnInvalidElement(
-        defectsInput,
-        "در صورت وجود نقص (NG)، شرح نقص اجباری است."
-      );
-      return;
-    }
-
-    // <-- ویرایش شده: خواندن مقادیر از دراپ‌داون‌ها
-    const parts = Array.from(partRows).map((row) => {
-      const selectElement = row.querySelector("select.name-input");
-      const choiceInstance = partChoices.get(selectElement);
-      return {
-        name: choiceInstance.getValue(true),
-        weight: parseFloat(row.querySelector(".numeric-input").value),
-      };
-    });
-
-    const materials = Array.from(materialRows).map((row) => ({
-      name: row.querySelector(".name-input").value.trim(),
-      percentage: parseFloat(row.querySelector(".numeric-input").value),
-    }));
-
-    const masterbatches = Array.from(masterbatchRows)
-      .filter((row) => row.querySelector(".name-input").value.trim())
-      .map((row) => ({
-        name: row.querySelector(".name-input").value.trim(),
-        percentage: parseFloat(row.querySelector(".numeric-input").value),
-      }));
-
-    const mobileData = {
-      deviceName,
-      parts,
-      materials,
-      masterbatches,
-      cycleTime: document.getElementById("mobile-cycleTime").value,
-      defectsSummary: defectsInput.value.trim(),
-      notes: document.getElementById("mobile-notes").value.trim(),
-      appearance: [],
-      assembly: [],
-      packaging: [],
-    };
-
-    ["appearance", "assembly", "packaging"].forEach((prop) => {
-      const group = mobileForm.querySelector(
-        `.check-group[data-prop="${prop}"]`
-      );
-      for (let box of group.children) {
-        let state = null;
-        if (box.classList.contains("ok")) state = "ok";
-        else if (box.classList.contains("ng")) state = "ng";
-        mobileData[prop].push(state);
-      }
-    });
-
-    if (editingIndex !== null && data[editingIndex]) {
-      data[editingIndex] = { ...data[editingIndex], ...mobileData };
-      const successMessage = `${editingIndex + 1}. ${mobileData.deviceName} (${
-        mobileData.parts[0].name
-      }) با موفقیت به‌روزرسانی شد.`;
-      showToast(successMessage, "success");
-    } else {
-      const successMessage = `${data.length + 1}. ${mobileData.deviceName} (${
-        mobileData.parts[0].name
-      }) با موفقیت ثبت شد.`;
-      data.push(createNewItem(mobileData));
-      showToast(successMessage, "success");
-    }
-    render();
-    resetMobileForm();
-  }
-
   function finalizeForm() {
     if (data.length === 0) {
       showToast("هیچ ردیفی برای ثبت نهایی وجود ندارد.", "warning");
       return;
     }
-
     const errors = [];
-    const topControls = document.querySelector(".top-controls");
-    const approversContainer = document.querySelector(".approvers-container");
-
-    topControls
-      .querySelectorAll(".required-field-error")
-      .forEach((el) => el.classList.remove("required-field-error"));
-    approversContainer
-      .querySelectorAll(".required-field-error")
-      .forEach((el) => el.classList.remove("required-field-error"));
-
     const topFields = [
       { id: "hall_input", message: "انتخاب سالن اجباری است." },
       { id: "shift_input", message: "انتخاب شیفت اجباری است." },
@@ -822,7 +1096,6 @@ export function init() {
         select.classList.add("required-field-error");
       }
     });
-
     const approverFields = [
       { id: "approver-qc", message: "نام بازرس QC اجباری است." },
       { id: "approver-prod", message: "نام سرپرست تولید اجباری است." },
@@ -836,15 +1109,12 @@ export function init() {
         input.classList.add("required-field-error");
       }
     });
-    if (!allApproversFilled) {
+    if (!allApproversFilled)
       errors.push("نام تمام تاییدکنندگان باید وارد شود.");
-    }
-
     if (errors.length > 0) {
       showToast(errors[0]);
       return;
     }
-
     Swal.fire({
       title: "ثبت نهایی فرم",
       text: "پس از تایید، امکان ویرایش فرم وجود نخواهد داشت. مطمئنید؟",
@@ -870,16 +1140,16 @@ export function init() {
           },
           tableData: JSON.parse(JSON.stringify(data)),
         };
-
         pageElement.classList.add("form-locked");
         pageElement.querySelectorAll("input, button, select").forEach((el) => {
           if (!el.id.startsWith("export-")) {
             el.disabled = true;
           }
         });
-
         if (mobileDeviceChoice) mobileDeviceChoice.disable();
-        partChoices.forEach((choice) => choice.disable()); // <-- جدید: غیرفعال کردن دراپ‌داون‌های قطعه
+        partChoices.forEach((c) => c.disable());
+        materialChoices.forEach((c) => c.disable());
+        masterbatchChoices.forEach((c) => c.disable());
 
         const finalizeBtn = pageElement.querySelector("#finalize-btn");
         if (finalizeBtn) {
@@ -908,7 +1178,14 @@ export function init() {
       "شیفت",
       "ساعت",
       "نام دستگاه",
-      "قطعات و وزن‌ها",
+      "قطعات (توضیحات)",
+      "نوع بازرسی",
+      "سریال 1 (اصلی)",
+      "سریال 2",
+      "سریال 3",
+      "سریال 4",
+      "سریال 5",
+      "وزن (g)",
       "مواد مصرفی",
       "مستربچ",
       "سیکل زمانی (ثانیه)",
@@ -926,14 +1203,29 @@ export function init() {
     ];
     let csvContent = "\uFEFF" + headers.join(",") + "\r\n";
     tableData.forEach((item, index) => {
-      const clean = (cell) =>
-        `"${(cell || "").toString().replace(/"/g, '""')}"`;
-      const ok = (prop) => (item[prop] || []).filter((s) => s === "ok").length;
-      const ng = (prop) => (item[prop] || []).filter((s) => s === "ng").length;
+      const clean = (cell) => {
+        if (cell === null || cell === undefined || cell === "") return '"0"';
+        return `"${cell.toString().replace(/"/g, '""')}"`;
+      };
+      const ok = (prop) => {
+        const activeCount = item.inspectionType === "routine" ? 2 : 5;
+        return (item[prop] || [])
+          .slice(0, activeCount)
+          .filter((s) => s === "ok").length;
+      };
+      const ng = (prop) => {
+        const activeCount = item.inspectionType === "routine" ? 2 : 5;
+        return (item[prop] || [])
+          .slice(0, activeCount)
+          .filter((s) => s === "ng").length;
+      };
 
       const partsString = formatPartsList(item.parts);
       const materialsString = formatCompoundList(item.materials);
       const masterbatchesString = formatCompoundList(item.masterbatches);
+      const inspectionTypeLabel =
+        item.inspectionType === "routine" ? "دوره‌ای" : "اولیه";
+      const serial1 = item.serialNumbers[0] ? `\t${item.serialNumbers[0]}` : "";
 
       const row = [
         index + 1,
@@ -943,6 +1235,13 @@ export function init() {
         globalInfo.time,
         item.deviceName,
         partsString,
+        inspectionTypeLabel,
+        serial1,
+        item.serialNumbers[1],
+        item.serialNumbers[2],
+        item.serialNumbers[3],
+        item.serialNumbers[4],
+        item.weight,
         materialsString,
         masterbatchesString,
         item.cycleTime,
@@ -975,29 +1274,48 @@ export function init() {
       showToast("لطفا ابتدا فرم را ثبت نهایی کنید.", "warning");
       return;
     }
+
     const exportButton = pageElement.querySelector("#export-img-btn");
-    toggleButtonLoading(exportButton, true, "در حال آماده سازی...");
+    if (exportButton) {
+      exportButton.disabled = true;
+      exportButton.innerHTML = "در حال ساخت تصویر...";
+    }
 
     const { globalInfo, tableData } = finalizedData;
     const printContainer = document.querySelector(".print-page-container");
 
-    const PAGE_MAX_HEIGHT = 1058;
-    const PAGE_WIDTH = 718;
-
+    const PAGE_WIDTH = 800;
     const baseFileName = `چک‌لیست_تزریق_${globalInfo.date.replace(
       /\//g,
       "."
     )}_${globalInfo.shift}`;
 
-    const buildFullPageHTML = (itemsHTML, currentPage, totalPages) => {
+    const buildSinglePageHTML = (allItemsHTML) => {
       const originalHeaderClone = document
         .getElementById("main-header")
         .cloneNode(true);
-      const approvalHTML = `<div class="approvers-container"><div class="approver-group"><label>۱.بازرس کنترل کیفیت:</label><span class="approver-group-name">${globalInfo.qc}</span></div><div class="approver-group"><label>۲. سرپرست شیفت:</label><span class="approver-group-name">${globalInfo.prod}</span></div><div class="approver-group"><label>۳. سرپرست کنترل کیفیت:</label><span class="approver-group-name">${globalInfo.shiftManager}</span></div></div>`;
-      const topInfoHTML = `<div class="export-top-info"><div><strong>تاریخ:</strong> ${globalInfo.date}</div><div><strong>سالن:</strong> ${globalInfo.hall}</div><div><strong>شیفت:</strong> ${globalInfo.shift}</div><div><strong>ساعت:</strong> ${globalInfo.time}</div></div>`;
-      const pageFooterHTML = `<footer>صفحه ${currentPage} از ${totalPages}</footer>`;
-      const footerGroupHTML = `<div class="print-footer-group">${approvalHTML}${pageFooterHTML}</div>`;
-      return `${originalHeaderClone.outerHTML}${topInfoHTML}<div class="export-items-list">${itemsHTML}</div>${footerGroupHTML}`;
+      const topInfoHTML = `
+        <div class="export-top-info" style="display: flex; justify-content: space-between; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 20px; background: #f8f9fa;">
+            <div><strong>تاریخ:</strong> ${globalInfo.date}</div>
+            <div><strong>سالن:</strong> ${globalInfo.hall}</div>
+            <div><strong>شیفت:</strong> ${globalInfo.shift}</div>
+            <div><strong>ساعت:</strong> ${globalInfo.time}</div>
+        </div>`;
+      const approvalHTML = `
+        <div class="approvers-container" style="margin-top: 30px; border-top: 2px solid #333; padding-top: 20px;">
+            <div class="approver-group"><label>۱. بازرس QC:</label><span class="approver-group-name">${globalInfo.qc}</span></div>
+            <div class="approver-group"><label>۲. سرپرست شیفت:</label><span class="approver-group-name">${globalInfo.prod}</span></div>
+            <div class="approver-group"><label>۳. سرپرست QC:</label><span class="approver-group-name">${globalInfo.shiftManager}</span></div>
+        </div>`;
+      return `
+        <div style="padding: 20px; background: #fff; direction: rtl; font-family: 'Tahoma', sans-serif;">
+            ${originalHeaderClone.outerHTML}
+            ${topInfoHTML}
+            <div class="export-items-list" style="display: flex; flex-direction: column; gap: 15px;">
+                ${allItemsHTML}
+            </div>
+            ${approvalHTML}
+        </div>`;
     };
 
     const createItemCardHTML = (item, index) => {
@@ -1005,195 +1323,170 @@ export function init() {
         item.parts && item.parts.length > 0
           ? item.parts.map((p) => p.name).join("، ")
           : "قطعه نامشخص";
+      const typeLabel = item.inspectionType === "routine" ? "دوره‌ای" : "اولیه";
+      const validSerials = item.serialNumbers.filter((s) => s).join(" - ");
+
       const headerHTML = `
-  <div class="summary-card-header">
-  <h2 class="summary-card-title">${index + 1}. ${
+        <div class="summary-card-header" style="border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 8px;">
+            <h3 class="summary-card-title" style="margin: 0; font-size: 16px; color: #0d6efd;">${
+              index + 1
+            }. ${
         item.deviceName
-      } = <strong class="summary-part-name">${partNamesText}</strong></h2>
-  <span class="summary-timestamp"><i class="bi bi-clock"></i> ${
-    item.timestamp
-  }</span>
-  </div>`;
+      } = <span style="color: #333;">${partNamesText}</span></h3>
+            <span class="summary-timestamp" style="font-size: 12px; color: #666;">${
+              item.timestamp
+            }</span>
+        </div>`;
 
       const processInfoHTML = `
-  <div class="card-details-row">
-  ${
-    item.parts && item.parts.length > 0
-      ? `<span><i class="bi bi-boxes"></i> ${formatPartsList(
-          item.parts
-        )}</span>`
-      : ""
-  }
-  ${
-    item.materials && item.materials.length > 0
-      ? `<span><i class="bi bi-palette-fill"></i> ${formatCompoundList(
-          item.materials
-        )}</span>`
-      : ""
-  }
-  ${
-    item.masterbatches && item.masterbatches.length > 0
-      ? `<span><i class="bi bi-paint-bucket"></i> ${formatCompoundList(
-          item.masterbatches
-        )}</span>`
-      : ""
-  }
-  ${
-    item.cycleTime
-      ? `<span><i class="bi bi-hourglass-split"></i> سیکل: ${item.cycleTime} ثانیه</span>`
-      : ""
-  }
-  </div>`;
+        <div class="card-details-row" style="font-size: 12px; color: #555; margin-bottom: 5px;">
+            ${
+              item.parts && item.parts.length > 0
+                ? `<span>📦 ${formatPartsList(item.parts)}</span> `
+                : ""
+            }
+            ${item.weight ? `<span>⚖️ ${item.weight}g</span> ` : ""}
+            ${
+              item.materials && item.materials.length > 0
+                ? `<span>🧪 ${formatCompoundList(item.materials)}</span> `
+                : ""
+            }
+            ${
+              item.masterbatches && item.masterbatches.length > 0
+                ? `<span>🎨 ${formatCompoundList(item.masterbatches)}</span> `
+                : ""
+            }
+            ${item.cycleTime ? `<span>⏱️ ${item.cycleTime}s</span>` : ""}
+        </div>`;
 
-      const getCheckSummary = (prop, icon, label) => {
-        const ok = (item[prop] || []).filter((s) => s === "ok").length;
-        const ng = (item[prop] || []).filter((s) => s === "ng").length;
+      const getCheckSummary = (prop, label) => {
+        const activeCount = item.inspectionType === "routine" ? 2 : 5;
+        const slicedArr = (item[prop] || []).slice(0, activeCount);
+        const ok = slicedArr.filter((s) => s === "ok").length;
+        const ng = slicedArr.filter((s) => s === "ng").length;
         if (ok > 0 || ng > 0)
-          return `<span><i class="bi ${icon}"></i> ${label}: ${
-            ok > 0 ? `<span class="check-ok">OK:${ok}</span>` : ""
-          } ${ng > 0 ? `<span class="check-ng">NG:${ng}</span>` : ""}</span>`;
+          return `<span style="margin-left: 10px;">${label}: <b style="color:green">OK:${ok}</b> <b style="color:red">NG:${ng}</b></span>`;
         return "";
       };
-
       const qualityInfoHTML = `
-  <div class="card-details-row quality-row">
-  ${getCheckSummary("appearance", "bi-eye-fill", "ظاهری")}
-  ${getCheckSummary("assembly", "bi-tools", "مونتاژی")}
-  ${getCheckSummary("packaging", "bi-box-seam", "بسته‌بندی")}
-  </div>`;
-
+        <div class="card-details-row quality-row" style="font-size: 12px; margin-bottom: 5px;">
+            ${getCheckSummary("appearance", "ظاهری")}
+            ${getCheckSummary("assembly", "مونتاژی")}
+            ${getCheckSummary("packaging", "بسته‌بندی")}
+        </div>`;
       const defectsAndNotesHTML =
         item.defectsSummary || item.notes
-          ? `
-  <div class="card-details-row notes-row">
-  ${
-    item.defectsSummary
-      ? `<span><i class="bi bi-exclamation-triangle-fill"></i> ${item.defectsSummary}</span>`
-      : ""
-  }
-  ${
-    item.notes
-      ? `<span><i class="bi bi-chat-left-text-fill"></i> ${item.notes}</span>`
-      : ""
-  }
-  </div>`
+          ? `<div class="card-details-row notes-row" style="background: #f9f9f9; padding: 5px; border-radius: 4px; font-size: 12px;">
+                ${
+                  item.defectsSummary
+                    ? `<div style="color: #dc3545;">⚠️ نقص: ${item.defectsSummary}</div>`
+                    : ""
+                }
+                ${item.notes ? `<div>📝 ${item.notes}</div>` : ""}
+             </div>`
           : "";
+      const inspectionInfoHTML = `
+        <div class="card-details-row" style="margin-bottom: 5px;">
+            <span style="background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${typeLabel}</span>
+            ${
+              validSerials
+                ? `<span style="font-size: 12px; margin-right: 5px;">🔢 سریال‌ها: ${validSerials}</span>`
+                : ""
+            }
+        </div>`;
 
       return `
-  <div class="summary-card-item">
-  ${headerHTML}
-  <div class="summary-card-details">
-   ${processInfoHTML}
-   ${qualityInfoHTML}
-   ${defectsAndNotesHTML}
-  </div>
-  </div>`;
+        <div class="summary-card-item" style="border: 1px solid #ccc; border-right: 4px solid #0d6efd; border-radius: 5px; padding: 10px; background: #fff; page-break-inside: avoid;">
+            ${headerHTML}
+            <div class="summary-card-details">
+                ${inspectionInfoHTML}
+                ${processInfoHTML}
+                ${qualityInfoHTML}
+                ${defectsAndNotesHTML}
+            </div>
+        </div>`;
     };
 
-    const pages = [];
-    let currentPageItemsHTML = "";
-    const allItemCardsHTML = tableData.map(createItemCardHTML);
-
-    printContainer.style.visibility = "hidden";
-    printContainer.style.display = "flex";
-    printContainer.style.height = "auto";
-
-    for (const itemHTML of allItemCardsHTML) {
-      const potentialHTML = currentPageItemsHTML + itemHTML;
-      printContainer.innerHTML = buildFullPageHTML(potentialHTML, 1, 1);
-      await new Promise((resolve) => setTimeout(resolve, 0));
-
-      if (
-        printContainer.scrollHeight > PAGE_MAX_HEIGHT &&
-        currentPageItemsHTML !== ""
-      ) {
-        pages.push(currentPageItemsHTML);
-        currentPageItemsHTML = itemHTML;
-      } else {
-        currentPageItemsHTML = potentialHTML;
-      }
-    }
-    if (currentPageItemsHTML !== "") {
-      pages.push(currentPageItemsHTML);
-    }
-
-    printContainer.style.height = "";
-
-    const totalPages = pages.length;
-    for (let i = 0; i < totalPages; i++) {
-      const pageItemsHTML = pages[i];
-      const currentPage = i + 1;
-      printContainer.innerHTML = buildFullPageHTML(
-        pageItemsHTML,
-        currentPage,
-        totalPages
-      );
+    try {
+      const allItemsHTML = tableData.map(createItemCardHTML).join("");
+      printContainer.innerHTML = buildSinglePageHTML(allItemsHTML);
       printContainer.style.visibility = "visible";
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 200));
+      printContainer.style.display = "block";
+      printContainer.style.width = `${PAGE_WIDTH}px`;
+      printContainer.style.position = "absolute";
+      printContainer.style.top = "0";
+      printContainer.style.left = "-9999px";
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-        const canvas = await html2canvas(printContainer, {
-          useCORS: true,
-          scale: 2,
-          width: PAGE_WIDTH,
-          height: PAGE_MAX_HEIGHT,
-          windowWidth: printContainer.scrollWidth,
-          windowHeight: printContainer.scrollHeight,
-        });
+      const canvas = await html2canvas(printContainer, {
+        useCORS: true,
+        scale: 2,
+        width: PAGE_WIDTH,
+        height: printContainer.scrollHeight + 50,
+        windowWidth: printContainer.scrollWidth,
+        windowHeight: printContainer.scrollHeight + 100,
+        backgroundColor: "#ffffff",
+        letterRendering: 1,
+        onclone: (clonedDoc) => {
+          const container = clonedDoc.querySelector(".print-page-container");
+          if (container)
+            container.style.fontFamily = "Tahoma, Arial, sans-serif";
+        },
+      });
 
-        const fileName =
-          totalPages > 1
-            ? `${baseFileName} (صفحه ${currentPage} از ${totalPages}).png`
-            : `${baseFileName}.png`;
-        const link = document.createElement("a");
-        link.href = canvas.toDataURL("image/png");
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        if (totalPages > 1)
-          await new Promise((resolve) => setTimeout(resolve, 300));
-      } catch (err) {
-        console.error(`خطا در ایجاد تصویر صفحه ${currentPage}:`, err);
-        showToast(`خطا در ایجاد خروجی تصویر.`, "error");
-      } finally {
-        printContainer.style.visibility = "hidden";
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = `${baseFileName}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("تصویر فرم با موفقیت دانلود شد.", "success");
+    } catch (err) {
+      console.error("خطا در ایجاد تصویر:", err);
+      showToast("خطا در ایجاد خروجی تصویر.", "error");
+    } finally {
+      printContainer.style.visibility = "hidden";
+      printContainer.style.display = "none";
+      printContainer.innerHTML = "";
+      if (exportButton) {
+        exportButton.disabled = false;
+        exportButton.innerHTML = `<i class="bi bi-camera-fill"></i> خروجی تصویر فرم`;
       }
-    }
-    printContainer.style.display = "none";
-    printContainer.style.height = "";
-    printContainer.innerHTML = "";
-    toggleButtonLoading(
-      exportButton,
-      false,
-      `<i class="bi bi-camera-fill"></i> خروجی تصویر فرم`
-    );
-  }
-
-  function toggleButtonLoading(button, isLoading, text) {
-    if (button) {
-      button.disabled = isLoading;
-      button.innerHTML = text;
     }
   }
 
   function initializeChoices() {
-    mobileDeviceChoice = new Choices(
-      document.getElementById("mobile-device-name"),
-      choicesConfig
-    );
+    mobileDeviceChoice = new Choices("#mobile-device-name", {
+      searchEnabled: true,
+      searchPlaceholderValue: "جستجو در دستگاه‌ها...",
+      noResultsText: "دستگاهی یافت نشد",
+      noChoicesText: "دستگاهی موجود نیست",
+      itemSelectText: "",
+      shouldSort: false,
+      removeItemButton: false,
+      searchResultLimit: 1000,
+      renderChoiceLimit: 1000,
+      maxItemCount: -1,
+      loadingText: "در حال بارگذاری...",
+      searchFields: ["label", "value"],
+      fuseOptions: { threshold: 0.3 },
+    });
     mobileDeviceChoice.setChoices(
       getChoicesArray(injectionChecklistData.devices),
       "value",
       "label",
       true
     );
+    mobileDeviceChoice.passedElement.element.addEventListener(
+      "change",
+      onDeviceChange,
+      false
+    );
   }
 
   function addSafeEventListener(selector, event, handler) {
     const element = pageElement.querySelector(selector);
     if (element) element.addEventListener(event, handler);
-    else console.warn(`Element "${selector}" not found.`);
   }
 
   function handleDefectClick(e) {
@@ -1204,11 +1497,8 @@ export function init() {
     const currentDefects = new Set(
       targetInput.value ? targetInput.value.split(" | ") : []
     );
-    if (currentDefects.has(defectName)) {
-      currentDefects.delete(defectName);
-    } else {
-      currentDefects.add(defectName);
-    }
+    if (currentDefects.has(defectName)) currentDefects.delete(defectName);
+    else currentDefects.add(defectName);
     targetInput.value = Array.from(currentDefects).join(" | ");
     updateDefectLegendsSelection();
   }
@@ -1216,85 +1506,149 @@ export function init() {
   function updateDefectLegendsSelection() {
     let activeDefects = new Set();
     const mobileInput = document.getElementById("mobile-defects-summary");
-    if (mobileInput && mobileInput.value) {
+    if (mobileInput && mobileInput.value)
       activeDefects = new Set(mobileInput.value.split(" | "));
-    }
     document.querySelectorAll(".legends-list li").forEach((li) => {
       li.classList.toggle("selected", activeDefects.has(li.dataset.defectName));
     });
   }
 
-  // --- راه‌اندازی اولیه و ثبت Event Listener ها ---
+  function handleCheckClick(e) {
+    const checkBox = e.target.closest(".check-box");
+    if (
+      !checkBox ||
+      checkBox.closest(".form-locked") ||
+      checkBox.classList.contains("hidden-col")
+    )
+      return;
+    if (checkBox.dataset.longPress) {
+      delete checkBox.dataset.longPress;
+      return;
+    }
+    e.preventDefault();
+    const currentState = checkBox.className;
+    if (currentState.includes("ok")) checkBox.className = "check-box ng";
+    else if (currentState.includes("ng")) checkBox.className = "check-box";
+    else checkBox.className = "check-box ok";
+    updateDefectLabelRequirement();
+  }
+
+  function deleteItem(id) {
+    const itemIndex = data.findIndex((i) => i.id === id);
+    if (itemIndex > -1) {
+      const itemName = data[itemIndex].deviceName || `ردیف ${itemIndex + 1}`;
+      Swal.fire({
+        title: "حذف ردیف",
+        text: `آیا از حذف "${itemName}" اطمینان دارید؟`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "بله، حذف کن",
+        cancelButtonText: "انصراف",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          data.splice(itemIndex, 1);
+          render();
+          showToast(`"${itemName}" حذف شد.`, "info");
+        }
+      });
+    }
+  }
+
+  function setupAutoSerialIncrement() {
+    const serialInputs = document.querySelectorAll(
+      "#serial-inputs-wrapper .serial-input"
+    );
+    const firstInput = serialInputs[0];
+    if (!firstInput) return;
+    firstInput.addEventListener("blur", function () {
+      const rawValue = this.value.trim();
+      if (!rawValue || isNaN(rawValue) || rawValue.length < 4) return;
+      const lastFourStr = rawValue.slice(-4);
+      let currentNum = parseInt(lastFourStr, 10);
+      for (let i = 1; i < serialInputs.length; i++) {
+        const nextInput = serialInputs[i];
+        if (nextInput.classList.contains("hidden-col")) continue;
+        currentNum++;
+        nextInput.value = String(currentNum).padStart(4, "0");
+      }
+    });
+  }
+
+  // Event Listeners
   addSafeEventListener("#finalize-btn", "click", finalizeForm);
   addSafeEventListener("#export-csv-btn", "click", exportToCSV);
   addSafeEventListener("#export-img-btn", "click", exportToImage);
   addSafeEventListener("#mobile-add-btn", "click", handleMobileSubmit);
-
+  addSafeEventListener("#mobile-inspection-type", "change", updateFormMode);
   legendsMainContainer.addEventListener("click", handleDefectClick);
   pageElement.addEventListener("click", handleCheckClick);
-
   pageElement.addEventListener("click", (e) => {
     const delBtn = e.target.closest(".summary-delete-btn");
     const editBtn = e.target.closest(".summary-edit-btn");
-    if (delBtn) {
-      const id = Number(delBtn.closest("[data-id]").dataset.id);
-      deleteItem(id);
-    }
-    if (editBtn) {
-      const id = Number(editBtn.closest("[data-id]").dataset.id);
-      const item = data.find((i) => i.id === id);
-      if (item) populateMobileForm(item);
-    }
+    if (delBtn) deleteItem(Number(delBtn.closest("[data-id]").dataset.id));
+    if (editBtn)
+      populateMobileForm(
+        data.find(
+          (i) => i.id === Number(editBtn.closest("[data-id]").dataset.id)
+        )
+      );
   });
 
   pageElement.addEventListener("click", (e) => {
     const addBtn = e.target.closest(".add-material-btn");
     const removeBtn = e.target.closest(".remove-material-btn");
-
     if (addBtn) {
       const container = addBtn.closest(".dynamic-list-wrapper");
       let newRowHTML = "";
+      let listData = [];
+      let storageMap = null;
+
       switch (container.id) {
         case "mobile-parts-container":
           newRowHTML = createPartRowHTML();
+          listData = injectionChecklistData.parts;
+          storageMap = partChoices;
           break;
         case "mobile-materials-container":
           newRowHTML = createMaterialRowHTML();
+          listData = injectionChecklistData.materials;
+          storageMap = materialChoices;
           break;
         case "mobile-masterbatches-container":
           newRowHTML = createMasterbatchRowHTML();
+          listData = injectionChecklistData.masterbatches;
+          storageMap = masterbatchChoices;
           break;
       }
+
       if (newRowHTML) {
         container.insertAdjacentHTML("beforeend", newRowHTML);
-        // <-- جدید: ساخت دراپ‌داون برای ردیف جدید قطعه
-        if (container.id === "mobile-parts-container") {
-          const newRow = container.lastElementChild;
-          const selectElement = newRow.querySelector("select.name-input");
-          const choice = new Choices(selectElement, choicesConfig);
-          choice.setChoices(
-            getChoicesArray(injectionChecklistData.parts),
-            "value",
-            "label",
-            true
-          );
-          partChoices.set(selectElement, choice);
-        }
+        const newRow = container.lastElementChild;
+        const selectElement = newRow.querySelector("select.name-input");
+        const choice = new Choices(selectElement, choicesConfig);
+        choice.setChoices(getChoicesArray(listData), "value", "label", true);
+        storageMap.set(selectElement, choice);
       }
     }
-
     if (removeBtn) {
       const row = removeBtn.closest(
         ".part-row, .material-row, .masterbatch-row"
       );
       if (row && row.parentElement.children.length > 1) {
-        // <-- جدید: پاک کردن نمونه Choices.js قبل از حذف ردیف قطعه
-        if (row.classList.contains("part-row")) {
-          const selectElement = row.querySelector("select.name-input");
-          if (partChoices.has(selectElement)) {
-            partChoices.get(selectElement).destroy();
-            partChoices.delete(selectElement);
-          }
+        const selectElement = row.querySelector("select.name-input");
+        if (partChoices.has(selectElement)) {
+          partChoices.get(selectElement).destroy();
+          partChoices.delete(selectElement);
+        }
+        if (materialChoices.has(selectElement)) {
+          materialChoices.get(selectElement).destroy();
+          materialChoices.delete(selectElement);
+        }
+        if (masterbatchChoices.has(selectElement)) {
+          masterbatchChoices.get(selectElement).destroy();
+          masterbatchChoices.delete(selectElement);
         }
         row.remove();
       }
@@ -1321,7 +1675,6 @@ export function init() {
   pageElement.addEventListener("touchend", () => clearTimeout(touchTimer));
   pageElement.addEventListener("touchmove", () => clearTimeout(touchTimer));
 
-  // --- اجرای توابع راه‌اندازی ---
   setupDate();
   setupTopControls();
   createMobileCheckboxes();
@@ -1332,5 +1685,6 @@ export function init() {
   initializeChoices();
   resetMobileForm();
   render();
+  setupAutoSerialIncrement();
   window.activeFormResetter = resetFormWithConfirmation;
 }
