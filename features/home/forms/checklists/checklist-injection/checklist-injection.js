@@ -35,7 +35,7 @@ export function init() {
   let finalizedData = {};
   let mobileDeviceChoice;
 
-  // نگهداری اینستنس‌های Choices
+  /// نگهداری اینستنس‌های Choices
   let partChoices = new Map();
   let materialChoices = new Map();
   let masterbatchChoices = new Map();
