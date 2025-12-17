@@ -1,7 +1,9 @@
 import { injectionChecklistData } from "./checklist-injection-data.js";
 
 export function init() {
-  console.log("Checklist Injection Initialized! (v: Table Layout & Time Fix)");
+  console.log(
+    "Checklist Injection Initialized! (v: Final Fixes - Time & Image)"
+  );
 
   const Swal = window.Swal,
     Toastify = window.Toastify,
@@ -116,6 +118,7 @@ export function init() {
     }).showToast();
   }
 
+  // تابع کمکی برای دانلود فایل
   function downloadFile(content, fileName) {
     const link = document.createElement("a");
     link.href = content;
@@ -125,6 +128,7 @@ export function init() {
     document.body.removeChild(link);
   }
 
+  // تابع کمکی برای اینلاین کردن استایل‌ها
   async function inlineAllStyles(element) {
     const styleSheets = Array.from(document.styleSheets);
     let cssText = "";
@@ -209,7 +213,7 @@ export function init() {
       .join("، ");
   }
 
-  // --- HTML Generation Helpers ---
+  // --- HTML Generation ---
   function createPartRowHTML(part = { name: "", description: "" }) {
     return `
    <div class="part-row">
@@ -351,6 +355,7 @@ export function init() {
     const mode = typeSelect.value;
     const isRoutine = mode === "routine";
     const activeColumns = isRoutine ? 2 : 5;
+
     const serialInputs = document.querySelectorAll(
       "#serial-inputs-wrapper .serial-input"
     );
@@ -376,6 +381,7 @@ export function init() {
         input.type = "number";
       }
     });
+
     const checkRows = document.querySelectorAll(".qc-grid-checks");
     checkRows.forEach((row) => {
       const boxes = Array.from(row.children);
@@ -396,6 +402,7 @@ export function init() {
     updateDefectLabelRequirement();
   }
 
+  // --- مدیریت Choices.js برای لیست‌ها ---
   function initializeListChoices(
     containerId,
     dataList,
@@ -404,6 +411,7 @@ export function init() {
   ) {
     const container = document.getElementById(containerId);
     if (!container) return;
+
     const rows = container.children;
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -419,7 +427,9 @@ export function init() {
     }
   }
 
+  // --- Initializers کلی ---
   function initializeAllDynamicLists(dataObj = {}) {
+    // 1. قطعات
     partChoices.forEach((c) => c.destroy());
     partChoices.clear();
     const partsContainer = document.getElementById("mobile-parts-container");
@@ -437,6 +447,7 @@ export function init() {
       partsData
     );
 
+    // 2. مواد
     materialChoices.forEach((c) => c.destroy());
     materialChoices.clear();
     const matContainer = document.getElementById("mobile-materials-container");
@@ -454,6 +465,7 @@ export function init() {
       matData
     );
 
+    // 3. مستربچ
     masterbatchChoices.forEach((c) => c.destroy());
     masterbatchChoices.clear();
     const mbContainer = document.getElementById(
@@ -476,6 +488,7 @@ export function init() {
 
   function clearFieldsOnly() {
     initializeAllDynamicLists();
+
     document.getElementById("mobile-weight").value = "";
     document.getElementById("mobile-cycleTime").value = "";
     document.getElementById("mobile-defects-summary").value = "";
@@ -487,6 +500,7 @@ export function init() {
     document
       .querySelectorAll("#mobile-form-wrapper .check-box")
       .forEach((box) => (box.className = "check-box"));
+
     updateFormMode();
     updateDefectLabelRequirement();
     updateDefectLegendsSelection();
@@ -510,12 +524,14 @@ export function init() {
   function onDeviceChange(event) {
     const deviceName = event.detail.value;
     if (!deviceName || editingIndex !== null) return;
+
     const isDuplicate = data.some((item) => item.deviceName === deviceName);
     if (isDuplicate) {
       showToast(`دستگاه "${deviceName}" قبلاً در لیست ثبت شده است!`, "warning");
       clearFieldsOnly();
       return;
     }
+
     const savedSettings = loadDeviceSettingsFromMemory(deviceName);
     if (savedSettings) {
       initializeAllDynamicLists(savedSettings);
@@ -534,6 +550,7 @@ export function init() {
 
   function validateAndScroll(element, message) {
     if (!element) return;
+
     if (
       element.tagName === "SELECT" &&
       element.classList.contains("name-input")
@@ -543,13 +560,16 @@ export function init() {
     } else {
       element.classList.add("required-field-error");
     }
+
     const targetToScroll = element.closest(".choices") || element;
     targetToScroll.scrollIntoView({ behavior: "smooth", block: "center" });
+
     setTimeout(() => {
       if (typeof element.focus === "function") {
         element.focus({ preventScroll: true });
       }
     }, 100);
+
     showToast(message, "error");
   }
 
@@ -970,6 +990,7 @@ export function init() {
     if (mobileDeviceChoice)
       mobileDeviceChoice.setChoiceByValue(item.deviceName || "");
 
+    // ایجاد ردیف خالی در صورت نبود داده (برای ویرایش)
     const safeItem = {
       ...item,
       parts:
@@ -987,6 +1008,7 @@ export function init() {
     };
 
     initializeAllDynamicLists(safeItem);
+
     document.getElementById("mobile-inspection-type").value =
       item.inspectionType || "initial";
     document.getElementById("mobile-weight").value = item.weight || "";
@@ -1111,6 +1133,7 @@ export function init() {
       cancelButtonText: "انصراف",
     }).then(async (result) => {
       if (result.isConfirmed) {
+        // محاسبه ایندکس زمان (اصلاح شده: کم کردن یک واحد به خاطر Placeholder)
         const selectedIndex =
           document.getElementById("time_slot_input").selectedIndex;
         const timeIndex = ((selectedIndex - 1) % 4) + 1;
@@ -1131,6 +1154,7 @@ export function init() {
           tableData: JSON.parse(JSON.stringify(data)),
         };
 
+        // قفل کردن فرم
         pageElement.classList.add("form-locked");
         pageElement.querySelectorAll("input, button, select").forEach((el) => {
           el.disabled = true;
@@ -1145,6 +1169,7 @@ export function init() {
           finalizeBtn.innerHTML = `<i class="bi bi-lock-fill"></i> در حال پردازش...`;
         }
 
+        // اجرای اکسپورت‌ها
         try {
           showToast("در حال آماده‌سازی فایل اکسل...", "info");
           exportToCSV();
@@ -1261,6 +1286,7 @@ export function init() {
     const link = document.createElement("a"),
       url = URL.createObjectURL(blob);
     link.href = url;
+    // فرمت تاریخ با نقطه: 1402.09.26
     const fileName = `Tazrigh_${globalInfo.date.replace(/\//g, ".")}_${
       globalInfo.shift
     }_${globalInfo.timeIndex}.csv`;
@@ -1270,9 +1296,11 @@ export function init() {
     document.body.removeChild(link);
   }
 
+  // ===== تابع جدید اکسپورت عکس (اصلاح چیدمان متن) =====
   async function exportToImage() {
     if (Object.keys(finalizedData).length === 0) return;
 
+    // ایجاد یک کپی ایزوله برای پرینت
     const printContainerOriginal = document.querySelector(
       ".print-page-container"
     );
@@ -1291,6 +1319,7 @@ export function init() {
 
     try {
       const { globalInfo, tableData } = finalizedData;
+      // فرمت تاریخ با نقطه
       const baseFileName = `Tazrigh_${globalInfo.date.replace(/\//g, ".")}_${
         globalInfo.shift
       }_${globalInfo.timeIndex}`;
@@ -1344,29 +1373,21 @@ export function init() {
           item.inspectionType === "routine" ? "white" : "#000"
         }; padding:2px 8px; border-radius:12px; font-size:11px; margin-left:8px;">${typeLabel}</span>`;
 
-        // FIXED: Using a Table Layout instead of Floats/Flexbox for html2canvas reliability
-        // Moves the Part Name to a new line to avoid collision completely.
+        // اصلاح نمایش نام قطعه: حذف Flexbox و استفاده از Inline Block ساده برای جلوگیری از تداخل
         const headerHTML = `
-            <table style="width:100%; direction:rtl; border-collapse:collapse; margin-bottom:8px; border-bottom:1px solid #eee;">
-                <tr>
-                    <td style="text-align:right; vertical-align:top; padding-bottom:8px;">
-                        <div style="font-size:16px; color:#0d6efd; font-weight:bold; margin-bottom:4px;">
-                            ${index + 1}. ${item.deviceName}
-                        </div>
-                        <div style="font-size:13px; color:#555; font-weight:normal;">
-                            (${partNamesText})
-                        </div>
-                    </td>
-                    <td style="text-align:left; vertical-align:top; width:120px; padding-bottom:8px;">
-                        <div style="font-size:11px; color:#666; white-space:nowrap;">
-                            ${typeBadge}
-                        </div>
-                        <div style="font-size:11px; color:#666; margin-top:4px; white-space:nowrap;">
-                            <i class="bi bi-clock"></i> ${item.timestamp}
-                        </div>
-                    </td>
-                </tr>
-            </table>`;
+            <div class="summary-card-header" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; border-bottom:1px solid #eee; padding-bottom:8px;">
+                <h2 class="summary-card-title" style="font-size:16px; margin:0; color:#0d6efd; text-align:right; direction:rtl;">
+                    <span style="font-weight:bold; display:inline;">${
+                      index + 1
+                    }. ${item.deviceName}</span>
+                    &nbsp;
+                    <span style="font-size:13px; color:#555; margin-right:8px; font-weight:normal; display:inline-block;">(${partNamesText})</span>
+                </h2>
+                <span class="summary-timestamp" style="font-size:11px; color:#666;">
+                    ${typeBadge}
+                    <i class="bi bi-clock"></i> ${item.timestamp}
+                </span>
+            </div>`;
 
         let detailsHTML = "";
         if (item.materials && item.materials.length > 0) {
@@ -1575,7 +1596,9 @@ export function init() {
     });
   }
 
+  // Event Listeners
   addSafeEventListener("#finalize-btn", "click", finalizeForm);
+  // دکمه‌های دستی حذف شدند، نیازی به لیسنر نیست
   addSafeEventListener("#mobile-add-btn", "click", handleMobileSubmit);
   addSafeEventListener("#mobile-inspection-type", "change", updateFormMode);
   legendsMainContainer.addEventListener("click", handleDefectClick);
