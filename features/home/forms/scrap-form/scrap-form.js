@@ -1,7 +1,7 @@
 import { scrapFormData } from "./scrap-form-data.js";
 
 export function init() {
-  console.log("Scrap Form Initialized! (BOM System v1.1 - Sticky Model)");
+  console.log("Scrap Form Initialized! (BOM System v1.2 - Sticky Waste Type)");
   // --- تعریف متغیرهای اصلی ---
   const Swal = window.Swal,
     Toastify = window.Toastify,
@@ -20,6 +20,8 @@ export function init() {
   const mobileForm = {
     bomProductType: document.getElementById("bom-product-type"),
     bomModel: document.getElementById("bom-model"),
+    // فیلد جدید نوع ضایعات در اینجا تعریف شد
+    itemWasteType: document.getElementById("item-waste-type"),
     bomPartName: document.getElementById("bom-part-name"),
     bomPartCode: document.getElementById("bom-part-code"),
     totalCount: document.getElementById("mobile-total-count"),
@@ -119,9 +121,27 @@ export function init() {
     }
   }
 
+  // این تابع را در فایل scrap-form.js پیدا کرده و کامل جایگزین کنید
   function handleModelChange(event) {
     const selectedType = bomProductTypeChoice.getValue(true);
     const selectedModel = event.detail.value;
+
+    // === شروع تغییرات لاجیک دوقلو ===
+    if (selectedType === "دوقلو" && selectedModel) {
+      // 1. گروه همیشه TT باشد
+      mobileForm.group.value = "TT";
+
+      // 2. آیتم بر اساس ظرفیت مدل پر شود
+      if (selectedModel.includes("9.6")) {
+        mobileForm.item.value = "9.6";
+      } else if (selectedModel.includes("15.5")) {
+        mobileForm.item.value = "15.5";
+      } else if (selectedModel.includes("21")) {
+        mobileForm.item.value = "21";
+      }
+    }
+    // === پایان تغییرات ===
+
     bomPartNameChoice.clearStore();
     bomPartNameChoice.disable();
     mobileForm.bomPartCode.value = "";
@@ -243,8 +263,7 @@ export function init() {
   function generateBaseFileName(globalInfo) {
     const date = globalInfo.globalDate.replace(/\//g, ".");
     const line = globalInfo.globalLine.replace(/\s/g, "_");
-    const type = globalInfo.wasteType === "برقی" ? "برقی" : "غیربرقی";
-    return `گزارش ضایعات ${date} - ${line} - ${type}`;
+    return `گزارش ضایعات ${date} - ${line}`;
   }
 
   // ===== توابع مدیریت فرم =====
@@ -264,9 +283,6 @@ export function init() {
     if (dateInput) dateInput.value = formatter.format(today);
     const lineSelect = document.getElementById("line");
     if (lineSelect) lineSelect.selectedIndex = 0;
-
-    const wasteTypeSelect = document.getElementById("waste_type_select");
-    if (wasteTypeSelect) wasteTypeSelect.value = "غیربرقی";
 
     document.getElementById("approver-control").value = "";
     document.getElementById("approver-line").value = "";
@@ -308,11 +324,11 @@ export function init() {
     });
   }
 
-  // [جدید] تابع ریست سبک فقط برای فیلدهای قطعه
+  // [مهم] تابع ریست سبک فقط برای فیلدهای قطعه
+  // نکته: فیلد itemWasteType را در اینجا ریست نمی‌کنیم تا Sticky بماند
   function resetPartSpecificFields() {
     editingRowIndex = null;
 
-    // پاک کردن ارورهای ولیدیشن
     document
       .querySelectorAll(
         "#mobile-form-wrapper [data-required-name], #mobile-form-wrapper .choices"
@@ -323,7 +339,6 @@ export function init() {
         if (parent) parent.classList.remove("required-field-error");
       });
 
-    // فقط فیلدهای مربوط به قطعه ریست می‌شوند
     if (bomPartNameChoice) bomPartNameChoice.clearInput();
     mobileForm.bomPartCode.value = "";
 
@@ -356,9 +371,7 @@ export function init() {
     mobileForm.addBtn.style.backgroundColor = "var(--success-color)";
     updateDefectLegendsSelection();
 
-    // فوکوس روی فیلد نام قطعه برای ورود سریع بعدی
     setTimeout(() => {
-      // ✅ این روش صحیح برای چک کردن وضعیت در کتابخانه Choices.js است
       if (bomPartNameChoice && !mobileForm.bomPartName.disabled) {
         bomPartNameChoice.showDropdown();
         bomPartNameChoice.input.focus();
@@ -366,7 +379,7 @@ export function init() {
     }, 100);
   }
 
-  // این تابع برای ریست کامل فرم (مثلا با دکمه ریست کلی) استفاده می‌شود
+  // این تابع برای ریست کامل فرم است، پس اینجا نوع ضایعات را هم ریست می‌کنیم
   function resetMobileForm() {
     editingRowIndex = null;
 
@@ -385,6 +398,9 @@ export function init() {
     if (bomModelChoice) bomModelChoice.disable();
     if (bomPartNameChoice) bomPartNameChoice.disable();
 
+    // ریست کردن نوع ضایعات چون کل فرم ریست شده
+    if (mobileForm.itemWasteType) mobileForm.itemWasteType.selectedIndex = 0;
+
     resetPartSpecificFields();
   }
 
@@ -396,6 +412,7 @@ export function init() {
       <td></td>
       <td><input type="hidden" name="product_type"></td>
       <td><input type="hidden" name="product_model"></td>
+      <td><input type="hidden" name="waste_type"></td> <!-- ستون جدید نوع ضایعات -->
       <td><input type="hidden" name="part_code"></td>
       <td><select name="group">${groupOptionsHTML}</select></td>
       <td><input type="number" name="item"></td>
@@ -488,6 +505,11 @@ export function init() {
     mobileForm.defectsSummary.value = data.defects_summary;
     mobileForm.comments.value = data.comments;
 
+    // پر کردن نوع ضایعات هنگام ویرایش
+    if (mobileForm.itemWasteType) {
+      mobileForm.itemWasteType.value = data.waste_type || "غیربرقی";
+    }
+
     await bomProductTypeChoice.setChoiceByValue(data.product_type);
     await new Promise((resolve) => setTimeout(resolve, 100));
     await bomModelChoice.setChoiceByValue(data.product_model);
@@ -506,11 +528,10 @@ export function init() {
 
   function getGlobalData() {
     if (Object.keys(finalizedFormData).length > 0) return finalizedFormData;
-    const wasteTypeSelect = document.getElementById("waste_type_select");
     return {
       globalDate: document.getElementById("jalali_date").value.trim(),
       globalLine: document.getElementById("line").value,
-      wasteType: wasteTypeSelect ? wasteTypeSelect.value : "غیربرقی",
+      wasteType: "تجمیعی", // دیگر سراسری نیست
       approverControl: document.getElementById("approver-control").value.trim(),
       approverLine: document.getElementById("approver-line").value.trim(),
       approverEng: document.getElementById("approver-eng").value.trim(),
@@ -621,7 +642,7 @@ export function init() {
         const headers = [
           "تاریخ",
           "خط",
-          "نوع ضایعات",
+          "نوع ضایعات", // اینجا ستون نوع ضایعات در هدر است
           "ردیف",
           "نوع محصول",
           "مدل محصول",
@@ -650,7 +671,7 @@ export function init() {
           const rowDataValues = [
             globalInfo.globalDate,
             globalInfo.globalLine,
-            globalInfo.wasteType,
+            data.waste_type, // استفاده از نوع ضایعات مخصوص هر ردیف
             index + 1,
             data.product_type,
             data.product_model,
@@ -710,14 +731,19 @@ export function init() {
           .getElementById("main-header")
           .cloneNode(true);
         const approvalHTML = `<div class="approvers-container"><div class="approver-group"><label>1. نماینده کنترل:</label><span class="approver-group-name">${globalInfo.approverControl}</span></div><div class="approver-group"><label>2. نماینده تولید:</label><span class="approver-group-name">${globalInfo.approverLine}</span></div><div class="approver-group"><label>3. نماینده فنی و مهندسی:</label><span class="approver-group-name">${globalInfo.approverEng}</span></div></div>`;
-        const topInfoHTML = `<div class="export-top-info"><div><strong>تاریخ:</strong> ${globalInfo.globalDate}</div><div><strong>خط:</strong> ${globalInfo.globalLine}</div><div><strong>نوع ضایعات:</strong> ${globalInfo.wasteType}</div></div>`;
+        const topInfoHTML = `<div class="export-top-info"><div><strong>تاریخ:</strong> ${globalInfo.globalDate}</div><div><strong>خط:</strong> ${globalInfo.globalLine}</div></div>`;
         const pageFooterHTML = `<footer>صفحه ۱ از ۱</footer>`;
         const footerGroupHTML = `<div class="print-footer-group">${approvalHTML}${pageFooterHTML}</div>`;
         return `${originalHeaderClone.outerHTML}${topInfoHTML}<div class="export-items-list">${itemsHTML}</div>${footerGroupHTML}`;
       };
 
       const createItemCardHTML = (item, index) => {
-        const titleHTML = `${index + 1}. ${
+        // ایجاد بج برای نوع ضایعات
+        const typeClass =
+          item.waste_type === "برقی" ? "electric" : "non-electric";
+        const typeBadge = `<span class="type-badge ${typeClass}">${item.waste_type}</span>`;
+
+        const titleHTML = `${index + 1}. ${typeBadge} ${
           item.part_name
         } <span style="font-weight: 500; color: var(--secondary-color); font-size: 13px;">(${
           item.product_model
@@ -941,6 +967,7 @@ export function init() {
           { text: item.item, style: "tableCell" },
           { text: item.group, style: "tableCell" },
           { text: item.part_code, style: "tableCell" },
+          { text: rtl(item.waste_type), style: "tableCell" }, // ستون جدید
           partNameCell,
           { text: index + 1, style: "tableCell" },
         ];
@@ -964,11 +991,9 @@ export function init() {
             {
               style: "infoBox",
               table: {
-                widths: ["*", "auto", "*", "auto", "*", "auto"],
+                widths: ["*", "auto", "*", "auto"],
                 body: [
                   [
-                    { text: rtl(globalInfo.wasteType), style: "infoText" },
-                    { text: rtl("نوع ضایعات:"), style: "infoLabel" },
                     { text: globalInfo.globalDate, style: "infoText" },
                     { text: rtl("تاریخ:"), style: "infoLabel" },
                     { text: rtl(globalInfo.globalLine), style: "infoText" },
@@ -985,17 +1010,19 @@ export function init() {
           {
             table: {
               headerRows: 1,
+              // تنظیم widths برای 11 ستون (یک ستون اضافه شد)
               widths: [
-                60,
-                "*",
-                "auto",
-                "auto",
-                "auto",
-                "auto",
-                "auto",
-                "auto",
-                "*",
-                "auto",
+                45, // توضیحات (کم شد)
+                "*", // شرح ضایعات
+                "auto", // منشا
+                "auto", // تامین کننده
+                "auto", // تعداد
+                "auto", // آیتم
+                "auto", // گروه
+                "auto", // کد
+                35, // نوع ضایعات (جدید)
+                "*", // نام قطعه
+                "auto", // ردیف
               ],
               body: [
                 [
@@ -1007,6 +1034,7 @@ export function init() {
                   { text: rtl("آیتم"), style: "tableHeader" },
                   { text: rtl("گروه"), style: "tableHeader" },
                   { text: rtl("کد قطعه"), style: "tableHeader" },
+                  { text: rtl("نوع"), style: "tableHeader" }, // ستون جدید
                   { text: rtl("نام قطعه / مدل"), style: "tableHeader" },
                   { text: rtl("ردیف"), style: "tableHeader" },
                 ],
@@ -1153,7 +1181,11 @@ export function init() {
       const li = document.createElement("li");
       li.dataset.rowIndex = index;
 
-      const titleHTML = `${index + 1}. ${
+      // نمایش نوع ضایعات در لیست خلاصه
+      const typeBadgeColor = data.waste_type === "برقی" ? "#dc3545" : "#6c757d";
+      const typeBadge = `<span style="background-color: ${typeBadgeColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px;">${data.waste_type}</span>`;
+
+      const titleHTML = `${index + 1}. ${typeBadge} ${
         data.part_name
       } <span class="summary-product-type">(${data.product_model})</span>`;
 
@@ -1237,6 +1269,7 @@ export function init() {
     const requiredFields = {
       product_type: "نوع محصول",
       product_model: "مدل",
+      waste_type: "نوع ضایعات", // فیلد اجباری جدید
       part_name: "نام قطعه",
       total_count: "تعداد کل",
       defects_summary: "شرح ضایعات",
@@ -1305,6 +1338,12 @@ export function init() {
         choice: bomModelChoice,
         el: mobileForm.bomModel.closest(".mobile-form-group"),
         name: "مدل",
+      },
+      // اعتبارسنجی نوع ضایعات
+      {
+        el: mobileForm.itemWasteType.closest(".mobile-form-group"),
+        value: mobileForm.itemWasteType.value,
+        name: "نوع ضایعات",
       },
       {
         choice: bomPartNameChoice,
@@ -1411,7 +1450,6 @@ export function init() {
     updateDefectLegendsSelection();
   }
 
-  // +++ تابع جدید برای وارد کردن تعداد دقیق نقص +++
   function setDefectCount(defectName) {
     if (pageElement.classList.contains("form-locked")) return;
     const targetInput = mobileForm.defectsSummary;
@@ -1514,6 +1552,7 @@ export function init() {
     const mobileData = {
       product_type: bomProductTypeChoice.getValue(true),
       product_model: bomModelChoice.getValue(true),
+      waste_type: mobileForm.itemWasteType.value, // خواندن مقدار نوع ضایعات
       part_name: bomPartNameChoice.getValue(true),
       part_code: mobileForm.bomPartCode.value,
       total_count: mobileForm.totalCount.value,
@@ -1607,6 +1646,15 @@ export function init() {
     mobileForm.bomPartName.addEventListener("change", handlePartNameChange);
     mobileForm.addBtn.addEventListener("click", handleAddItem);
 
+    // برداشتن ارور هنگام تغییر سلکت نوع ضایعات
+    if (mobileForm.itemWasteType) {
+      mobileForm.itemWasteType.addEventListener("change", (e) => {
+        e.target
+          .closest(".mobile-form-group")
+          .classList.remove("required-field-error");
+      });
+    }
+
     if (mobileForm.summaryList) {
       mobileForm.summaryList.addEventListener("click", (event) => {
         if (pageElement.classList.contains("form-locked")) return;
@@ -1624,31 +1672,28 @@ export function init() {
       });
     }
 
-    // +++ تغییر در منطق مدیریت نقص‌ها با قابلیت تشخیص سه کلیک +++
     let clickTimeout = null;
     let clickCount = 0;
-    const clickDelay = 300; // میلی‌ثانیه برای تشخیص چند کلیک
+    const clickDelay = 300;
 
     legendsContainer.addEventListener("click", (e) => {
-        const item = e.target.closest("li[data-defect-name]");
-        if (!item) return;
+      const item = e.target.closest("li[data-defect-name]");
+      if (!item) return;
 
-        clickCount++;
+      clickCount++;
 
-        if (clickCount === 1) {
-            clickTimeout = setTimeout(() => {
-                // اگر بعد از 300 میلی‌ثانیه کلیک دیگری نشد، عمل تک کلیک را انجام بده
-                updateDefectCount(item.dataset.defectName, 1);
-                clickCount = 0;
-            }, clickDelay);
-        } else if (clickCount === 3) { // +++ تغییر: تشخیص سه کلیک +++
-            clearTimeout(clickTimeout);
-            setDefectCount(item.dataset.defectName);
-            clickCount = 0;
-        }
+      if (clickCount === 1) {
+        clickTimeout = setTimeout(() => {
+          updateDefectCount(item.dataset.defectName, 1);
+          clickCount = 0;
+        }, clickDelay);
+      } else if (clickCount === 3) {
+        clearTimeout(clickTimeout);
+        setDefectCount(item.dataset.defectName);
+        clickCount = 0;
+      }
     });
 
-    // لمس طولانی و کلیک راست برای کاهش تعداد
     let touchTimer;
     legendsContainer.addEventListener("contextmenu", (e) => {
       const item = e.target.closest("li[data-defect-name]");
@@ -1659,17 +1704,20 @@ export function init() {
     });
     legendsContainer.addEventListener("touchstart", (e) => {
       const item = e.target.closest("li[data-defect-name]");
-      if(item){
-         touchTimer = setTimeout(() => {
-            updateDefectCount(item.dataset.defectName, -1);
-            navigator.vibrate?.(50);
+      if (item) {
+        touchTimer = setTimeout(() => {
+          updateDefectCount(item.dataset.defectName, -1);
+          navigator.vibrate?.(50);
         }, 500);
       }
     });
-    legendsContainer.addEventListener("touchend", () => clearTimeout(touchTimer));
-    legendsContainer.addEventListener("touchmove", () => clearTimeout(touchTimer));
-    // +++ پایان تغییرات +++
-    
+    legendsContainer.addEventListener("touchend", () =>
+      clearTimeout(touchTimer)
+    );
+    legendsContainer.addEventListener("touchmove", () =>
+      clearTimeout(touchTimer)
+    );
+
     const mobileFormWrapper = document.getElementById("mobile-form-wrapper");
     if (mobileFormWrapper) {
       mobileFormWrapper.addEventListener("click", (e) => {

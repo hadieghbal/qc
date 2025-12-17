@@ -1,6 +1,11 @@
 /* ================================================================= */
-/* === PAGE SPECIFIC: CHECKLIST INJECTION (نسخه نهایی و یکپارچه) === */
+/* === PAGE SPECIFIC: CHECKLIST INJECTION (Fixed Mobile & Scroll) === */
 /* ================================================================= */
+
+/* --- جلوگیری از رفرش شدن صفحه با کشیدن به بالا (Pull-to-refresh) --- */
+body {
+  overscroll-behavior-y: contain;
+}
 
 #checklist-injection-page .accordion-content > .mobile-form-group {
   margin-bottom: 18px;
@@ -8,8 +13,21 @@
 #checklist-injection-page .accordion-content > .mobile-form-group:last-child {
   margin-bottom: 0;
 }
+#checklist-injection-page .mobile-form-container {
+  padding-bottom: 30px;
+}
 
-/* --- استایل‌های گروه چک‌باکس‌ها (OK/NG) --- */
+/* --- استایل‌های عمومی فرم --- */
+.mobile-form-group {
+  margin-bottom: 15px;
+}
+.form-divider {
+  border: 0;
+  border-top: 1px dashed var(--border-color);
+  margin: 20px 0;
+}
+
+/* --- چک‌باکس‌ها --- */
 .check-group {
   display: flex;
   gap: 8px;
@@ -20,8 +38,6 @@
   justify-content: space-between;
   flex-grow: 1;
 }
-
-/* --- استایل اصلی چک‌باکس --- */
 .check-box {
   width: 35px;
   height: 35px;
@@ -59,19 +75,22 @@
   font-size: 1.8rem;
 }
 
-/* --- استایل حالت قفل شده --- */
-.form-locked .check-box {
+/* --- حالت قفل شده --- */
+.form-locked .check-box,
+.form-locked input,
+.form-locked select {
   cursor: not-allowed;
-  opacity: 0.6;
+  pointer-events: none;
+  opacity: 0.7;
 }
 
-/* --- مدیریت نمایش دکمه‌های خروجی --- */
+/* --- دکمه‌های خروجی --- */
 .export-btn,
 .export-img-btn {
   display: none;
 }
 
-/* ====== استایل کارت خلاصه (نمایش در صفحه) ====== */
+/* ====== کارت خلاصه (Summary Card) ====== */
 #mobile-summary-list {
   list-style: none;
   padding: 0;
@@ -90,11 +109,10 @@
   gap: 5px;
   background-color: #fff;
 }
-
 .summary-card-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   width: 100%;
 }
 .summary-card-title {
@@ -123,7 +141,6 @@
 .summary-actions {
   display: flex;
 }
-
 .summary-card-details {
   font-size: 0.8rem;
   color: var(--secondary-color);
@@ -163,8 +180,15 @@
   color: var(--danger-color);
   font-weight: bold;
 }
+.inspection-badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-right: 8px;
+  display: inline-block;
+}
 
-/* رنگی کردن آیکون‌های کارت خلاصه */
+/* آیکون‌های کارت */
 .summary-card-details .bi-boxes {
   color: var(--icon-item-color);
 }
@@ -176,6 +200,9 @@
 }
 .summary-card-details .bi-hourglass-split {
   color: #0d6efd;
+}
+.summary-card-details .bi-speedometer2 {
+  color: #6610f2;
 }
 .summary-card-details .bi-eye-fill {
   color: var(--icon-group-color);
@@ -193,144 +220,141 @@
   color: var(--icon-comment-color);
 }
 
-/* ===== استایل‌های لیست‌های دینامیک ===== */
-
+/* ===== استایل‌های لیست‌های دینامیک (قطعات، مواد و مستربچ) ===== */
 .dynamic-list-wrapper {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   width: 100%;
 }
 
+/* --- ردیف‌های پویا --- */
 .part-row,
 .material-row,
 .masterbatch-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
   width: 100%;
+  gap: 6px;
+  flex-wrap: nowrap; /* پیش‌فرض برای دسکتاپ */
 }
 
-.part-row input,
-.material-row input,
-.masterbatch-row input {
-  padding: 12px;
-  font-size: 14px;
-  box-sizing: border-box;
-  font-family: "Vazirmatn", sans-serif;
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  height: 48px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-/* === استایل جدید برای دراپ‌داون قطعه === */
-.part-row .choices {
-  flex-grow: 1;
+/* 1. دراپ‌داون (نام) */
+.part-row .choices,
+.material-row .choices,
+.masterbatch-row .choices {
+  flex: 1 1 40%;
   min-width: 0;
+  margin-bottom: 0 !important;
 }
-.part-row .choices__inner {
-  padding: 5px 12px;
-  font-size: 14px;
+
+/* 2. توضیحات */
+.part-row .description-input,
+.material-row .description-input,
+.masterbatch-row .description-input {
+  flex: 1 1 35%;
+  min-width: 0;
+  height: 40px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 0 8px;
+  background-color: #fff;
+  font-family: inherit;
+  font-size: 12.5px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+/* 3. ورودی عدد (درصد) */
+.material-row .numeric-input,
+.masterbatch-row .numeric-input {
+  flex: 0 0 50px;
+  width: 50px;
+  text-align: center;
+  height: 40px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 0 2px;
+  font-size: 13px;
+}
+
+/* فوکوس روی اینپوت‌ها */
+.description-input:focus,
+.numeric-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+}
+
+/* --- استایل مشترک Choices.js --- */
+.choices__inner {
+  padding: 4px 8px;
+  font-size: 13px;
   box-sizing: border-box;
   font-family: "Vazirmatn", sans-serif;
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
-  min-height: 48px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  min-height: 40px;
+  height: auto;
+  display: flex;
+  align-items: center;
   background-color: #fff;
 }
 .choices.is-focused .choices__inner {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.15);
 }
-/* === پایان استایل جدید === */
 
-.part-row input:focus,
-.material-row input:focus,
-.masterbatch-row input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.15);
-}
-
-.part-row .name-input,
-.material-row .name-input,
-.masterbatch-row .name-input {
-  flex-grow: 1;
-  min-width: 0;
-}
-
-.part-row .numeric-input,
-.material-row .numeric-input,
-.masterbatch-row .numeric-input {
-  width: 100px;
-  flex-shrink: 0;
-  text-align: center;
-}
-
+/* --- دکمه‌های + و - --- */
 .material-buttons {
   display: flex;
-  gap: 5px;
+  gap: 3px;
   flex-shrink: 0;
+  align-items: center;
 }
-
 .material-action-btn {
-  width: 38px;
-  height: 38px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   border: none;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
   cursor: pointer;
   display: flex;
-  align-items: center;
   justify-content: center;
-  font-size: 20px;
-  font-weight: bold;
-  color: white;
-  transition: background-color 0.2s;
-  flex-shrink: 0;
+  align-items: center;
+  padding: 0;
+  line-height: 1;
+  transition: transform 0.1s;
 }
-
+.material-action-btn:active {
+  transform: scale(0.95);
+}
 .add-material-btn {
-  background-color: var(--success-color);
+  background-color: #198754;
 }
-.add-material-btn:hover {
-  background-color: #157347;
-}
-
 .remove-material-btn {
-  background-color: var(--danger-color);
-}
-.remove-material-btn:hover {
-  background-color: #b02a37;
+  background-color: #dc3545;
 }
 
-.part-row .add-material-btn,
-.material-row .add-material-btn,
-.masterbatch-row .add-material-btn {
-  display: none;
-}
-.part-row .remove-material-btn,
-.material-row .remove-material-btn,
-.masterbatch-row .remove-material-btn {
-  display: flex;
-}
-.part-row:first-child .add-material-btn,
-.material-row:first-child .add-material-btn,
-.masterbatch-row:first-child .add-material-btn {
-  display: flex;
-}
+/* مدیریت نمایش دکمه‌های حذف/اضافه */
 .part-row:first-child .remove-material-btn,
 .material-row:first-child .remove-material-btn,
 .masterbatch-row:first-child .remove-material-btn {
   display: none;
 }
+.part-row:not(:first-child) .add-material-btn,
+.material-row:not(:first-child) .add-material-btn,
+.masterbatch-row:not(:first-child) .add-material-btn {
+  display: none;
+}
 
-/* ===== چیدمان فرم نقص ===== */
+/* ===== فرم نقص ===== */
 .mobile-form-group.defect-group {
   display: grid;
-  grid-template-columns: 85px 1fr;
+  grid-template-columns: 80px 1fr;
   align-items: center;
   gap: 10px;
 }
@@ -346,10 +370,175 @@
   grid-column: 1 / -1;
 }
 
-/* استایل‌های متفرقه */
-.check-group.required-field-error {
-  border: 2px solid var(--danger-color);
-  border-radius: var(--border-radius);
-  padding: 5px 3px 0px 3px;
-  background-color: var(--danger-bg-color);
+/* ===== گرید کنترل کیفی ===== */
+.qc-grid-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.qc-grid-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.qc-grid-label {
+  width: 80px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+.qc-grid-inputs,
+.qc-grid-checks {
+  display: flex;
+  gap: 8px;
+  flex-grow: 1;
+}
+.serial-input {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  padding: 5px;
+  font-size: 13px;
+  text-align: center;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  height: 35px;
+}
+.serial-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+}
+.qc-grid-checks .check-box {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+}
+
+.hidden-col {
+  display: none !important;
+}
+
+/* نمونه شاهد */
+.serial-input.master-sample-input {
+  border: 2px solid #f39c12;
+  background-color: #fffaf0;
+  font-weight: bold;
+}
+.qc-grid-checks .check-box.master-sample-check {
+  border-color: #f39c12;
+}
+
+/* ========= استایل خطای فیلد الزامی ========= */
+.required-field-error {
+  border: 1px solid #dc3545 !important;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+.choices.required-field-error .choices__inner {
+  border-color: #dc3545 !important;
+}
+select.required-field-error {
+  border-color: #dc3545 !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: left calc(0.375em + 0.1875rem) center;
+  background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+/* ========================================= */
+/* === هماهنگ‌سازی کامل رنگ‌های راهنما === */
+/* ========================================= */
+input::placeholder {
+  color: var(--placeholder-color) !important;
+  opacity: 1;
+}
+.choices__input::placeholder {
+  color: var(--placeholder-color) !important;
+  opacity: 1;
+}
+.choices__placeholder {
+  color: var(--placeholder-color) !important;
+  opacity: 1;
+}
+select:required:invalid {
+  color: var(--placeholder-color) !important;
+}
+option {
+  color: var(--dark-color);
+}
+
+/* ================================================================= */
+/* === MOBILE FIXES (اصلاحات نمایش در موبایل) === */
+/* ================================================================= */
+@media (max-width: 576px) {
+  /* شکستن خطوط برای قطعات و مواد */
+  .part-row,
+  .material-row,
+  .masterbatch-row {
+    flex-wrap: wrap;
+    gap: 8px;
+    border-bottom: 1px dashed #eee;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+
+  /* در حالت موبایل، سلکت باکس (نام) کل عرض را بگیرد */
+  .part-row .choices,
+  .material-row .choices,
+  .masterbatch-row .choices {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  /* توضیحات و اینپوت عددی و دکمه‌ها در سطر دوم */
+  .part-row .description-input,
+  .material-row .description-input,
+  .masterbatch-row .description-input {
+    flex: 1 1 auto; /* فضای باقی‌مانده را پر کند */
+    width: auto;
+  }
+
+  /* کوچک کردن دکمه‌ها برای جا شدن */
+  .material-buttons {
+    margin-right: auto; /* چسبیدن به چپ */
+  }
+
+  /* تنظیمات خاص برای اینپوت سریال‌ها در موبایل */
+  .qc-grid-container {
+    gap: 15px;
+  }
+  .qc-grid-row {
+    flex-direction: column; /* لیبل بالا، اینپوت‌ها پایین */
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .qc-grid-label {
+    width: 100%;
+    text-align: right;
+    font-size: 0.85rem;
+  }
+  .qc-grid-inputs,
+  .qc-grid-checks {
+    width: 100%;
+  }
+
+  /* کوچک کردن فونت و پدینگ سریال‌ها برای جا شدن 5 تا */
+  .serial-input {
+    padding: 0 2px;
+    font-size: 11px; /* فونت ریزتر */
+    height: 32px;
+    /* مخفی کردن دکمه‌های بالا/پایین عدد در موبایل */
+    -moz-appearance: textfield;
+  }
+  .serial-input::-webkit-outer-spin-button,
+  .serial-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* سایز چک‌باکس‌ها کمی کوچک‌تر در موبایل */
+  .check-box {
+    width: 100%; /* تقسیم مساوی */
+    height: 32px;
+    font-size: 1.4rem;
+  }
 }
