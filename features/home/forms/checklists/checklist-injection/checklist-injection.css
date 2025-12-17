@@ -1,5 +1,5 @@
 /* ================================================================= */
-/* === PAGE SPECIFIC: CHECKLIST INJECTION (Fixed Mobile & Scroll) === */
+/* === PAGE SPECIFIC: CHECKLIST INJECTION (Final Mobile & Layout) === */
 /* ================================================================= */
 
 /* --- جلوگیری از رفرش شدن صفحه با کشیدن به بالا (Pull-to-refresh) --- */
@@ -84,7 +84,7 @@ body {
   opacity: 0.7;
 }
 
-/* --- دکمه‌های خروجی --- */
+/* --- دکمه‌های خروجی (مخفی چون خودکار شده‌اند) --- */
 .export-btn,
 .export-img-btn {
   display: none;
