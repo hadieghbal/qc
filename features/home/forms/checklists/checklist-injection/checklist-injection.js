@@ -2,7 +2,7 @@ import { injectionChecklistData } from "./checklist-injection-data.js";
 
 export function init() {
   console.log(
-    "Checklist Injection Initialized! (v: Final Fixes - Time & Image)"
+    "Checklist Injection Initialized! (v: Final Fixes - Persistent Storage & Mold Change Logic)"
   );
 
   const Swal = window.Swal,
@@ -34,13 +34,14 @@ export function init() {
   let editingIndex = null;
   let finalizedData = {};
   let mobileDeviceChoice;
+  let lastLoadedPartName = ""; // ردیاب نام قالب لود شده برای تشخیص تغییر دستی
 
   /// نگهداری اینستنس‌های Choices
   let partChoices = new Map();
   let materialChoices = new Map();
   let masterbatchChoices = new Map();
 
-  const STORAGE_PREFIX = "INJ_SETUP_";
+  const STORAGE_PREFIX = "INJ_DEV_MEM_"; // پیشوند جدید برای حافظه دائمی
 
   const choicesConfig = {
     searchPlaceholderValue: "جستجو...",
@@ -68,8 +69,8 @@ export function init() {
   }
 
   function saveDeviceSettingsToMemory(settings) {
-    const date = getTodayDateString();
-    const key = `${STORAGE_PREFIX}${date}_${settings.deviceName}`;
+    // حذف تاریخ از کلید برای جلوگیری از ریست شدن در نیمه‌شب
+    const key = `${STORAGE_PREFIX}${settings.deviceName}`;
     const dataToStore = {
       parts: settings.parts,
       materials: settings.materials,
@@ -85,19 +86,13 @@ export function init() {
   }
 
   function loadDeviceSettingsFromMemory(deviceName) {
-    const date = getTodayDateString();
-    const key = `${STORAGE_PREFIX}${date}_${deviceName}`;
+    const key = `${STORAGE_PREFIX}${deviceName}`;
     const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : null;
   }
 
   function cleanupOldStorage() {
-    const todayDate = getTodayDateString();
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith(STORAGE_PREFIX) && !key.includes(todayDate)) {
-        localStorage.removeItem(key);
-      }
-    });
+    // این تابع جهت ماندگاری دائمی اطلاعات دستگاه‌ها غیرفعال شد
   }
 
   function showToast(message, type = "error") {
@@ -118,7 +113,6 @@ export function init() {
     }).showToast();
   }
 
-  // تابع کمکی برای دانلود فایل
   function downloadFile(content, fileName) {
     const link = document.createElement("a");
     link.href = content;
@@ -128,7 +122,6 @@ export function init() {
     document.body.removeChild(link);
   }
 
-  // تابع کمکی برای اینلاین کردن استایل‌ها
   async function inlineAllStyles(element) {
     const styleSheets = Array.from(document.styleSheets);
     let cssText = "";
@@ -335,7 +328,6 @@ export function init() {
       calendar: "persian",
     });
     dateInput.value = formatter.format(today);
-    cleanupOldStorage();
   }
 
   function updateDefectLabelRequirement() {
@@ -402,7 +394,49 @@ export function init() {
     updateDefectLabelRequirement();
   }
 
-  // --- مدیریت Choices.js برای لیست‌ها ---
+  function resetProcessFields() {
+    // ریست کردن لیست مواد و مستربچ
+    initializeAllDynamicLists({
+      parts: getPartsDataFromUI(),
+      materials: [],
+      masterbatches: [],
+    });
+
+    // ریست کردن فیلدهای عددی
+    document.getElementById("mobile-weight").value = "";
+    document.getElementById("mobile-cycleTime").value = "";
+
+    // تغییر نوع تولید به حالت "اولیه" (5 مرحله‌ای) با تعویض قالب
+    const typeSelect = document.getElementById("mobile-inspection-type");
+    if (typeSelect) {
+      typeSelect.value = "initial";
+      updateFormMode(); // فراخوانی برای نمایش هر 5 ردیف سریال و چک‌باکس
+    }
+
+    showToast(
+      "قالب تغییر کرد؛ مشخصات فرآیندی ریست و نوع تولید به 'اولیه' تغییر یافت.",
+      "info"
+    );
+  }
+
+  function getPartsDataFromUI() {
+    const partRows = document.querySelectorAll(
+      "#mobile-parts-container .part-row"
+    );
+    const parts = [];
+    partRows.forEach((row) => {
+      const selectEl = row.querySelector("select.name-input");
+      const choiceInstance = partChoices.get(selectEl);
+      if (choiceInstance) {
+        parts.push({
+          name: choiceInstance.getValue(true),
+          description: row.querySelector(".description-input").value.trim(),
+        });
+      }
+    });
+    return parts;
+  }
+
   function initializeListChoices(
     containerId,
     dataList,
@@ -423,13 +457,22 @@ export function init() {
           choice.setChoiceByValue(itemsData[i].name);
         }
         storageMap.set(selectElement, choice);
+
+        // تشخیص تغییر دستی قالب (قطعه ردیف اول)
+        if (containerId === "mobile-parts-container" && i === 0) {
+          selectElement.addEventListener("change", (event) => {
+            const newPartName = event.detail.value;
+            if (lastLoadedPartName && newPartName !== lastLoadedPartName) {
+              resetProcessFields();
+            }
+            lastLoadedPartName = newPartName;
+          });
+        }
       }
     }
   }
 
-  // --- Initializers کلی ---
   function initializeAllDynamicLists(dataObj = {}) {
-    // 1. قطعات
     partChoices.forEach((c) => c.destroy());
     partChoices.clear();
     const partsContainer = document.getElementById("mobile-parts-container");
@@ -447,7 +490,6 @@ export function init() {
       partsData
     );
 
-    // 2. مواد
     materialChoices.forEach((c) => c.destroy());
     materialChoices.clear();
     const matContainer = document.getElementById("mobile-materials-container");
@@ -465,7 +507,6 @@ export function init() {
       matData
     );
 
-    // 3. مستربچ
     masterbatchChoices.forEach((c) => c.destroy());
     masterbatchChoices.clear();
     const mbContainer = document.getElementById(
@@ -488,7 +529,6 @@ export function init() {
 
   function clearFieldsOnly() {
     initializeAllDynamicLists();
-
     document.getElementById("mobile-weight").value = "";
     document.getElementById("mobile-cycleTime").value = "";
     document.getElementById("mobile-defects-summary").value = "";
@@ -508,6 +548,7 @@ export function init() {
 
   function resetMobileForm() {
     editingIndex = null;
+    lastLoadedPartName = "";
     if (mobileDeviceChoice) mobileDeviceChoice.setChoiceByValue("");
     clearFieldsOnly();
     const addBtn = document.getElementById("mobile-add-btn");
@@ -534,6 +575,11 @@ export function init() {
 
     const savedSettings = loadDeviceSettingsFromMemory(deviceName);
     if (savedSettings) {
+      lastLoadedPartName =
+        savedSettings.parts && savedSettings.parts[0]
+          ? savedSettings.parts[0].name
+          : "";
+
       initializeAllDynamicLists(savedSettings);
       document.getElementById("mobile-weight").value =
         savedSettings.weight || "";
@@ -542,15 +588,15 @@ export function init() {
       const typeSelect = document.getElementById("mobile-inspection-type");
       typeSelect.value = "routine";
       updateFormMode();
-      showToast("تنظیمات ذخیره شده بارگذاری شد.", "info");
+      showToast("اطلاعات دستگاه بارگذاری شد.", "info");
     } else {
+      lastLoadedPartName = "";
       clearFieldsOnly();
     }
   }
 
   function validateAndScroll(element, message) {
     if (!element) return;
-
     if (
       element.tagName === "SELECT" &&
       element.classList.contains("name-input")
@@ -560,16 +606,13 @@ export function init() {
     } else {
       element.classList.add("required-field-error");
     }
-
     const targetToScroll = element.closest(".choices") || element;
     targetToScroll.scrollIntoView({ behavior: "smooth", block: "center" });
-
     setTimeout(() => {
       if (typeof element.focus === "function") {
         element.focus({ preventScroll: true });
       }
     }, 100);
-
     showToast(message, "error");
   }
 
@@ -990,7 +1033,6 @@ export function init() {
     if (mobileDeviceChoice)
       mobileDeviceChoice.setChoiceByValue(item.deviceName || "");
 
-    // ایجاد ردیف خالی در صورت نبود داده (برای ویرایش)
     const safeItem = {
       ...item,
       parts:
@@ -1008,7 +1050,6 @@ export function init() {
     };
 
     initializeAllDynamicLists(safeItem);
-
     document.getElementById("mobile-inspection-type").value =
       item.inspectionType || "initial";
     document.getElementById("mobile-weight").value = item.weight || "";
@@ -1050,6 +1091,7 @@ export function init() {
     data = [];
     editingIndex = null;
     finalizedData = {};
+    lastLoadedPartName = "";
     pageElement.classList.remove("form-locked");
     pageElement
       .querySelectorAll("input, button, .choices, select")
@@ -1133,7 +1175,6 @@ export function init() {
       cancelButtonText: "انصراف",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        // محاسبه ایندکس زمان (اصلاح شده: کم کردن یک واحد به خاطر Placeholder)
         const selectedIndex =
           document.getElementById("time_slot_input").selectedIndex;
         const timeIndex = ((selectedIndex - 1) % 4) + 1;
@@ -1154,7 +1195,6 @@ export function init() {
           tableData: JSON.parse(JSON.stringify(data)),
         };
 
-        // قفل کردن فرم
         pageElement.classList.add("form-locked");
         pageElement.querySelectorAll("input, button, select").forEach((el) => {
           el.disabled = true;
@@ -1169,7 +1209,6 @@ export function init() {
           finalizeBtn.innerHTML = `<i class="bi bi-lock-fill"></i> در حال پردازش...`;
         }
 
-        // اجرای اکسپورت‌ها
         try {
           showToast("در حال آماده‌سازی فایل اکسل...", "info");
           exportToCSV();
@@ -1286,7 +1325,6 @@ export function init() {
     const link = document.createElement("a"),
       url = URL.createObjectURL(blob);
     link.href = url;
-    // فرمت تاریخ با نقطه: 1402.09.26
     const fileName = `Tazrigh_${globalInfo.date.replace(/\//g, ".")}_${
       globalInfo.shift
     }_${globalInfo.timeIndex}.csv`;
@@ -1296,11 +1334,8 @@ export function init() {
     document.body.removeChild(link);
   }
 
-  // ===== تابع جدید اکسپورت عکس (اصلاح چیدمان متن) =====
   async function exportToImage() {
     if (Object.keys(finalizedData).length === 0) return;
-
-    // ایجاد یک کپی ایزوله برای پرینت
     const printContainerOriginal = document.querySelector(
       ".print-page-container"
     );
@@ -1319,7 +1354,6 @@ export function init() {
 
     try {
       const { globalInfo, tableData } = finalizedData;
-      // فرمت تاریخ با نقطه
       const baseFileName = `Tazrigh_${globalInfo.date.replace(/\//g, ".")}_${
         globalInfo.shift
       }_${globalInfo.timeIndex}`;
@@ -1364,7 +1398,6 @@ export function init() {
           item.parts && item.parts.length > 0
             ? formatPartsList(item.parts)
             : "قطعه نامشخص";
-
         const typeLabel =
           item.inspectionType === "routine" ? "دوره‌ای" : "اولیه";
         const typeColor =
@@ -1373,7 +1406,6 @@ export function init() {
           item.inspectionType === "routine" ? "white" : "#000"
         }; padding:2px 8px; border-radius:12px; font-size:11px; margin-left:8px;">${typeLabel}</span>`;
 
-        // اصلاح نمایش نام قطعه: حذف Flexbox و استفاده از Inline Block ساده برای جلوگیری از تداخل
         const headerHTML = `
             <div class="summary-card-header" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; border-bottom:1px solid #eee; padding-bottom:8px;">
                 <h2 class="summary-card-title" style="font-size:16px; margin:0; color:#0d6efd; text-align:right; direction:rtl;">
@@ -1598,7 +1630,6 @@ export function init() {
 
   // Event Listeners
   addSafeEventListener("#finalize-btn", "click", finalizeForm);
-  // دکمه‌های دستی حذف شدند، نیازی به لیسنر نیست
   addSafeEventListener("#mobile-add-btn", "click", handleMobileSubmit);
   addSafeEventListener("#mobile-inspection-type", "change", updateFormMode);
   legendsMainContainer.addEventListener("click", handleDefectClick);
