@@ -2,7 +2,7 @@ import { injectionChecklistData } from "./checklist-injection-data.js";
 
 export function init() {
   console.log(
-    "Checklist Injection Initialized! (v: Final Fixes - Time & Image)"
+    "Checklist Injection Initialized! (v: Final - AutoSave, Excel Clock & Tablet Fix)"
   );
 
   const Swal = window.Swal,
@@ -34,13 +34,14 @@ export function init() {
   let editingIndex = null;
   let finalizedData = {};
   let mobileDeviceChoice;
+  let lastLoadedPartName = "";
 
-  /// نگهداری اینستنس‌های Choices
   let partChoices = new Map();
   let materialChoices = new Map();
   let masterbatchChoices = new Map();
 
-  const STORAGE_PREFIX = "INJ_SETUP_";
+  const STORAGE_PREFIX = "INJ_DEV_MEM_";
+  const SESSION_STORAGE_PREFIX = "INJ_DRAFT_"; // پیشوند ذخیره پیش‌نویس (Draft)
 
   const choicesConfig = {
     searchPlaceholderValue: "جستجو...",
@@ -52,6 +53,82 @@ export function init() {
     searchResultLimit: 1000,
     renderChoiceLimit: 1000,
   };
+
+  // --- سیستم ذخیره و بازیابی (Draft System) ---
+
+  function getSessionKey() {
+    const date = document
+      .getElementById("date_input")
+      .value.replace(/\//g, "-");
+    const hall = document.getElementById("hall_input").value;
+    const shift = document.getElementById("shift_input").value;
+    const time = document
+      .getElementById("time_slot_input")
+      .value.replace(/\s+/g, "");
+    if (date && hall && shift && time) {
+      return `${SESSION_STORAGE_PREFIX}${date}_${hall}_${shift}_${time}`;
+    }
+    return null;
+  }
+
+  function saveCurrentSession() {
+    const key = getSessionKey();
+    if (!key) return;
+    const sessionData = {
+      tableData: data,
+      approvers: {
+        qc: document.getElementById("approver-qc").value,
+        prod: document.getElementById("approver-prod").value,
+        shift: document.getElementById("approver-shift").value,
+      },
+      lastUpdate: Date.now(),
+    };
+    localStorage.setItem(key, JSON.stringify(sessionData));
+  }
+
+  function checkAndRestoreSession() {
+    const key = getSessionKey();
+    if (!key) return;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      const sessionData = JSON.parse(saved);
+      if (sessionData.tableData.length > 0 && data.length === 0) {
+        Swal.fire({
+          title: "اطلاعات پیدا شد!",
+          text: "برای این بازه زمانی، اطلاعات ثبت شده قبلی پیدا شد. آیا بازگردانی شود؟",
+          icon: "info",
+          showCancelButton: true,
+          confirmButtonText: "بله، بازگردانی کن",
+          cancelButtonText: "خیر، فرم جدید",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            data = sessionData.tableData;
+            document.getElementById("approver-qc").value =
+              sessionData.approvers.qc || "";
+            document.getElementById("approver-prod").value =
+              sessionData.approvers.prod || "";
+            document.getElementById("approver-shift").value =
+              sessionData.approvers.shift || "";
+            render();
+            showToast("اطلاعات بازگردانی شد.", "success");
+          }
+        });
+      }
+    }
+  }
+
+  function autoCleanupDrafts() {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(SESSION_STORAGE_PREFIX)) {
+        try {
+          const item = JSON.parse(localStorage.getItem(key));
+          if (item.lastUpdate < sevenDaysAgo) localStorage.removeItem(key);
+        } catch (e) {}
+      }
+    }
+  }
 
   // --- Helpers ---
   function getTodayDateString() {
@@ -68,8 +145,7 @@ export function init() {
   }
 
   function saveDeviceSettingsToMemory(settings) {
-    const date = getTodayDateString();
-    const key = `${STORAGE_PREFIX}${date}_${settings.deviceName}`;
+    const key = `${STORAGE_PREFIX}${settings.deviceName}`;
     const dataToStore = {
       parts: settings.parts,
       materials: settings.materials,
@@ -85,19 +161,9 @@ export function init() {
   }
 
   function loadDeviceSettingsFromMemory(deviceName) {
-    const date = getTodayDateString();
-    const key = `${STORAGE_PREFIX}${date}_${deviceName}`;
+    const key = `${STORAGE_PREFIX}${deviceName}`;
     const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : null;
-  }
-
-  function cleanupOldStorage() {
-    const todayDate = getTodayDateString();
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith(STORAGE_PREFIX) && !key.includes(todayDate)) {
-        localStorage.removeItem(key);
-      }
-    });
   }
 
   function showToast(message, type = "error") {
@@ -118,7 +184,6 @@ export function init() {
     }).showToast();
   }
 
-  // تابع کمکی برای دانلود فایل
   function downloadFile(content, fileName) {
     const link = document.createElement("a");
     link.href = content;
@@ -128,7 +193,6 @@ export function init() {
     document.body.removeChild(link);
   }
 
-  // تابع کمکی برای اینلاین کردن استایل‌ها
   async function inlineAllStyles(element) {
     const styleSheets = Array.from(document.styleSheets);
     let cssText = "";
@@ -335,7 +399,6 @@ export function init() {
       calendar: "persian",
     });
     dateInput.value = formatter.format(today);
-    cleanupOldStorage();
   }
 
   function updateDefectLabelRequirement() {
@@ -343,11 +406,8 @@ export function init() {
     const mobileForm = document.querySelector(".mobile-form-container");
     if (!defectLabel || !mobileForm) return;
     const isAnyNg = mobileForm.querySelector(".check-box.ng");
-    if (isAnyNg) {
-      defectLabel.classList.add("required");
-    } else {
-      defectLabel.classList.remove("required");
-    }
+    if (isAnyNg) defectLabel.classList.add("required");
+    else defectLabel.classList.remove("required");
   }
 
   function updateFormMode() {
@@ -355,14 +415,12 @@ export function init() {
     const mode = typeSelect.value;
     const isRoutine = mode === "routine";
     const activeColumns = isRoutine ? 2 : 5;
-
     const serialInputs = document.querySelectorAll(
       "#serial-inputs-wrapper .serial-input"
     );
     serialInputs.forEach((input, index) => {
-      if (index < activeColumns) {
-        input.classList.remove("hidden-col");
-      } else {
+      if (index < activeColumns) input.classList.remove("hidden-col");
+      else {
         input.classList.add("hidden-col");
         input.value = "";
         input.classList.remove("required-field-error");
@@ -377,32 +435,61 @@ export function init() {
           input.placeholder = "4رقم";
           input.type = "number";
         }
-      } else {
-        input.type = "number";
-      }
+      } else input.type = "number";
     });
-
     const checkRows = document.querySelectorAll(".qc-grid-checks");
     checkRows.forEach((row) => {
       const boxes = Array.from(row.children);
       boxes.forEach((box, index) => {
-        if (index < activeColumns) {
-          box.classList.remove("hidden-col");
-        } else {
+        if (index < activeColumns) box.classList.remove("hidden-col");
+        else {
           box.classList.add("hidden-col");
           box.classList.remove("ok", "ng");
         }
-        if (index === 0 && !isRoutine) {
-          box.classList.add("master-sample-check");
-        } else {
-          box.classList.remove("master-sample-check");
-        }
+        if (index === 0 && !isRoutine) box.classList.add("master-sample-check");
+        else box.classList.remove("master-sample-check");
       });
     });
     updateDefectLabelRequirement();
   }
 
-  // --- مدیریت Choices.js برای لیست‌ها ---
+  function resetProcessFields() {
+    initializeAllDynamicLists({
+      parts: getPartsDataFromUI(),
+      materials: [],
+      masterbatches: [],
+    });
+    document.getElementById("mobile-weight").value = "";
+    document.getElementById("mobile-cycleTime").value = "";
+    const typeSelect = document.getElementById("mobile-inspection-type");
+    if (typeSelect) {
+      typeSelect.value = "initial";
+      updateFormMode();
+    }
+    showToast(
+      "قالب تغییر کرد؛ مشخصات فرآیندی ریست و نوع تولید به 'اولیه' تغییر یافت.",
+      "info"
+    );
+  }
+
+  function getPartsDataFromUI() {
+    const partRows = document.querySelectorAll(
+      "#mobile-parts-container .part-row"
+    );
+    const parts = [];
+    partRows.forEach((row) => {
+      const selectEl = row.querySelector("select.name-input");
+      const choiceInstance = partChoices.get(selectEl);
+      if (choiceInstance) {
+        parts.push({
+          name: choiceInstance.getValue(true),
+          description: row.querySelector(".description-input").value.trim(),
+        });
+      }
+    });
+    return parts;
+  }
+
   function initializeListChoices(
     containerId,
     dataList,
@@ -411,7 +498,6 @@ export function init() {
   ) {
     const container = document.getElementById(containerId);
     if (!container) return;
-
     const rows = container.children;
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -419,17 +505,22 @@ export function init() {
       if (selectElement && !storageMap.has(selectElement)) {
         const choice = new Choices(selectElement, choicesConfig);
         choice.setChoices(getChoicesArray(dataList), "value", "label", true);
-        if (itemsData[i] && itemsData[i].name) {
+        if (itemsData[i] && itemsData[i].name)
           choice.setChoiceByValue(itemsData[i].name);
-        }
         storageMap.set(selectElement, choice);
+        if (containerId === "mobile-parts-container" && i === 0) {
+          selectElement.addEventListener("change", (event) => {
+            const newPartName = event.detail.value;
+            if (lastLoadedPartName && newPartName !== lastLoadedPartName)
+              resetProcessFields();
+            lastLoadedPartName = newPartName;
+          });
+        }
       }
     }
   }
 
-  // --- Initializers کلی ---
   function initializeAllDynamicLists(dataObj = {}) {
-    // 1. قطعات
     partChoices.forEach((c) => c.destroy());
     partChoices.clear();
     const partsContainer = document.getElementById("mobile-parts-container");
@@ -446,8 +537,6 @@ export function init() {
       partChoices,
       partsData
     );
-
-    // 2. مواد
     materialChoices.forEach((c) => c.destroy());
     materialChoices.clear();
     const matContainer = document.getElementById("mobile-materials-container");
@@ -464,8 +553,6 @@ export function init() {
       materialChoices,
       matData
     );
-
-    // 3. مستربچ
     masterbatchChoices.forEach((c) => c.destroy());
     masterbatchChoices.clear();
     const mbContainer = document.getElementById(
@@ -488,7 +575,6 @@ export function init() {
 
   function clearFieldsOnly() {
     initializeAllDynamicLists();
-
     document.getElementById("mobile-weight").value = "";
     document.getElementById("mobile-cycleTime").value = "";
     document.getElementById("mobile-defects-summary").value = "";
@@ -500,7 +586,6 @@ export function init() {
     document
       .querySelectorAll("#mobile-form-wrapper .check-box")
       .forEach((box) => (box.className = "check-box"));
-
     updateFormMode();
     updateDefectLabelRequirement();
     updateDefectLegendsSelection();
@@ -508,6 +593,7 @@ export function init() {
 
   function resetMobileForm() {
     editingIndex = null;
+    lastLoadedPartName = "";
     if (mobileDeviceChoice) mobileDeviceChoice.setChoiceByValue("");
     clearFieldsOnly();
     const addBtn = document.getElementById("mobile-add-btn");
@@ -524,16 +610,18 @@ export function init() {
   function onDeviceChange(event) {
     const deviceName = event.detail.value;
     if (!deviceName || editingIndex !== null) return;
-
     const isDuplicate = data.some((item) => item.deviceName === deviceName);
     if (isDuplicate) {
       showToast(`دستگاه "${deviceName}" قبلاً در لیست ثبت شده است!`, "warning");
       clearFieldsOnly();
       return;
     }
-
     const savedSettings = loadDeviceSettingsFromMemory(deviceName);
     if (savedSettings) {
+      lastLoadedPartName =
+        savedSettings.parts && savedSettings.parts[0]
+          ? savedSettings.parts[0].name
+          : "";
       initializeAllDynamicLists(savedSettings);
       document.getElementById("mobile-weight").value =
         savedSettings.weight || "";
@@ -542,34 +630,28 @@ export function init() {
       const typeSelect = document.getElementById("mobile-inspection-type");
       typeSelect.value = "routine";
       updateFormMode();
-      showToast("تنظیمات ذخیره شده بارگذاری شد.", "info");
+      showToast("اطلاعات دستگاه بارگذاری شد.", "info");
     } else {
+      lastLoadedPartName = "";
       clearFieldsOnly();
     }
   }
 
   function validateAndScroll(element, message) {
     if (!element) return;
-
     if (
       element.tagName === "SELECT" &&
       element.classList.contains("name-input")
     ) {
       const choiceWrapper = element.closest(".choices");
       if (choiceWrapper) choiceWrapper.classList.add("required-field-error");
-    } else {
-      element.classList.add("required-field-error");
-    }
-
+    } else element.classList.add("required-field-error");
     const targetToScroll = element.closest(".choices") || element;
     targetToScroll.scrollIntoView({ behavior: "smooth", block: "center" });
-
     setTimeout(() => {
-      if (typeof element.focus === "function") {
+      if (typeof element.focus === "function")
         element.focus({ preventScroll: true });
-      }
     }, 100);
-
     showToast(message, "error");
   }
 
@@ -577,7 +659,6 @@ export function init() {
     pageElement
       .querySelectorAll(".required-field-error")
       .forEach((el) => el.classList.remove("required-field-error"));
-
     const topFields = [
       { id: "date_input", msg: "تاریخ الزامی است." },
       { id: "hall_input", msg: "سالن الزامی است." },
@@ -591,7 +672,6 @@ export function init() {
         return;
       }
     }
-
     const deviceName = mobileDeviceChoice.getValue(true);
     if (!deviceName) {
       const choicesEl = document
@@ -602,7 +682,6 @@ export function init() {
       choicesEl.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-
     if (editingIndex === null) {
       const isDuplicate = data.some((item) => item.deviceName === deviceName);
       if (isDuplicate) {
@@ -613,7 +692,6 @@ export function init() {
         return;
       }
     }
-
     const partRows = document.querySelectorAll(
       "#mobile-parts-container .part-row"
     );
@@ -623,14 +701,12 @@ export function init() {
       const choiceInstance = partChoices.get(selectEl);
       const partName = choiceInstance ? choiceInstance.getValue(true) : "";
       const description = row.querySelector(".description-input").value.trim();
-
       if (!partName) {
         validateAndScroll(selectEl, "نام قطعه الزامی است.");
         return;
       }
       parts.push({ name: partName, description: description });
     }
-
     const mode = document.getElementById("mobile-inspection-type").value;
     if (!mode) {
       validateAndScroll(
@@ -639,11 +715,9 @@ export function init() {
       );
       return;
     }
-
     const materials = [];
     const masterbatches = [];
     let totalPercentage = 0;
-
     const materialRows = document.querySelectorAll(
       "#mobile-materials-container .material-row"
     );
@@ -654,22 +728,22 @@ export function init() {
       const description = row.querySelector(".description-input").value.trim();
       const percentageStr = row.querySelector(".numeric-input").value.trim();
       const percentage = parseFloat(percentageStr);
-
       if (matName || percentageStr) {
         if (!matName) {
           validateAndScroll(selectEl, "نام مواد را انتخاب کنید.");
           return;
         }
         if (isNaN(percentage) || percentageStr === "") {
-          const inputEl = row.querySelector(".numeric-input");
-          validateAndScroll(inputEl, "درصد مواد الزامی است.");
+          validateAndScroll(
+            row.querySelector(".numeric-input"),
+            "درصد مواد الزامی است."
+          );
           return;
         }
         materials.push({ name: matName, description, percentage });
         totalPercentage += percentage;
       }
     }
-
     const mbRows = document.querySelectorAll(
       "#mobile-masterbatches-container .masterbatch-row"
     );
@@ -680,30 +754,29 @@ export function init() {
       const description = row.querySelector(".description-input").value.trim();
       const percentageStr = row.querySelector(".numeric-input").value.trim();
       const percentage = parseFloat(percentageStr);
-
       if (mbName || percentageStr) {
         if (!mbName) {
           validateAndScroll(selectEl, "نام مستربچ را انتخاب کنید.");
           return;
         }
         if (isNaN(percentage) || percentageStr === "") {
-          const inputEl = row.querySelector(".numeric-input");
-          validateAndScroll(inputEl, "درصد مستربچ الزامی است.");
+          validateAndScroll(
+            row.querySelector(".numeric-input"),
+            "درصد مستربچ الزامی است."
+          );
           return;
         }
         masterbatches.push({ name: mbName, description, percentage });
         totalPercentage += percentage;
       }
     }
-
     if (materials.length === 0 && masterbatches.length === 0) {
-      const firstMatInput = document.querySelector(
-        "#mobile-materials-container select"
+      validateAndScroll(
+        document.querySelector("#mobile-materials-container select"),
+        "لطفاً حداقل یک ماده مصرفی وارد کنید."
       );
-      validateAndScroll(firstMatInput, "لطفاً حداقل یک ماده مصرفی وارد کنید.");
       return;
     }
-
     if (Math.abs(totalPercentage - 100) > 0.1) {
       document
         .getElementById("mobile-materials-container")
@@ -714,7 +787,6 @@ export function init() {
       );
       return;
     }
-
     const weight = document.getElementById("mobile-weight").value.trim();
     if (!weight || isNaN(weight) || weight <= 0) {
       validateAndScroll(
@@ -723,7 +795,6 @@ export function init() {
       );
       return;
     }
-
     const cycleTime = document.getElementById("mobile-cycleTime").value.trim();
     if (!cycleTime || isNaN(cycleTime) || cycleTime <= 0) {
       validateAndScroll(
@@ -732,10 +803,8 @@ export function init() {
       );
       return;
     }
-
     const isRoutine = mode === "routine";
     const activeCount = isRoutine ? 2 : 5;
-
     if (!isRoutine) {
       const masterInput = document.querySelector(
         '#serial-inputs-wrapper .serial-input[data-index="0"]'
@@ -774,7 +843,6 @@ export function init() {
       serialValues.push(val);
     }
     while (serialValues.length < 5) serialValues.push("");
-
     const checkProps = ["appearance", "assembly", "packaging"];
     const checkData = {};
     for (const prop of checkProps) {
@@ -805,7 +873,6 @@ export function init() {
       }
       while (checkData[prop].length < 5) checkData[prop].push(null);
     }
-
     const hasNg = Object.values(checkData).flat().includes("ng");
     const defectsSummary = document
       .getElementById("mobile-defects-summary")
@@ -817,7 +884,6 @@ export function init() {
       );
       return;
     }
-
     const newItem = {
       deviceName,
       parts,
@@ -831,12 +897,10 @@ export function init() {
       notes: document.getElementById("mobile-notes").value.trim(),
       ...checkData,
     };
-
     const partNamesJoined = parts.map((p) => p.name).join("، ");
     const displayIndex =
       editingIndex !== null ? editingIndex + 1 : data.length + 1;
     const actionVerb = editingIndex !== null ? "ویرایش" : "ثبت";
-
     if (editingIndex !== null) {
       data[editingIndex] = { ...data[editingIndex], ...newItem };
       saveDeviceSettingsToMemory(newItem);
@@ -844,12 +908,10 @@ export function init() {
       data.push(createNewItem(newItem));
       saveDeviceSettingsToMemory(newItem);
     }
-
     showToast(
       `${displayIndex}، ${deviceName}، ${partNamesJoined} با موفقیت ${actionVerb} شد`,
       "success"
     );
-
     render();
     resetMobileForm();
     setTimeout(() => {
@@ -874,7 +936,6 @@ export function init() {
       const badgeColor =
         item.inspectionType === "routine" ? "#e2e3e5" : "#fff3cd";
       const validSerials = item.serialNumbers.filter((s) => s).join(" - ");
-
       const headerHTML = `
     <div class="summary-card-header">
      <h2 class="summary-card-title">${index + 1}. ${
@@ -890,7 +951,6 @@ export function init() {
       </div>
      </div>
     </div>`;
-
       const processInfoHTML = `
     <div class="card-details-row">
      ${
@@ -925,26 +985,23 @@ export function init() {
          : ""
      }
     </div>`;
-
       const getCheckSummary = (prop, icon, label) => {
         const activeCount = item.inspectionType === "routine" ? 2 : 5;
         const slicedArr = (item[prop] || []).slice(0, activeCount);
-        const ok = slicedArr.filter((s) => s === "ok").length;
-        const ng = slicedArr.filter((s) => s === "ng").length;
+        const ok = slicedArr.filter((s) => s === "ok").length,
+          ng = slicedArr.filter((s) => s === "ng").length;
         if (ok > 0 || ng > 0)
           return `<span><i class="bi ${icon}"></i> ${label}: ${
             ok > 0 ? `<span class="check-ok">OK:${ok}</span>` : ""
           } ${ng > 0 ? `<span class="check-ng">NG:${ng}</span>` : ""}</span>`;
         return "";
       };
-
       const qualityInfoHTML = `
     <div class="card-details-row quality-row">
      ${getCheckSummary("appearance", "bi-eye-fill", "ظاهری")}
      ${getCheckSummary("assembly", "bi-tools", "مونتاژی")}
      ${getCheckSummary("packaging", "bi-box-seam", "بسته‌بندی")}
     </div>`;
-
       const defectsAndNotesHTML =
         item.defectsSummary || item.notes
           ? `
@@ -961,7 +1018,6 @@ export function init() {
      }
     </div>`
           : "";
-
       const inspectionInfoHTML = `
     <div class="card-details-row">
      <span class="inspection-badge" style="background-color: ${badgeColor};"><i class="bi bi-tag-fill"></i> ${typeLabel}</span>
@@ -971,26 +1027,17 @@ export function init() {
          : ""
      }
     </div>`;
-
-      li.innerHTML = `
-    ${headerHTML}
-    <div class="summary-card-details">
-     ${inspectionInfoHTML}
-     ${processInfoHTML}
-     ${qualityInfoHTML}
-     ${defectsAndNotesHTML}
-    </div>`;
+      li.innerHTML = `${headerHTML}<div class="summary-card-details">${inspectionInfoHTML}${processInfoHTML}${qualityInfoHTML}${defectsAndNotesHTML}</div>`;
       mobileSummaryList.appendChild(li);
     });
     updateDefectLegendsSelection();
+    saveCurrentSession(); // ذخیره خودکار در پیش‌نویس
   }
 
   function populateMobileForm(item) {
     editingIndex = data.findIndex((d) => d.id === item.id);
     if (mobileDeviceChoice)
       mobileDeviceChoice.setChoiceByValue(item.deviceName || "");
-
-    // ایجاد ردیف خالی در صورت نبود داده (برای ویرایش)
     const safeItem = {
       ...item,
       parts:
@@ -1006,14 +1053,11 @@ export function init() {
           ? item.masterbatches
           : [{ name: "", description: "", percentage: "" }],
     };
-
     initializeAllDynamicLists(safeItem);
-
     document.getElementById("mobile-inspection-type").value =
       item.inspectionType || "initial";
     document.getElementById("mobile-weight").value = item.weight || "";
     document.getElementById("mobile-cycleTime").value = item.cycleTime;
-
     const serialInputs = document.querySelectorAll(
       "#serial-inputs-wrapper .serial-input"
     );
@@ -1050,6 +1094,7 @@ export function init() {
     data = [];
     editingIndex = null;
     finalizedData = {};
+    lastLoadedPartName = "";
     pageElement.classList.remove("form-locked");
     pageElement
       .querySelectorAll("input, button, .choices, select")
@@ -1122,6 +1167,7 @@ export function init() {
       showToast(errors[0]);
       return;
     }
+
     Swal.fire({
       title: "ثبت نهایی فرم",
       text: "پس از تایید، فرم قفل شده و دانلود فایل‌ها آغاز می‌شود.",
@@ -1133,18 +1179,22 @@ export function init() {
       cancelButtonText: "انصراف",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        // محاسبه ایندکس زمان (اصلاح شده: کم کردن یک واحد به خاطر Placeholder)
-        const selectedIndex =
-          document.getElementById("time_slot_input").selectedIndex;
-        const timeIndex = ((selectedIndex - 1) % 4) + 1;
+        const timeSlotVal = document.getElementById("time_slot_input").value;
+        let timeRangeFileName = "";
+        if (timeSlotVal && timeSlotVal.includes("-")) {
+          const hours = timeSlotVal
+            .split("-")
+            .map((part) => parseInt(part.trim().split(":")[0], 10));
+          timeRangeFileName = `(${hours[0]}تا${hours[1]})`;
+        } else timeRangeFileName = timeSlotVal;
 
         finalizedData = {
           globalInfo: {
             date: document.getElementById("date_input").value,
             hall: document.getElementById("hall_input").value,
             shift: document.getElementById("shift_input").value,
-            time: document.getElementById("time_slot_input").value,
-            timeIndex: timeIndex,
+            time: timeSlotVal,
+            timeRangeFileName: timeRangeFileName,
             qc: document.getElementById("approver-qc").value.trim(),
             prod: document.getElementById("approver-prod").value.trim(),
             shiftManager: document
@@ -1154,7 +1204,6 @@ export function init() {
           tableData: JSON.parse(JSON.stringify(data)),
         };
 
-        // قفل کردن فرم
         pageElement.classList.add("form-locked");
         pageElement.querySelectorAll("input, button, select").forEach((el) => {
           el.disabled = true;
@@ -1163,29 +1212,27 @@ export function init() {
         partChoices.forEach((c) => c.disable());
         materialChoices.forEach((c) => c.disable());
         masterbatchChoices.forEach((c) => c.disable());
-
         const finalizeBtn = pageElement.querySelector("#finalize-btn");
-        if (finalizeBtn) {
+        if (finalizeBtn)
           finalizeBtn.innerHTML = `<i class="bi bi-lock-fill"></i> در حال پردازش...`;
-        }
 
-        // اجرای اکسپورت‌ها
         try {
           showToast("در حال آماده‌سازی فایل اکسل...", "info");
           exportToCSV();
+
+          await new Promise((resolve) => setTimeout(resolve, 2000)); // وقفه برای تبلت
+
           showToast("در حال آماده‌سازی تصویر...", "info");
           await exportToImage();
 
-          if (finalizeBtn) {
+          if (finalizeBtn)
             finalizeBtn.innerHTML = `<i class="bi bi-check2-all"></i> فرم ثبت و دانلود شد`;
-          }
           showToast("فرم با موفقیت ثبت و فایل‌ها دانلود شدند.", "success");
         } catch (error) {
           console.error(error);
           showToast("خطا در دانلود فایل‌ها", "error");
-          if (finalizeBtn) {
+          if (finalizeBtn)
             finalizeBtn.innerHTML = `<i class="bi bi-exclamation-triangle"></i> خطا در دانلود`;
-          }
         }
       }
     });
@@ -1199,7 +1246,8 @@ export function init() {
       "تاریخ",
       "سالن",
       "شیفت",
-      "ساعت",
+      "بازه زمانی",
+      "ساعت ثبت",
       "نام دستگاه",
       "قطعات (توضیحات)",
       "نوع بازرسی",
@@ -1226,10 +1274,10 @@ export function init() {
     ];
     let csvContent = "\uFEFF" + headers.join(",") + "\r\n";
     tableData.forEach((item, index) => {
-      const clean = (cell) => {
-        if (cell === null || cell === undefined || cell === "") return '"0"';
-        return `"${cell.toString().replace(/"/g, '""')}"`;
-      };
+      const clean = (cell) =>
+        cell === null || cell === undefined || cell === ""
+          ? '"0"'
+          : `"${cell.toString().replace(/"/g, '""')}"`;
       const ok = (prop) => {
         const activeCount = item.inspectionType === "routine" ? 2 : 5;
         return (item[prop] || [])
@@ -1242,31 +1290,24 @@ export function init() {
           .slice(0, activeCount)
           .filter((s) => s === "ng").length;
       };
-
-      const partsString = formatPartsList(item.parts);
-      const materialsString = formatCompoundList(item.materials);
-      const masterbatchesString = formatCompoundList(item.masterbatches);
-      const inspectionTypeLabel =
-        item.inspectionType === "routine" ? "دوره‌ای" : "اولیه";
-      const serial1 = item.serialNumbers[0] ? `\t${item.serialNumbers[0]}` : "";
-
       const row = [
         index + 1,
         globalInfo.date,
         globalInfo.hall,
         globalInfo.shift,
         globalInfo.time,
+        item.timestamp,
         item.deviceName,
-        partsString,
-        inspectionTypeLabel,
-        serial1,
+        formatPartsList(item.parts),
+        item.inspectionType === "routine" ? "دوره‌ای" : "اولیه",
+        item.serialNumbers[0] ? `\t${item.serialNumbers[0]}` : "",
         item.serialNumbers[1],
         item.serialNumbers[2],
         item.serialNumbers[3],
         item.serialNumbers[4],
         item.weight,
-        materialsString,
-        masterbatchesString,
+        formatCompoundList(item.materials),
+        formatCompoundList(item.masterbatches),
         item.cycleTime,
         ok("appearance"),
         ng("appearance"),
@@ -1286,21 +1327,16 @@ export function init() {
     const link = document.createElement("a"),
       url = URL.createObjectURL(blob);
     link.href = url;
-    // فرمت تاریخ با نقطه: 1402.09.26
-    const fileName = `Tazrigh_${globalInfo.date.replace(/\//g, ".")}_${
+    link.download = `Tazrigh_${globalInfo.date.replace(/\//g, ".")}_${
       globalInfo.shift
-    }_${globalInfo.timeIndex}.csv`;
-    link.download = fileName;
+    }_${globalInfo.timeRangeFileName}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   }
 
-  // ===== تابع جدید اکسپورت عکس (اصلاح چیدمان متن) =====
   async function exportToImage() {
     if (Object.keys(finalizedData).length === 0) return;
-
-    // ایجاد یک کپی ایزوله برای پرینت
     const printContainerOriginal = document.querySelector(
       ".print-page-container"
     );
@@ -1309,166 +1345,103 @@ export function init() {
       : document.createElement("div");
     if (!printContainerOriginal)
       printContainer.className = "print-page-container";
-
     printContainer.style.position = "absolute";
     printContainer.style.left = "-9999px";
     printContainer.style.visibility = "visible";
     printContainer.style.opacity = "1";
     printContainer.style.background = "#fff";
     document.body.appendChild(printContainer);
-
     try {
       const { globalInfo, tableData } = finalizedData;
-      // فرمت تاریخ با نقطه
       const baseFileName = `Tazrigh_${globalInfo.date.replace(/\//g, ".")}_${
         globalInfo.shift
-      }_${globalInfo.timeIndex}`;
-
+      }_${globalInfo.timeRangeFileName}`;
       const buildFullPageHTML = (itemsHTML) => {
         const originalHeader = document.getElementById("main-header");
         const originalHeaderHTML = originalHeader
           ? originalHeader.cloneNode(true).outerHTML
           : "";
-
-        const topInfoHTML = `
-            <div class="export-top-info" style="display:flex; justify-content:space-between; padding:15px; border:1px solid #ddd; border-radius:8px; margin-bottom:20px; background:#f8f9fa;">
-                <div><strong>تاریخ:</strong> ${globalInfo.date}</div>
-                <div><strong>سالن:</strong> ${globalInfo.hall}</div>
-                <div><strong>شیفت:</strong> ${globalInfo.shift}</div>
-                <div><strong>ساعت:</strong> ${globalInfo.time}</div>
-            </div>`;
-
-        const approvalHTML = `
-            <div class="approvers-container" style="margin-top:20px; border-top:2px solid #333; padding-top:15px; display:flex; justify-content:space-between; flex-wrap:wrap;">
-                <div class="approver-group" style="margin:5px 0;"><label>۱. بازرس QC:</label> <span class="approver-group-name" style="font-weight:bold;">${globalInfo.qc}</span></div>
-                <div class="approver-group" style="margin:5px 0;"><label>۲. سرپرست شیفت:</label> <span class="approver-group-name" style="font-weight:bold;">${globalInfo.prod}</span></div>
-                <div class="approver-group" style="margin:5px 0;"><label>۳. سرپرست QC:</label> <span class="approver-group-name" style="font-weight:bold;">${globalInfo.shiftManager}</span></div>
-            </div>`;
-
-        const pageFooterHTML = `<footer style="text-align:center; font-size:10px; margin-top:10px; color:#777;">تهیه شده توسط سیستم کنترل کیفیت</footer>`;
-
-        return `
-            <div style="padding:20px; font-family:'Vazirmatn', Tahoma, sans-serif; direction:rtl;">
-                ${originalHeaderHTML}
-                ${topInfoHTML}
-                <div class="export-items-list" style="display:flex; flex-direction:column; gap:12px;">
-                    ${itemsHTML}
-                </div>
-                ${approvalHTML}
-                ${pageFooterHTML}
-            </div>`;
+        const topInfoHTML = `<div class="export-top-info" style="display:flex; justify-content:space-between; padding:15px; border:1px solid #ddd; border-radius:8px; margin-bottom:20px; background:#f8f9fa;"><div><strong>تاریخ:</strong> ${globalInfo.date}</div><div><strong>سالن:</strong> ${globalInfo.hall}</div><div><strong>شیفت:</strong> ${globalInfo.shift}</div><div><strong>ساعت:</strong> ${globalInfo.time}</div></div>`;
+        const approvalHTML = `<div class="approvers-container" style="margin-top:20px; border-top:2px solid #333; padding-top:15px; display:flex; justify-content:space-between; flex-wrap:wrap;"><div class="approver-group" style="margin:5px 0;"><label>۱. بازرس QC:</label> <span class="approver-group-name" style="font-weight:bold;">${globalInfo.qc}</span></div><div class="approver-group" style="margin:5px 0;"><label>۲. سرپرست شیفت:</label> <span class="approver-group-name" style="font-weight:bold;">${globalInfo.prod}</span></div><div class="approver-group" style="margin:5px 0;"><label>۳. سرپرست QC:</label> <span class="approver-group-name" style="font-weight:bold;">${globalInfo.shiftManager}</span></div></div>`;
+        return `<div style="padding:20px; font-family:'Vazirmatn', Tahoma, sans-serif; direction:rtl;">${originalHeaderHTML}${topInfoHTML}<div class="export-items-list" style="display:flex; flex-direction:column; gap:12px;">${itemsHTML}</div>${approvalHTML}<footer style="text-align:center; font-size:10px; margin-top:10px; color:#777;">تهیه شده توسط سیستم کنترل کیفیت</footer></div>`;
       };
-
       const createItemCardHTML = (item, index) => {
         const partNamesText =
           item.parts && item.parts.length > 0
             ? formatPartsList(item.parts)
             : "قطعه نامشخص";
-
         const typeLabel =
           item.inspectionType === "routine" ? "دوره‌ای" : "اولیه";
         const typeColor =
           item.inspectionType === "routine" ? "#6c757d" : "#ffc107";
-        const typeBadge = `<span style="background-color:${typeColor}; color:${
-          item.inspectionType === "routine" ? "white" : "#000"
-        }; padding:2px 8px; border-radius:12px; font-size:11px; margin-left:8px;">${typeLabel}</span>`;
-
-        // اصلاح نمایش نام قطعه: حذف Flexbox و استفاده از Inline Block ساده برای جلوگیری از تداخل
-        const headerHTML = `
-            <div class="summary-card-header" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; border-bottom:1px solid #eee; padding-bottom:8px;">
-                <h2 class="summary-card-title" style="font-size:16px; margin:0; color:#0d6efd; text-align:right; direction:rtl;">
-                    <span style="font-weight:bold; display:inline;">${
-                      index + 1
-                    }. ${item.deviceName}</span>
-                    &nbsp;
-                    <span style="font-size:13px; color:#555; margin-right:8px; font-weight:normal; display:inline-block;">(${partNamesText})</span>
-                </h2>
-                <span class="summary-timestamp" style="font-size:11px; color:#666;">
-                    ${typeBadge}
-                    <i class="bi bi-clock"></i> ${item.timestamp}
-                </span>
-            </div>`;
-
-        let detailsHTML = "";
-        if (item.materials && item.materials.length > 0) {
-          detailsHTML += `<span style="margin-left:10px; display:inline-flex; align-items:center; gap:4px;"><i class="bi bi-palette-fill" style="color:#fd7e14;"></i> ${formatCompoundList(
-            item.materials
-          )}</span> `;
-        }
-        if (item.masterbatches && item.masterbatches.length > 0) {
-          detailsHTML += `<span style="margin-left:10px; display:inline-flex; align-items:center; gap:4px;"><i class="bi bi-paint-bucket" style="color:#20c997;"></i> ${formatCompoundList(
-            item.masterbatches
-          )}</span> `;
-        }
-        if (item.weight) {
-          detailsHTML += `<span style="margin-left:10px; display:inline-flex; align-items:center; gap:4px;"><i class="bi bi-speedometer2" style="color:#6610f2;"></i> ${item.weight}g</span> `;
-        }
-        if (item.cycleTime) {
-          detailsHTML += `<span style="margin-left:10px; display:inline-flex; align-items:center; gap:4px;"><i class="bi bi-hourglass-split" style="color:#0d6efd;"></i> ${item.cycleTime}s</span> `;
-        }
-        const validSerials = item.serialNumbers.filter((s) => s).join(" - ");
-        if (validSerials) {
-          detailsHTML += `<span style="margin-left:10px; display:inline-flex; align-items:center; gap:4px;"><i class="bi bi-barcode" style="color:#333;"></i> ${validSerials}</span>`;
-        }
-        const processInfoHTML = `<div class="card-details-row" style="font-size:12px; color:#555; margin-bottom:8px; line-height:1.6;">${detailsHTML}</div>`;
-
         const getCheckSummary = (prop, label) => {
           const activeCount = item.inspectionType === "routine" ? 2 : 5;
           const slicedArr = (item[prop] || []).slice(0, activeCount);
-          const ok = slicedArr.filter((s) => s === "ok").length;
-          const ng = slicedArr.filter((s) => s === "ng").length;
+          const ok = slicedArr.filter((s) => s === "ok").length,
+            ng = slicedArr.filter((s) => s === "ng").length;
           if (ok > 0 || ng > 0)
             return `<span style="margin-left:12px;">${label}: <b style="color:#198754">OK:${ok}</b> <b style="color:#dc3545">NG:${ng}</b></span>`;
           return "";
         };
-        const qualityInfoHTML = `
-            <div class="card-details-row quality-row" style="font-size:12px; margin-bottom:8px; background:#f8f9fa; padding:4px 8px; border-radius:4px;">
-                ${getCheckSummary("appearance", "ظاهری")}
-                ${getCheckSummary("assembly", "مونتاژی")}
-                ${getCheckSummary("packaging", "بسته‌بندی")}
-            </div>`;
-
-        let notesHTML = "";
-        if (item.defectsSummary) {
-          notesHTML += `<div style="color:#dc3545; font-size:12px; margin-bottom:2px;">⚠️ نقص: ${item.defectsSummary}</div>`;
-        }
-        if (item.notes) {
-          notesHTML += `<div style="color:#555; font-size:12px;">📝 ${item.notes}</div>`;
-        }
-        const defectsAndNotesHTML = notesHTML
-          ? `<div class="card-details-row notes-row" style="border-top:1px dashed #eee; padding-top:5px; margin-top:5px;">${notesHTML}</div>`
-          : "";
-
-        return `
-            <div class="summary-card-item" style="border:1px solid #ccc; border-right:4px solid #0d6efd; border-radius:6px; padding:12px; background:#fff; page-break-inside:avoid;">
-                ${headerHTML}
-                <div class="summary-card-details">
-                    ${processInfoHTML}
-                    ${qualityInfoHTML}
-                    ${defectsAndNotesHTML}
-                </div>
-            </div>`;
+        let detailsHTML = "";
+        if (item.materials?.length)
+          detailsHTML += `<span style="margin-left:10px;"><i class="bi bi-palette-fill" style="color:#fd7e14;"></i> ${formatCompoundList(
+            item.materials
+          )}</span> `;
+        if (item.masterbatches?.length)
+          detailsHTML += `<span style="margin-left:10px;"><i class="bi bi-paint-bucket" style="color:#20c997;"></i> ${formatCompoundList(
+            item.masterbatches
+          )}</span> `;
+        if (item.weight)
+          detailsHTML += `<span style="margin-left:10px;"><i class="bi bi-speedometer2" style="color:#6610f2;"></i> ${item.weight}g</span> `;
+        if (item.cycleTime)
+          detailsHTML += `<span style="margin-left:10px;"><i class="bi bi-hourglass-split" style="color:#0d6efd;"></i> ${item.cycleTime}s</span> `;
+        const validSerials = item.serialNumbers.filter((s) => s).join(" - ");
+        if (validSerials)
+          detailsHTML += `<span style="margin-left:10px;"><i class="bi bi-barcode"></i> ${validSerials}</span>`;
+        return `<div class="summary-card-item" style="border:1px solid #ccc; border-right:4px solid #0d6efd; border-radius:6px; padding:12px; background:#fff; page-break-inside:avoid;"><div class="summary-card-header" style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:8px;"><h2 style="font-size:16px; margin:0; color:#0d6efd;">${
+          index + 1
+        }. ${
+          item.deviceName
+        } <span style="font-size:13px; color:#555; font-weight:normal;">(${partNamesText})</span></h2><span style="font-size:11px; color:#666;"><span style="background-color:${typeColor}; color:${
+          item.inspectionType === "routine" ? "white" : "#000"
+        }; padding:2px 8px; border-radius:12px; margin-left:8px;">${typeLabel}</span><i class="bi bi-clock"></i> ${
+          item.timestamp
+        }</span></div><div style="font-size:12px; color:#555; line-height:1.6;">${detailsHTML}</div><div style="font-size:12px; background:#f8f9fa; padding:4px 8px; border-radius:4px; margin-top:8px;">${getCheckSummary(
+          "appearance",
+          "ظاهری"
+        )}${getCheckSummary("assembly", "مونتاژی")}${getCheckSummary(
+          "packaging",
+          "بسته‌بندی"
+        )}</div>${
+          item.defectsSummary || item.notes
+            ? `<div style="border-top:1px dashed #eee; padding-top:5px; margin-top:5px;">${
+                item.defectsSummary
+                  ? `<div style="color:#dc3545; font-size:12px;">⚠️ ${item.defectsSummary}</div>`
+                  : ""
+              }${
+                item.notes
+                  ? `<div style="color:#555; font-size:12px;">📝 ${item.notes}</div>`
+                  : ""
+              }</div>`
+            : ""
+        }</div>`;
       };
-
-      const allItemsHTML = tableData.map(createItemCardHTML).join("");
-      printContainer.innerHTML = buildFullPageHTML(allItemsHTML);
-
+      printContainer.innerHTML = buildFullPageHTML(
+        tableData.map(createItemCardHTML).join("")
+      );
       await inlineAllStyles(printContainer);
       await document.fonts.ready;
       await new Promise((resolve) => setTimeout(resolve, 200));
-
       const canvas = await html2canvas(printContainer, {
         useCORS: true,
         scale: window.devicePixelRatio || 2,
-        scrollX: -window.scrollX,
-        scrollY: -window.scrollY,
         windowWidth: printContainer.scrollWidth,
         windowHeight: printContainer.scrollHeight,
       });
-
       downloadFile(canvas.toDataURL("image/png"), `${baseFileName}.png`);
     } catch (err) {
-      console.error("خطا در ایجاد تصویر:", err);
+      console.error("Error creating image:", err);
       showToast("خطا در ایجاد خروجی تصویر.", "error");
     } finally {
       if (printContainer.parentNode) document.body.removeChild(printContainer);
@@ -1521,6 +1494,7 @@ export function init() {
     else currentDefects.add(defectName);
     targetInput.value = Array.from(currentDefects).join(" | ");
     updateDefectLegendsSelection();
+    saveCurrentSession();
   }
 
   function updateDefectLegendsSelection() {
@@ -1551,6 +1525,7 @@ export function init() {
     else if (currentState.includes("ng")) checkBox.className = "check-box";
     else checkBox.className = "check-box ok";
     updateDefectLabelRequirement();
+    saveCurrentSession();
   }
 
   function deleteItem(id) {
@@ -1593,12 +1568,11 @@ export function init() {
         currentNum++;
         nextInput.value = String(currentNum).padStart(4, "0");
       }
+      saveCurrentSession();
     });
   }
 
-  // Event Listeners
   addSafeEventListener("#finalize-btn", "click", finalizeForm);
-  // دکمه‌های دستی حذف شدند، نیازی به لیسنر نیست
   addSafeEventListener("#mobile-add-btn", "click", handleMobileSubmit);
   addSafeEventListener("#mobile-inspection-type", "change", updateFormMode);
   legendsMainContainer.addEventListener("click", handleDefectClick);
@@ -1614,39 +1588,32 @@ export function init() {
         )
       );
   });
-
   pageElement.addEventListener("click", (e) => {
-    const addBtn = e.target.closest(".add-material-btn");
-    const removeBtn = e.target.closest(".remove-material-btn");
+    const addBtn = e.target.closest(".add-material-btn"),
+      removeBtn = e.target.closest(".remove-material-btn");
     if (addBtn) {
       const container = addBtn.closest(".dynamic-list-wrapper");
-      let newRowHTML = "";
-      let listData = [];
-      let storageMap = null;
-
-      switch (container.id) {
-        case "mobile-parts-container":
-          newRowHTML = createPartRowHTML();
-          listData = injectionChecklistData.parts;
-          storageMap = partChoices;
-          break;
-        case "mobile-materials-container":
-          newRowHTML = createMaterialRowHTML();
-          listData = injectionChecklistData.materials;
-          storageMap = materialChoices;
-          break;
-        case "mobile-masterbatches-container":
-          newRowHTML = createMasterbatchRowHTML();
-          listData = injectionChecklistData.masterbatches;
-          storageMap = masterbatchChoices;
-          break;
+      let newRowHTML = "",
+        listData = [],
+        storageMap = null;
+      if (container.id === "mobile-parts-container") {
+        newRowHTML = createPartRowHTML();
+        listData = injectionChecklistData.parts;
+        storageMap = partChoices;
+      } else if (container.id === "mobile-materials-container") {
+        newRowHTML = createMaterialRowHTML();
+        listData = injectionChecklistData.materials;
+        storageMap = materialChoices;
+      } else if (container.id === "mobile-masterbatches-container") {
+        newRowHTML = createMasterbatchRowHTML();
+        listData = injectionChecklistData.masterbatches;
+        storageMap = masterbatchChoices;
       }
-
       if (newRowHTML) {
         container.insertAdjacentHTML("beforeend", newRowHTML);
         const newRow = container.lastElementChild;
-        const selectElement = newRow.querySelector("select.name-input");
-        const choice = new Choices(selectElement, choicesConfig);
+        const selectElement = newRow.querySelector("select.name-input"),
+          choice = new Choices(selectElement, choicesConfig);
         choice.setChoices(getChoicesArray(listData), "value", "label", true);
         storageMap.set(selectElement, choice);
       }
@@ -1657,19 +1624,14 @@ export function init() {
       );
       if (row && row.parentElement.children.length > 1) {
         const selectElement = row.querySelector("select.name-input");
-        if (partChoices.has(selectElement)) {
-          partChoices.get(selectElement).destroy();
-          partChoices.delete(selectElement);
-        }
-        if (materialChoices.has(selectElement)) {
-          materialChoices.get(selectElement).destroy();
-          materialChoices.delete(selectElement);
-        }
-        if (masterbatchChoices.has(selectElement)) {
-          masterbatchChoices.get(selectElement).destroy();
-          masterbatchChoices.delete(selectElement);
-        }
+        [partChoices, materialChoices, masterbatchChoices].forEach((map) => {
+          if (map.has(selectElement)) {
+            map.get(selectElement).destroy();
+            map.delete(selectElement);
+          }
+        });
         row.remove();
+        saveCurrentSession();
       }
     }
   });
@@ -1687,12 +1649,32 @@ export function init() {
           ? "check-box"
           : "check-box ng";
         updateDefectLabelRequirement();
+        saveCurrentSession();
       }, 500);
     },
     { passive: true }
   );
   pageElement.addEventListener("touchend", () => clearTimeout(touchTimer));
   pageElement.addEventListener("touchmove", () => clearTimeout(touchTimer));
+
+  [
+    "approver-qc",
+    "approver-prod",
+    "approver-shift",
+    "mobile-notes",
+    "mobile-weight",
+    "mobile-cycleTime",
+  ].forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", saveCurrentSession);
+  });
+
+  ["date_input", "hall_input", "shift_input", "time_slot_input"].forEach(
+    (id) => {
+      document
+        .getElementById(id)
+        ?.addEventListener("change", checkAndRestoreSession);
+    }
+  );
 
   setupDate();
   setupTopControls();
@@ -1705,5 +1687,7 @@ export function init() {
   resetMobileForm();
   render();
   setupAutoSerialIncrement();
+  autoCleanupDrafts();
+
   window.activeFormResetter = resetFormWithConfirmation;
 }

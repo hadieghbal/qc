@@ -1,4 +1,4 @@
-const CACHE_NAME = "qc v13"; // ✅ تغییر نسخه جدید برای اطمینان از به‌روزرسانی کش (از v7 به v8)
+const CACHE_NAME = "qc v15"; // ✅ تغییر نسخه جدید برای اطمینان از به‌روزرسانی کش (از v7 به v8)
 const BASE_PATH = "/qc"; // مسیر پایه پروژه
 
 const FILES_TO_CACHE = [
