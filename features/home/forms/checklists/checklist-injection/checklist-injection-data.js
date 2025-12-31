@@ -1,6 +1,6 @@
 export const injectionChecklistData = {
   formOptions: {
-    halls: ["A", "B", "C"],
+    halls: ["A", "B", "C", "A-B-C"],
     shifts: ["صبح", "شب"],
     timeSlots: [
       "07:00 - 10:00",
